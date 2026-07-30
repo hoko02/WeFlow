@@ -1,0 +1,30 @@
+{
+  "events": [
+    {
+      "schema_id": "https://weflow.local/contracts/v1/business-event.schema.json",
+      "schema_version": "v1",
+      "tenant_id": "tenant-demo",
+      "event_id": "event-later",
+      "case_id": "case-001",
+      "case_revision_id": "revision-001",
+      "event_type": "foundation.later.v1",
+      "occurred_at": "2026-07-29T00:02:00Z",
+      "received_at": "2026-07-29T00:03:00Z",
+      "correlation_id": "trace-001",
+      "causation_id": "event-earlier"
+    },
+    {
+      "schema_id": "https://weflow.local/contracts/v1/business-event.schema.json",
+      "schema_version": "v1",
+      "tenant_id": "tenant-demo",
+      "event_id": "event-earlier",
+      "case_id": "case-001",
+      "case_revision_id": "revision-001",
+      "event_type": "foundation.earlier.v1",
+      "occurred_at": "2026-07-29T00:01:00Z",
+      "received_at": "2026-07-29T00:04:00Z",
+      "correlation_id": "trace-001",
+      "causation_id": null
+    }
+  ]
+}

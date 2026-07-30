@@ -1,0 +1,7 @@
+{
+  "fixture_id": "foundation-happy-path",
+  "synthetic": true,
+  "source": "local-replay",
+  "proposed_action": null,
+  "notes": "Foundation-only fixture; it is not a customer issue or external provider request."
+}

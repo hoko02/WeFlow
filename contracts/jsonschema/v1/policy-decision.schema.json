@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/policy-decision.schema.json",
+  "title": "PolicyDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "policy_decision_id", "case_id", "case_revision_id", "decision", "reason_code", "evidence_hashes", "decided_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/policy-decision.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "policy_decision_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "decision": {"enum": ["allow", "deny"]},
+    "reason_code": {"type": "string", "minLength": 1},
+    "evidence_hashes": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}},
+    "decided_at": {"type": "string", "minLength": 1},
+    "trace_id": {"type": "string", "minLength": 1}
+  }
+}

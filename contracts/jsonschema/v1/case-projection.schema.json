@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/case-projection.schema.json",
+  "title": "CaseProjection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "tenant_id",
+    "case_id",
+    "latest_case_revision_id",
+    "latest_revision",
+    "state",
+    "source_event_id",
+    "event_count",
+    "correlation_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/case-projection.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "latest_case_revision_id": {"type": "string", "minLength": 1},
+    "latest_revision": {"type": "integer", "minimum": 1},
+    "state": {"type": "string", "pattern": "^[A-Z_]+$"},
+    "source_event_id": {"type": "string", "minLength": 1},
+    "event_count": {"type": "integer", "minimum": 1},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1},
+    "updated_at": {"type": "string", "minLength": 1}
+  }
+}

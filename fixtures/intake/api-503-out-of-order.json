@@ -1,0 +1,24 @@
+{
+  "fixture_id": "api-503-out-of-order",
+  "synthetic": true,
+  "actor_id": "simulator-tenant-a",
+  "inbound_message": {
+    "schema_id": "https://weflow.local/contracts/v1/inbound-message-event.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-alpha",
+    "channel": "synthetic-im",
+    "channel_event_id": "im-api-503-003",
+    "conversation_id": "conversation-api-503-alpha",
+    "sender_id": "sender-api-503-alpha",
+    "customer_id": "customer-api-503-alpha",
+    "conversation_sequence": 3,
+    "occurred_at": "2026-07-29T00:10:00Z",
+    "received_at": "2026-07-29T00:10:01Z",
+    "correlation_id": "trace-api-503-003",
+    "content_classification": "synthetic",
+    "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "expected": {
+    "reason_code": "inbound_out_of_order"
+  }
+}

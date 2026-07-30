@@ -1,0 +1,20 @@
+{
+  "case": {
+    "schema_id": "https://weflow.local/contracts/v1/case.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-alpha",
+    "case_id": "case-alpha",
+    "created_at": "2026-07-29T00:00:00Z"
+  },
+  "evidence": {
+    "schema_id": "https://weflow.local/contracts/v1/evidence-reference.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-beta",
+    "evidence_id": "evidence-beta",
+    "artifact_id": "artifact-beta",
+    "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "media_type": "application/json",
+    "redaction_classification": "synthetic",
+    "producer": "business-simulator"
+  }
+}

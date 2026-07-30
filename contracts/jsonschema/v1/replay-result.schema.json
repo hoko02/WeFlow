@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/replay-result.schema.json",
+  "title": "ReplayResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "replay_result_id", "replay_request_id", "mode", "result", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/replay-result.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "replay_result_id": {"type": "string", "minLength": 1},
+    "replay_request_id": {"type": "string", "minLength": 1},
+    "mode": {"const": "replay"},
+    "result": {"enum": ["accepted", "rejected", "fault-injected"]},
+    "recorded_at": {"type": "string", "minLength": 1},
+    "fault_profile": {"type": ["string", "null"]}
+  }
+}

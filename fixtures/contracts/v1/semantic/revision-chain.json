@@ -1,0 +1,26 @@
+{
+  "revisions": [
+    {
+      "schema_id": "https://weflow.local/contracts/v1/case-revision.schema.json",
+      "schema_version": "v1",
+      "tenant_id": "tenant-demo",
+      "case_id": "case-001",
+      "case_revision_id": "revision-001",
+      "revision": 1,
+      "previous_case_revision_id": null,
+      "created_at": "2026-07-29T00:00:01Z",
+      "reason": "initial-capture"
+    },
+    {
+      "schema_id": "https://weflow.local/contracts/v1/case-revision.schema.json",
+      "schema_version": "v1",
+      "tenant_id": "tenant-demo",
+      "case_id": "case-001",
+      "case_revision_id": "revision-002",
+      "revision": 2,
+      "previous_case_revision_id": "revision-001",
+      "created_at": "2026-07-29T00:01:01Z",
+      "reason": "target-changed"
+    }
+  ]
+}

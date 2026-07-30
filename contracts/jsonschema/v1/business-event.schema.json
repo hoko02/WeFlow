@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/business-event.schema.json",
+  "title": "BusinessEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "event_id", "case_id", "case_revision_id", "event_type", "occurred_at", "received_at", "correlation_id"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/business-event.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "event_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "event_type": {"type": "string", "minLength": 1},
+    "occurred_at": {"type": "string", "minLength": 1},
+    "received_at": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "causation_id": {"type": ["string", "null"]},
+    "case_event_index": {"type": "integer", "minimum": 1},
+    "payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

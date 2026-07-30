@@ -1,0 +1,48 @@
+{
+  "raw-message-body": {
+    "schema_id": "https://weflow.local/contracts/v1/inbound-message-event.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-demo",
+    "channel": "synthetic-im",
+    "channel_event_id": "im-event-invalid-body",
+    "conversation_id": "conversation-demo",
+    "sender_id": "sender-demo",
+    "customer_id": "customer-demo",
+    "conversation_sequence": 1,
+    "occurred_at": "2026-07-29T00:00:00Z",
+    "received_at": "2026-07-29T00:00:01Z",
+    "correlation_id": "trace-intake-invalid-body",
+    "content_classification": "synthetic",
+    "content_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "body": "forbidden"
+  },
+  "invalid-content-hash": {
+    "schema_id": "https://weflow.local/contracts/v1/inbound-message-event.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-demo",
+    "channel": "synthetic-im",
+    "channel_event_id": "im-event-invalid-hash",
+    "conversation_id": "conversation-demo",
+    "sender_id": "sender-demo",
+    "customer_id": "customer-demo",
+    "conversation_sequence": 1,
+    "occurred_at": "2026-07-29T00:00:00Z",
+    "received_at": "2026-07-29T00:00:01Z",
+    "correlation_id": "trace-intake-invalid-hash",
+    "content_classification": "synthetic",
+    "content_sha256": "not-a-sha256"
+  },
+  "case-projection-missing-state": {
+    "schema_id": "https://weflow.local/contracts/v1/case-projection.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-demo",
+    "case_id": "case-invalid",
+    "latest_case_revision_id": "revision-invalid",
+    "latest_revision": 1,
+    "source_event_id": "event-invalid",
+    "event_count": 3,
+    "correlation_id": "trace-invalid",
+    "created_at": "2026-07-29T00:00:01Z",
+    "updated_at": "2026-07-29T00:00:02Z"
+  }
+}

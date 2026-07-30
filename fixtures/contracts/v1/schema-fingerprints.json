@@ -1,0 +1,19 @@
+{
+  "https://weflow.local/contracts/v1/approval-decision.schema.json": "6f75a8729ae8ec36c40f7e63328ac3efe3129857ec2602509273664c8200536b",
+  "https://weflow.local/contracts/v1/approval-request.schema.json": "8d3d7a65d2bf42b9b4fdba3e436b05d1d5ced1fd94a21e32f01b4c2cde95bde4",
+  "https://weflow.local/contracts/v1/artifact.schema.json": "69061970e0978415db3f8dc20295a2e5a36e9ceeb42bd67b84dc4d788ea7e711",
+  "https://weflow.local/contracts/v1/business-event.schema.json": "b98f3138fa5e882242e252490687051200cac4d45881b88eae63032b8b9ccfa8",
+  "https://weflow.local/contracts/v1/capability-grant.schema.json": "51d00c932fd0f2add7937ba0dda0d95ef3a6788c2054fbfa2b2b8cc0c3af9e40",
+  "https://weflow.local/contracts/v1/case-projection.schema.json": "1425616e596316146f8895314cfb6786bcb8552536fd0d8ea38bec460b665e41",
+  "https://weflow.local/contracts/v1/case-revision.schema.json": "943546878c8bc59a8b1e493c2e9891117529592f3a78074f969cf0d716d91d99",
+  "https://weflow.local/contracts/v1/case.schema.json": "bf3e3ba295925707503631b54d2e64f90b144c5641fad2fd091f789db1875fef",
+  "https://weflow.local/contracts/v1/evaluation-case.schema.json": "7e3b8da699f1ab2e55527d4795462dced26ed9e7b5a9ed84edd5e9c7daffa307",
+  "https://weflow.local/contracts/v1/evaluation-result.schema.json": "07e56684d6fac950aee012f73b134d2db7b958b34bae0dbeaba7d96a6be62742",
+  "https://weflow.local/contracts/v1/evidence-reference.schema.json": "8d08be3c01da777b30221a49b1e6ed356093e0022c1cfbd13b63b131525b06f1",
+  "https://weflow.local/contracts/v1/external-write-intent.schema.json": "ccacdad511ef7e46be650717e3d94dfe676b3d579d3e765b5a2e980f5e1dc577",
+  "https://weflow.local/contracts/v1/health-status.schema.json": "63f7c6262989a59a0026638925cc533e575cfc8e2f6cb69025e0bf84accd5d3a",
+  "https://weflow.local/contracts/v1/inbound-message-event.schema.json": "fbaef62ef1d2f0ff711425ad303f04a7e8ff97184f0897e8f1044d5b6232afba",
+  "https://weflow.local/contracts/v1/policy-decision.schema.json": "1a1f4c9ead2cdb74fa66175ab79721b54af5e5317a823a7765cab080142a7a3a",
+  "https://weflow.local/contracts/v1/replay-request.schema.json": "482279d6f9575af2d006c07ecaa481d57c2e5f9a24d9cf58da0e933022eaf4a0",
+  "https://weflow.local/contracts/v1/replay-result.schema.json": "91974f4f5487a64b278b55d8df709e3dc7a5d3a45fb95d06dfc2a8c7bb4e7a1a"
+}

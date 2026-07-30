@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/inbound-message-event.schema.json",
+  "title": "InboundMessageEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "tenant_id",
+    "channel",
+    "channel_event_id",
+    "conversation_id",
+    "sender_id",
+    "customer_id",
+    "conversation_sequence",
+    "occurred_at",
+    "received_at",
+    "correlation_id",
+    "content_classification",
+    "content_sha256"
+  ],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/inbound-message-event.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "channel": {"const": "synthetic-im"},
+    "channel_event_id": {"type": "string", "minLength": 1},
+    "conversation_id": {"type": "string", "minLength": 1},
+    "sender_id": {"type": "string", "minLength": 1},
+    "customer_id": {"type": "string", "minLength": 1},
+    "conversation_sequence": {"type": "integer", "minimum": 1},
+    "occurred_at": {"type": "string", "minLength": 1},
+    "received_at": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "content_classification": {"const": "synthetic"},
+    "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

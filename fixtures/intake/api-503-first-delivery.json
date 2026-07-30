@@ -1,0 +1,30 @@
+{
+  "fixture_id": "api-503-first-delivery",
+  "synthetic": true,
+  "actor_id": "simulator-tenant-a",
+  "inbound_message": {
+    "schema_id": "https://weflow.local/contracts/v1/inbound-message-event.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-alpha",
+    "channel": "synthetic-im",
+    "channel_event_id": "im-api-503-001",
+    "conversation_id": "conversation-api-503-alpha",
+    "sender_id": "sender-api-503-alpha",
+    "customer_id": "customer-api-503-alpha",
+    "conversation_sequence": 1,
+    "occurred_at": "2026-07-29T00:00:00Z",
+    "received_at": "2026-07-29T00:00:01Z",
+    "correlation_id": "trace-api-503-001",
+    "content_classification": "synthetic",
+    "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "expected": {
+    "disposition": "accepted",
+    "state": "RECEIVED",
+    "event_types": [
+      "inbound.received.v1",
+      "case.revision-created.v1",
+      "case.state-transitioned.v1"
+    ]
+  }
+}

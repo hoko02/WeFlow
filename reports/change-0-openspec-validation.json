@@ -1,0 +1,13 @@
+{
+  "report_type": "weflow-openspec-validation.v1",
+  "change": "establish-weflow-foundation",
+  "verified_on": "2026-07-29",
+  "command": "openspec validate establish-weflow-foundation --type change --strict --json",
+  "result": {
+    "valid": true,
+    "items": 1,
+    "passed": 1,
+    "failed": 0,
+    "issues": []
+  }
+}

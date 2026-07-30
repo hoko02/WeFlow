@@ -1,0 +1,44 @@
+schema: spec-driven
+
+context: |
+  WeFlow is an enterprise-IM-native customer-issue resolution Agent Reliability Harness.
+  The first vertical slice is a synthetic enterprise API 503 incident flowing through
+  identity/SLA enrichment, evidence-based investigation, idempotent ticketing, a
+  hash-bound human approval, outbound reply, knowledge candidate, trace replay, and eval.
+
+  Current phase: exploration and specification only. No application capability is
+  considered implemented unless an archived OpenSpec change and its verification evidence
+  say so. Read README.md and docs/PROJECT_MEMORY.md before planning any change.
+
+  Architecture principles inherited from ForgeCode: one verifiable vertical slice first;
+  immutable revisions; durable workflow plus an append-only business event ledger;
+  intent/reconcile/execute/complete for external side effects; model-external capability,
+  policy, budget, verifier, and approval gates; content-addressed evidence; replay fixtures;
+  fault injection; machine-readable baselines.
+
+  Proposed stack to lock in the foundation change: Python/FastAPI/Temporal/PostgreSQL and
+  OpenTelemetry for control/runtime, TypeScript/Vue for the console, uv and pnpm workspaces.
+  M1 uses deterministic business simulators and a Replay Agent adapter; real WeCom/Tencent
+  adapters and multi-agent collaboration are later, gated changes.
+
+rules:
+  proposal:
+    - Scope each change to one independently verifiable vertical increment.
+    - Include explicit non-goals and identify which claims remain simulated or unverified.
+    - State affected contracts, services, data, security boundaries, tests, and docs.
+    - Do not enable real external writes by default.
+  design:
+    - Separate deterministic workflow/control decisions from model decisions.
+    - Define state transitions, immutable identities/revisions, idempotency keys, and reconciliation.
+    - Define model-external policy, budget, verifier, approval, evidence, and failure behavior.
+    - Include negative paths, fault injection, observability, replay, and migration/rollback.
+    - Justify any multi-agent design against a single-agent baseline and cost.
+  specs:
+    - Use normative SHALL requirements with concrete WHEN/THEN scenarios.
+    - Include duplicate delivery, out-of-order events, restart, timeout, policy denial, and stale approval scenarios.
+    - Make security and no-duplicate-side-effect requirements hard gates, not weighted preferences.
+  tasks:
+    - Order work contract-first, then persistence/control, runtime/tools, verification, UI, and docs.
+    - Pair each implementation task with automated acceptance or evidence generation.
+    - Keep tasks small enough to complete and verify independently; never pre-check unfinished work.
+    - End each change with strict OpenSpec validation, machine-readable reports, and documentation updates.

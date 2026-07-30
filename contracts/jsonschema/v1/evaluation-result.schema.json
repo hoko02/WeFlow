@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+  "title": "EvaluationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "evaluation_result_id", "evaluation_case_id", "result", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/evaluation-result.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "evaluation_result_id": {"type": "string", "minLength": 1},
+    "evaluation_case_id": {"type": "string", "minLength": 1},
+    "result": {"enum": ["passed", "failed", "not-run"]},
+    "recorded_at": {"type": "string", "minLength": 1},
+    "failure_classification": {"type": ["string", "null"]}
+  }
+}

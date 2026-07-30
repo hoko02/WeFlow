@@ -1,0 +1,19 @@
+{
+  "effective_tenant_id": "tenant-other",
+  "inbound_message": {
+    "schema_id": "https://weflow.local/contracts/v1/inbound-message-event.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-demo",
+    "channel": "synthetic-im",
+    "channel_event_id": "im-event-tenant-mismatch",
+    "conversation_id": "conversation-demo",
+    "sender_id": "sender-demo",
+    "customer_id": "customer-demo",
+    "conversation_sequence": 1,
+    "occurred_at": "2026-07-29T00:00:00Z",
+    "received_at": "2026-07-29T00:00:01Z",
+    "correlation_id": "trace-intake-tenant-mismatch",
+    "content_classification": "synthetic",
+    "content_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  }
+}

@@ -1,0 +1,25 @@
+[project]
+name = "weflow-business-simulator"
+version = "0.1.0"
+description = "WeFlow deterministic business-simulator skeleton"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "weflow-contracts",
+  "weflow-telemetry",
+  "weflow-testkit",
+  "weflow-control-kernel",
+]
+
+[tool.uv.sources]
+weflow-contracts = { workspace = true }
+weflow-telemetry = { workspace = true }
+weflow-control-kernel = { workspace = true }
+weflow-testkit = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/weflow_business_simulator"]

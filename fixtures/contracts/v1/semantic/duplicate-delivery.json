@@ -1,0 +1,43 @@
+{
+  "idempotency_material": {
+    "tenant_id": "tenant-demo",
+    "provider_id": "simulated-ticketing",
+    "operation": "propose-ticket",
+    "natural_key": "tenant-demo:case-001:revision-001",
+    "intended_state_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "intents": [
+    {
+      "schema_id": "https://weflow.local/contracts/v1/external-write-intent.schema.json",
+      "schema_version": "v1",
+      "tenant_id": "tenant-demo",
+      "intent_id": "intent-duplicate-001",
+      "stage": "intent",
+      "provider_id": "simulated-ticketing",
+      "operation": "propose-ticket",
+      "natural_key": "tenant-demo:case-001:revision-001",
+      "intended_state_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "idempotency_key": "77c58f1d0533460784d902a5d3d3216922ce67f7264b34d867b3e2331df4bb8f",
+      "case_id": "case-001",
+      "case_revision_id": "revision-001",
+      "evidence_references": ["evidence-001"],
+      "created_at": "2026-07-29T00:00:04Z"
+    },
+    {
+      "schema_id": "https://weflow.local/contracts/v1/external-write-intent.schema.json",
+      "schema_version": "v1",
+      "tenant_id": "tenant-demo",
+      "intent_id": "intent-duplicate-002",
+      "stage": "intent",
+      "provider_id": "simulated-ticketing",
+      "operation": "propose-ticket",
+      "natural_key": "tenant-demo:case-001:revision-001",
+      "intended_state_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "idempotency_key": "77c58f1d0533460784d902a5d3d3216922ce67f7264b34d867b3e2331df4bb8f",
+      "case_id": "case-001",
+      "case_revision_id": "revision-001",
+      "evidence_references": ["evidence-001"],
+      "created_at": "2026-07-29T00:00:05Z"
+    }
+  ]
+}

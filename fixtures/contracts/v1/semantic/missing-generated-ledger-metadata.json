@@ -1,0 +1,13 @@
+{
+  "schema_id": "https://weflow.local/contracts/v1/business-event.schema.json",
+  "schema_version": "v1",
+  "tenant_id": "tenant-demo",
+  "event_id": "event-missing-ledger-metadata",
+  "case_id": "case-001",
+  "case_revision_id": "revision-001",
+  "event_type": "inbound.received.v1",
+  "occurred_at": "2026-07-29T00:00:01Z",
+  "received_at": "2026-07-29T00:00:01Z",
+  "correlation_id": "trace-001",
+  "causation_id": null
+}

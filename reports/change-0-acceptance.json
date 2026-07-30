@@ -1,0 +1,59 @@
+{
+  "report_type": "weflow-change-0-acceptance.v1",
+  "change": "establish-weflow-foundation",
+  "verified_on": "2026-07-29",
+  "offline_environment": {
+    "command": "python scripts/dev.py check",
+    "exit_code": 0,
+    "ready": true,
+    "network_required": false,
+    "docker_required": false,
+    "model_credentials_required": false
+  },
+  "quality_checks": {
+    "commands": [
+      "python scripts/dev.py lint",
+      "python scripts/dev.py contracts",
+      "python scripts/dev.py test"
+    ],
+    "secret_hygiene_passed": true,
+    "python_lint_passed": true,
+    "typescript_typecheck_passed": true,
+    "python_tests": {
+      "passed": 47,
+      "skipped": 1,
+      "skip_reason": "Docker unavailable: service-boundary acceptance requires local Compose dependencies."
+    },
+    "typescript_contract_valid_payloads": 14,
+    "console_status_check": {
+      "rendered_status": "not-ready",
+      "configuration_values_rendered": false
+    }
+  },
+  "offline_process_verification": {
+    "command_sequence": [
+      "python scripts/dev.py up --mode offline",
+      "python scripts/dev.py health",
+      "python scripts/dev.py down"
+    ],
+    "operational_ready": true,
+    "services_ready": [
+      "platform-api",
+      "control-worker",
+      "agent-runtime",
+      "business-simulator",
+      "web-console"
+    ],
+    "business_workflow_implemented": false,
+    "external_writes_enabled": false
+  },
+  "service_boundary": {
+    "compose_status_exit_code": 2,
+    "reason_code": "docker_unavailable",
+    "live_dependency_startup_verified": false
+  },
+  "determinism": {
+    "repeated_offline_baseline_test_passed": true,
+    "health_report_excludes_pids_and_timestamps": true
+  }
+}

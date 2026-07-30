@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/case-revision.schema.json",
+  "title": "CaseRevision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "revision", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/case-revision.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1},
+    "previous_case_revision_id": {"type": ["string", "null"]},
+    "created_at": {"type": "string", "minLength": 1},
+    "reason": {"type": "string", "minLength": 1},
+    "source_event_id": {"type": "string", "minLength": 1},
+    "source_event_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

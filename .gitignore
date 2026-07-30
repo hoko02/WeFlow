@@ -1,0 +1,42 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+apps/web-console/check-dist/
+*.tsbuildinfo
+
+# Local configuration and runtime state
+.env
+.env.local
+.env.*.local
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+.weflow/
+
+# Generated reports and local artifacts
+reports/*
+!reports/.gitkeep
+!reports/change-0-acceptance.json
+!reports/change-0-openspec-validation.json
+!reports/change-1-acceptance.json
+!reports/change-1-openspec-validation.json
+artifacts/*
+!artifacts/.gitkeep
+
+# Operating system / editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+

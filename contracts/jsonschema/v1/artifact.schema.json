@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/artifact.schema.json",
+  "title": "Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "artifact_id", "content_sha256", "media_type", "redaction_classification", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/artifact.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "artifact_id": {"type": "string", "minLength": 1},
+    "content_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "media_type": {"type": "string", "minLength": 1},
+    "redaction_classification": {"enum": ["synthetic", "redacted", "restricted"]},
+    "created_at": {"type": "string", "minLength": 1},
+    "producer": {"type": "string", "minLength": 1}
+  }
+}

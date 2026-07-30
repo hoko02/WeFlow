@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-07-29
+goal: Turn synthetic enterprise-IM input into a tenant-isolated Case with
+  immutable revisions and auditable append-only events, without workflows or
+  external writes.

@@ -1,0 +1,42 @@
+[project]
+name = "weflow-workspace"
+version = "0.1.0"
+description = "Enterprise-IM Agent Reliability Harness workspace"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3,<10",
+  "ruff>=0.11,<1",
+  "httpx2",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+  "apps/agent-runtime",
+  "apps/business-simulator",
+  "apps/control-worker",
+  "apps/platform-api",
+  "packages/python/weflow-contracts",
+  "packages/python/weflow-control-kernel",
+  "packages/python/weflow-extension-sdk",
+  "packages/python/weflow-telemetry",
+  "packages/python/weflow-testkit",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+

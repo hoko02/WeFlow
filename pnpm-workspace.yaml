@@ -1,0 +1,6 @@
+packages:
+  - apps/web-console
+  - packages/typescript/*
+
+allowBuilds:
+  esbuild: true

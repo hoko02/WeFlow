@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/external-write-intent.schema.json",
+  "title": "ExternalWriteIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "intent_id", "stage", "provider_id", "operation", "natural_key", "intended_state_hash", "idempotency_key", "case_id", "case_revision_id", "evidence_references", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/external-write-intent.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "intent_id": {"type": "string", "minLength": 1},
+    "stage": {"const": "intent"},
+    "provider_id": {"type": "string", "minLength": 1},
+    "operation": {"type": "string", "minLength": 1},
+    "natural_key": {"type": "string", "minLength": 1},
+    "intended_state_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "idempotency_key": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "evidence_references": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

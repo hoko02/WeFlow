@@ -1,0 +1,43 @@
+{
+  "accepted": true,
+  "approval_started": false,
+  "capabilities": {
+    "business_workflow_implemented": false,
+    "external_writes_enabled": false,
+    "synthetic_case_intake_implemented": true
+  },
+  "customer_resolution_declared": false,
+  "docker_required": false,
+  "fixture_results": {
+    "api-503-duplicate-delivery": {
+      "http_status": 200,
+      "outcome": "deduplicated"
+    },
+    "api-503-first-delivery": {
+      "http_status": 201,
+      "outcome": "accepted"
+    },
+    "api-503-out-of-order": {
+      "http_status": 409,
+      "outcome": "inbound_out_of_order"
+    }
+  },
+  "mode": "offline",
+  "model_credentials_required": false,
+  "model_invoked": false,
+  "network_required": false,
+  "report_type": "weflow-change-1-acceptance.v1",
+  "snapshot": {
+    "content_sha256": "63e73da0d41087b35cec490b1f36b6eea27d03b21ca1095be941e20bd7ef0c1e",
+    "restored": true,
+    "tenant_count": 1
+  },
+  "source_counts": {
+    "business_events": 3,
+    "case_projection": 1,
+    "case_revisions": 1,
+    "cases": 1,
+    "inbound_receipts": 1
+  },
+  "workflow_started": false
+}

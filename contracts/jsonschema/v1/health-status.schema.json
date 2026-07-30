@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/health-status.schema.json",
+  "title": "HealthStatus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["service", "live", "ready", "state", "mode", "components", "limitations"],
+  "properties": {
+    "service": {"type": "string", "minLength": 1},
+    "live": {"type": "boolean"},
+    "ready": {"type": "boolean"},
+    "state": {"enum": ["ready", "not-ready", "not-started", "configuration-denied"]},
+    "mode": {"enum": ["offline", "service-boundary", "unknown"]},
+    "components": {"type": "array"},
+    "policy_denial": {"type": ["object", "null"]},
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}

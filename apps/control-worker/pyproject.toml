@@ -1,0 +1,23 @@
+[project]
+name = "weflow-control-worker"
+version = "0.1.0"
+description = "WeFlow control-worker skeleton"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "weflow-contracts",
+  "weflow-control-kernel",
+  "weflow-telemetry",
+]
+
+[tool.uv.sources]
+weflow-contracts = { workspace = true }
+weflow-control-kernel = { workspace = true }
+weflow-telemetry = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/weflow_control_worker"]

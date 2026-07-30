@@ -1,0 +1,49 @@
+name: weflow-foundation-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  offline-foundation:
+    runs-on: ubuntu-latest
+    env:
+      WEFLOW_MODE: offline
+      WEFLOW_PROVIDER_MODE: replay
+      WEFLOW_PROVIDER_ALLOW_LIVE: "false"
+      WEFLOW_EXTERNAL_WRITE_ENABLED: "false"
+      WEFLOW_MULTI_AGENT_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.30"
+      - name: Install local workspaces
+        run: |
+          corepack enable
+          uv sync --all-packages --all-groups --frozen
+          pnpm install --frozen-lockfile
+      - name: Check safe offline environment
+        run: python scripts/dev.py check
+      - name: Lint and secret hygiene
+        run: python scripts/dev.py lint
+      - name: Verify cross-language contracts
+        run: python scripts/dev.py contracts
+      - name: Run offline acceptance and optional-boundary skip evidence
+        run: uv run pytest -rs
+      - name: Build and verify the console status renderer
+        run: pnpm --filter @weflow/web-console test
+      - name: Start offline skeletons for the health report
+        run: python scripts/dev.py up --mode offline
+      - name: Emit a machine-readable ready report
+        run: python scripts/dev.py health
+      - name: Stop offline skeletons
+        if: always()
+        run: python scripts/dev.py down
