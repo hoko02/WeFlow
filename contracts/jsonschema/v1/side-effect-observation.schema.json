@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/side-effect-observation.schema.json",
+  "title": "SideEffectObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id", "observation_id", "intent_id", "status", "observed_ticket_id", "observed_version", "outcome_sha256", "reason_code", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/side-effect-observation.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "workflow_id": {"type": "string", "minLength": 1},
+    "checkpoint_id": {"type": "string", "minLength": 1},
+    "observation_id": {"type": "string", "minLength": 1},
+    "intent_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["absent", "present", "unknown", "conflict"]},
+    "observed_ticket_id": {"type": ["string", "null"]},
+    "observed_version": {"type": ["integer", "null"], "minimum": 1},
+    "outcome_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "reason_code": {"type": ["string", "null"]},
+    "recorded_at": {"type": "string", "minLength": 1}
+  }
+}

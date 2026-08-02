@@ -1,0 +1,75 @@
+{
+  "report_type": "weflow-change-2-verification.v1",
+  "change": "add-durable-support-workflow",
+  "verified_on": "2026-08-02",
+  "commands": {
+    "environment": {
+      "command": "uv run python scripts/dev.py check",
+      "exit_code": 0,
+      "ready": true,
+      "mode": "offline",
+      "network_required": false,
+      "docker_required": false,
+      "model_credentials_required": false
+    },
+    "lint": {
+      "command": "uv run python scripts/dev.py lint",
+      "exit_code": 0,
+      "secret_hygiene_passed": true,
+      "python_lint_passed": true,
+      "typescript_lint_passed": true
+    },
+    "contracts": {
+      "command": "uv run python scripts/dev.py contracts",
+      "exit_code": 0,
+      "python_contract_tests_passed": 28,
+      "typescript_valid_payloads": 23,
+      "typescript_invalid_payloads": 15
+    },
+    "test": {
+      "command": "uv run python scripts/dev.py test",
+      "exit_code": 0,
+      "python_test_groups_passed": ["contracts", "unit", "integration", "security", "e2e"],
+      "typescript_test_passed": true
+    },
+    "lock": {
+      "command": "uv lock --check",
+      "exit_code": 0,
+      "package_count": 48
+    },
+    "openspec": {
+      "command": "npx.cmd openspec validate add-durable-support-workflow --type change --strict --json",
+      "exit_code": 0,
+      "valid": true,
+      "issue_count": 0
+    }
+  },
+  "acceptance_reports": {
+    "change_1": {
+      "path": "reports/change-1-acceptance.json",
+      "accepted": true
+    },
+    "change_2": {
+      "path": "reports/change-2-acceptance.json",
+      "accepted": true,
+      "repeated_baseline_equal": true,
+      "fault_points_recovered": 8,
+      "external_writes_enabled": false,
+      "business_workflow_implemented": false
+    }
+  },
+  "local_limitations": {
+    "node_engine": {
+      "required": ">=24.0.0 <25",
+      "observed": "22.21.1",
+      "status": "warning",
+      "meaning": "TypeScript lint, contract checks, tests, and console build passed, but Node 24-specific behavior was not verified locally."
+    },
+    "service_boundary": {
+      "docker_available": false,
+      "temporal_live_verification": false,
+      "skipped_tests": 2,
+      "skip_reason": "Docker unavailable: service-boundary acceptance requires local Compose dependencies."
+    }
+  }
+}

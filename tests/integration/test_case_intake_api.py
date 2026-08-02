@@ -142,12 +142,15 @@ def test_api_tenant_boundary_and_invalid_input_do_not_disclose_raw_data(tmp_path
     assert "tenant-alpha" not in foreign.text
 
 
-def test_capability_report_marks_only_synthetic_intake_as_implemented(tmp_path: Path) -> None:
+def test_capability_report_marks_the_narrow_intake_and_durable_workflow_slices(
+    tmp_path: Path,
+) -> None:
     client, _ = make_client(tmp_path)
 
     capabilities = client.get("/foundation/capabilities")
 
     assert capabilities.status_code == 200
     assert capabilities.json()["synthetic_case_intake_implemented"] is True
+    assert capabilities.json()["durable_support_workflow_implemented"] is True
     assert capabilities.json()["business_workflow_implemented"] is False
     assert capabilities.json()["external_writes_enabled"] is False

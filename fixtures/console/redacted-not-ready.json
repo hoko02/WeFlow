@@ -16,6 +16,13 @@
     "reason_code": "replay_only",
     "status": "denied"
   },
-  "limitations": ["foundation-only", "no-business-workflow", "no-external-writes"],
+  "limitations": [
+    "fixture-local-durable-workflow-only",
+    "no-business-workflow",
+    "no-agent-or-provider",
+    "no-approval-or-outbound-delivery",
+    "no-customer-resolution",
+    "no-external-writes"
+  ],
   "blocked_setting": "a-real-provider"
 }

@@ -1,4 +1,4 @@
-"""Local-only process orchestration for Change 0 service skeletons."""
+"""Local-only process orchestration for the fixture-backed Change 2 harness."""
 
 from __future__ import annotations
 
@@ -18,6 +18,15 @@ ROOT = Path(__file__).resolve().parents[1]
 STATE_DIRECTORY = ROOT / ".weflow"
 STATE_FILE = STATE_DIRECTORY / "processes.json"
 LOG_DIRECTORY = STATE_DIRECTORY / "logs"
+
+_LIMITATIONS = [
+    "fixture-local-durable-workflow-only",
+    "no-business-workflow",
+    "no-agent-or-provider",
+    "no-approval-or-outbound-delivery",
+    "no-customer-resolution",
+    "no-external-writes",
+]
 
 
 @dataclass(frozen=True)
@@ -177,11 +186,7 @@ def _probe(definition: ServiceDefinition) -> dict[str, Any]:
                     "mode": "offline",
                     "components": [{"name": "vite-dev-server", "ready": True, "reason_code": None}],
                     "policy_denial": None,
-                    "limitations": [
-                        "foundation-only",
-                        "no-business-workflow",
-                        "no-external-writes",
-                    ],
+                    "limitations": _LIMITATIONS,
                 }
             payload = json.loads(body)
             return payload
@@ -196,7 +201,7 @@ def _probe(definition: ServiceDefinition) -> dict[str, Any]:
                 {"name": "process", "ready": False, "reason_code": "loopback_health_unavailable"}
             ],
             "policy_denial": None,
-            "limitations": ["foundation-only", "no-business-workflow", "no-external-writes"],
+            "limitations": _LIMITATIONS,
         }
 
 
@@ -239,6 +244,7 @@ def start_services(mode: str) -> dict[str, Any]:
             "mode": mode,
             "services": statuses,
             "business_workflow_implemented": False,
+            "durable_support_workflow_implemented": True,
             "external_writes_enabled": False,
         }
     except OSError:
@@ -295,7 +301,7 @@ def runtime_report() -> dict[str, Any]:
                 "mode": "unknown",
                 "components": [{"name": "process", "ready": False, "reason_code": "not_started"}],
                 "policy_denial": None,
-                "limitations": ["foundation-only", "no-business-workflow", "no-external-writes"],
+                "limitations": _LIMITATIONS,
             }
             for definition in definitions
         ]
@@ -308,6 +314,7 @@ def runtime_report() -> dict[str, Any]:
         "processes_started": state is not None,
         "operational_ready": all(status.get("ready") for status in statuses),
         "business_workflow_implemented": False,
+        "durable_support_workflow_implemented": True,
         "external_writes_enabled": False,
         "mode": mode,
         "services": statuses,

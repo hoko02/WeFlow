@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/workflow-command.schema.json",
+  "title": "WorkflowCommand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "workflow_id", "command_id", "command_type", "expected_workflow_version", "command_payload_sha256", "requested_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/workflow-command.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "workflow_id": {"type": "string", "minLength": 1},
+    "command_id": {"type": "string", "minLength": 1},
+    "command_type": {"enum": ["pause", "resume", "cancel"]},
+    "expected_workflow_version": {"type": "integer", "minimum": 0},
+    "command_payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "requested_at": {"type": "string", "minLength": 1}
+  }
+}

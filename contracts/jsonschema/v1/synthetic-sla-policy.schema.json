@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/synthetic-sla-policy.schema.json",
+  "title": "SyntheticSlaPolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "policy_id", "policy_version", "deadline_seconds", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/synthetic-sla-policy.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "policy_id": {"type": "string", "minLength": 1},
+    "policy_version": {"type": "string", "minLength": 1},
+    "deadline_seconds": {"type": "integer", "minimum": 1, "maximum": 604800},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

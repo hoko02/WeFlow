@@ -25,7 +25,7 @@ def load_fixture(relative_path: str):
 def test_valid_payloads_are_accepted_by_canonical_schemas() -> None:
     payloads = load_fixture("valid-payloads.json")
 
-    assert len(payloads) == 16
+    assert len(payloads) == 23
     for payload in payloads.values():
         validate_payload(payload, ROOT)
 

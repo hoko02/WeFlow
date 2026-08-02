@@ -22,6 +22,9 @@ def test_parser_accepts_required_command_surface() -> None:
     assert parser.parse_args(["up", "--mode", "offline"]).mode == "offline"
     assert parser.parse_args(["compose", "status"]).action == "status"
     assert parser.parse_args(["case-intake-acceptance"]).command == "case-intake-acceptance"
+    assert (
+        parser.parse_args(["durable-workflow-acceptance"]).command == "durable-workflow-acceptance"
+    )
 
 
 def test_environment_check_rejects_forbidden_provider_without_echoing_value(monkeypatch) -> None:

@@ -9,11 +9,11 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 
 首个纵向场景锁定为“企业客户 API 503 故障支持闭环”。M1 的目标不是做通用客服平台，也不是堆叠多个 Agent，而是证明一条高价值业务链路能够稳定恢复、严格授权、避免重复副作用、留下可审计证据，并在重复运行中得到量化结果。
 
-> Current Change 1 implements only fixture-backed synthetic API-503 Case intake and immutable local evidence. It does not implement ticketing, investigation, approvals, outbound replies, external writes, or customer-resolution success.
+> Current Change 2 adds only a fixture-local durable workflow after synthetic API-503 Case intake. It can checkpoint, recover, enforce a synthetic SLA, and reconcile one local ticket handoff. It does not implement an Agent, investigation, approval, outbound reply, real provider/connector, external write, or customer-resolution success.
 
 ## 当前状态
 
-### Implemented Change 0 foundation and Change 1 synthetic intake
+### Verified Change 0/1 and active Change 2 durable-workflow implementation
 
 - Local Git repository, uv/pnpm workspace, five loopback-only skeleton services, and a Vue diagnostics console are implemented.
 - Replay is the only enabled provider path; live providers, credentials, external writes, and multi-agent coordination fail closed.
@@ -21,14 +21,15 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 - The health report separates operational readiness from unimplemented business capabilities.
 - Change 1 accepts only canonical synthetic IM envelopes, derives tenant identity from an allowlisted actor header, and creates one Case, revision 1, and three append-only ledger events.
 - Exact retries are deduplicated; conflicting replays and sequence gaps fail closed; foreign Case reads do not disclose existence.
-- The API-503 resolution workflow, real Tencent/WeCom integrations, and any customer-resolution success claim remain out of scope.
+- The active Change 2 implementation adds an append-only workflow journal, driver-neutral `RECEIVED` → `TICKET_READY` control path, immutable checkpoints, pause/resume/cancel commands, and a fixture-defined SLA clock. `TICKET_READY` means only that the local handoff is known; it is not a resolution state. It remains pending final validation and archive evidence.
+- The only effect is a deterministic, fixture-local ticket `find-or-create` plus expected-version handoff. It uses persisted `intent → reconcile → execute → observe → complete` evidence and recovery after every declared interruption boundary, including lost responses.
+- The API-503 investigation/resolution workflow, Agent/model use, real Tencent/WeCom integrations, approvals, outbound delivery, external writes, and customer-resolution success remain out of scope.
 
 ### Historical Explore snapshot (superseded)
 
-- 已运行 `openspec init --tools "codex,codebuddy"`。
-- 当前处于 OpenSpec Explore 阶段；尚未创建应用代码或活动 change。
-- 已固化产品边界、参考架构、评测方案和逐 change 开发路线。
-- 下一步建议创建第一个 change：`establish-weflow-foundation`。
+This historical note predates the archived Change 0/1 increments and the active
+Change 2 Apply work. The current status above, `docs/PROJECT_MEMORY.md`, and the
+OpenSpec change artifacts are authoritative.
 
 ## Quick start
 
@@ -43,6 +44,7 @@ python scripts/dev.py lint
 python scripts/dev.py contracts
 python scripts/dev.py test
 python scripts/dev.py case-intake-acceptance --output reports/change-1-acceptance.json
+python scripts/dev.py durable-workflow-acceptance --output reports/change-2-acceptance.json
 
 python scripts/dev.py up --mode offline
 python scripts/dev.py health
@@ -59,6 +61,7 @@ For the optional Docker-backed boundary mode, run `compose up`, then `up --mode 
 - [项目长期记忆](docs/PROJECT_MEMORY.md)
 - [Change 0 Foundation Development Guide](docs/development/change-0-foundation.md)
 - [Change 1 Synthetic Case Intake Development Guide](docs/development/change-1-case-intake.md)
+- [Change 2 Durable Support Workflow Development Guide](docs/development/change-2-durable-workflow.md)
 - [MVP 探索结论](docs/exploration/weflow-mvp-exploration.md)
 - [参考架构](docs/architecture/reference-architecture.md)
 - [OpenSpec 分步开发路线](docs/development/openspec-roadmap.md)

@@ -1,0 +1,104 @@
+{
+  "accepted": true,
+  "capabilities": {
+    "approval": false,
+    "business_workflow_implemented": false,
+    "customer_resolution": false,
+    "durable_support_workflow_implemented": true,
+    "external_writes_enabled": false,
+    "model_invocation": false,
+    "outbound_delivery": false
+  },
+  "determinism": {
+    "intentional_nondeterministic_fields": [],
+    "repeated_baseline_equal": true
+  },
+  "docker_required": false,
+  "fixture_outcomes": {
+    "fault_recovery": [
+      {
+        "checkpoint_sequence": 6,
+        "fault_point": "activation",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      },
+      {
+        "checkpoint_sequence": 6,
+        "fault_point": "checkpoint",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      },
+      {
+        "checkpoint_sequence": 6,
+        "fault_point": "intent",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      },
+      {
+        "checkpoint_sequence": 6,
+        "fault_point": "reconcile",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      },
+      {
+        "checkpoint_sequence": 6,
+        "fault_point": "execute",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      },
+      {
+        "checkpoint_sequence": 6,
+        "fault_point": "lost-response",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      },
+      {
+        "checkpoint_sequence": 6,
+        "fault_point": "observation",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      },
+      {
+        "checkpoint_sequence": 7,
+        "fault_point": "completion",
+        "operation_count": 2,
+        "state": "TICKET_READY"
+      }
+    ],
+    "synthetic_sla": {
+      "sla_event_count": 1,
+      "state": "WAITING_FOR_OPERATOR",
+      "ticket_operation_count": 0
+    },
+    "ticket_handoff": {
+      "checkpoint_sequence": 6,
+      "reconciliation": {
+        "natural_key": "tenant-alpha:case_800d63a3486b66d9d2b6927b600f6049:case_revision_7479984cce61504b03058b9aca5ba2d7",
+        "operation_count": 2,
+        "ticket_id": "fixture_ticket_4bc5d75ef11fb2ba35d934dffe49b7cb",
+        "ticket_present": true,
+        "ticket_version": 2
+      },
+      "source_counts": {
+        "fixture_ticket_operations": 2,
+        "fixture_ticket_revisions": 2,
+        "side_effect_completions": 2,
+        "side_effect_intents": 2,
+        "side_effect_observations": 4,
+        "workflow_activations": 1,
+        "workflow_checkpoints": 6,
+        "workflow_commands": 0,
+        "workflow_projection": 1,
+        "workflow_runs": 7,
+        "workflow_sla_events": 0
+      },
+      "state": "TICKET_READY",
+      "workflow_id": "workflow_3aa289d85ad18cdc3a5f01f01121e6ef",
+      "workflow_version": 5
+    }
+  },
+  "model_credentials_required": false,
+  "network_required": false,
+  "offline": true,
+  "report_type": "weflow-change-2-durable-workflow-acceptance.v1"
+}

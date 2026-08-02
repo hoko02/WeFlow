@@ -6,10 +6,13 @@ from .intake import (
     load_intake_fixture,
     normalize_intake_fixture,
 )
+from .workflow import SyntheticWorkflowSimulator, load_workflow_fixture
 
 __all__ = [
     "SyntheticIntakeSimulator",
+    "SyntheticWorkflowSimulator",
     "load_intake_fixture",
     "load_replay_fixture",
+    "load_workflow_fixture",
     "normalize_intake_fixture",
 ]

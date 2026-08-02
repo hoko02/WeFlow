@@ -2,7 +2,7 @@
   "https://weflow.local/contracts/v1/approval-decision.schema.json": "6f75a8729ae8ec36c40f7e63328ac3efe3129857ec2602509273664c8200536b",
   "https://weflow.local/contracts/v1/approval-request.schema.json": "8d3d7a65d2bf42b9b4fdba3e436b05d1d5ced1fd94a21e32f01b4c2cde95bde4",
   "https://weflow.local/contracts/v1/artifact.schema.json": "69061970e0978415db3f8dc20295a2e5a36e9ceeb42bd67b84dc4d788ea7e711",
-  "https://weflow.local/contracts/v1/business-event.schema.json": "b98f3138fa5e882242e252490687051200cac4d45881b88eae63032b8b9ccfa8",
+  "https://weflow.local/contracts/v1/business-event.schema.json": "623b3c837bde71c1a5e5aaadc26b8e8d1bfe6b3876cb5439109f7cb72f2c6032",
   "https://weflow.local/contracts/v1/capability-grant.schema.json": "51d00c932fd0f2add7937ba0dda0d95ef3a6788c2054fbfa2b2b8cc0c3af9e40",
   "https://weflow.local/contracts/v1/case-projection.schema.json": "1425616e596316146f8895314cfb6786bcb8552536fd0d8ea38bec460b665e41",
   "https://weflow.local/contracts/v1/case-revision.schema.json": "943546878c8bc59a8b1e493c2e9891117529592f3a78074f969cf0d716d91d99",
@@ -15,5 +15,12 @@
   "https://weflow.local/contracts/v1/inbound-message-event.schema.json": "fbaef62ef1d2f0ff711425ad303f04a7e8ff97184f0897e8f1044d5b6232afba",
   "https://weflow.local/contracts/v1/policy-decision.schema.json": "1a1f4c9ead2cdb74fa66175ab79721b54af5e5317a823a7765cab080142a7a3a",
   "https://weflow.local/contracts/v1/replay-request.schema.json": "482279d6f9575af2d006c07ecaa481d57c2e5f9a24d9cf58da0e933022eaf4a0",
-  "https://weflow.local/contracts/v1/replay-result.schema.json": "91974f4f5487a64b278b55d8df709e3dc7a5d3a45fb95d06dfc2a8c7bb4e7a1a"
+  "https://weflow.local/contracts/v1/replay-result.schema.json": "91974f4f5487a64b278b55d8df709e3dc7a5d3a45fb95d06dfc2a8c7bb4e7a1a",
+  "https://weflow.local/contracts/v1/side-effect-completion.schema.json": "3e371618a632a61e5ff497a9b2f9e2ab2ab1c650a7a89cee746bf63a3a889e80",
+  "https://weflow.local/contracts/v1/side-effect-intent.schema.json": "bc4f2fb2221f2fe4b1421d8e796fa7d874bbbb19c588b36cb2aa4c5abf1d2220",
+  "https://weflow.local/contracts/v1/side-effect-observation.schema.json": "c941336071aa9e0650afb1dbdda6cff22e5fafc71da6de1628aa8d58578f079a",
+  "https://weflow.local/contracts/v1/synthetic-sla-policy.schema.json": "1affedab4f6b051dfd539d4cb0a045b1664a3b588cccf4f117946fe6da177b28",
+  "https://weflow.local/contracts/v1/workflow-checkpoint.schema.json": "f23925ced1a0a4a7fb184748df85ad4835ef7aed8777c2de6e4a4ac169b9aa93",
+  "https://weflow.local/contracts/v1/workflow-command.schema.json": "eb4e7a922eb774d4ffd18f22109eb121cb53407d5c09d3f10e88c58f3a2efe99",
+  "https://weflow.local/contracts/v1/workflow-projection.schema.json": "57d122aee29f299533ad2565e0e7423f96fe6551a0f169cf6471d1a09367b330"
 }

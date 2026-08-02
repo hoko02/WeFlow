@@ -1,6 +1,6 @@
 # WeFlow 项目长期记忆
 
-> 最近更新：2026-07-29  
+> 最近更新：2026-08-01
 > 用途：保存跨 change 的产品定位、已锁定决策、边界和启动门槛。它不是某个 change 的实现规格；进入开发前仍需通过 OpenSpec proposal 固化本次范围。
 
 ## 1. 产品定位
@@ -197,3 +197,21 @@ Change 2 gate:
 - Create a new OpenSpec change before adding the durable support workflow. It must define deterministic lifecycle states after `RECEIVED`, revision creation rules, checkpoint/restart semantics, SLA ownership, and an intent/reconcile/execute/complete boundary for every future external effect.
 - It must retain fixture-only offline replay, actor-derived tenant isolation, append-only source ledger, safe error envelopes, snapshot/recovery tests, and the no-model/no-approval/no-external-write default until a later explicitly approved change enables each capability.
 - It must prove worker interruption and response-loss recovery without duplicate effects, and must not claim customer resolution merely because a workflow or model emits text.
+
+## 12. Active Change 2 implementation status (not yet archive-verified)
+
+`add-durable-support-workflow` is the active OpenSpec Apply change. Its approved scope
+is strictly the offline fixture-local durable workflow: state machine, checkpoints,
+synthetic SLA, local ticket handoff recovery, and fault injection.
+
+The implementation target remains bounded as follows:
+
+- `TICKET_READY` is a local handoff fact only; it is not an investigation, reply,
+  customer-resolution, or completion claim.
+- The only effect is a deterministic fixture-local ticket simulator with persisted
+  intent/reconcile/execute/observe/complete evidence. It must not register a real
+  executor, consume credentials, or open a provider connection.
+- Agent/model use, approval, outbound delivery, real Tencent/WeCom or enterprise
+  connector, and all external writes remain disabled until later explicit changes.
+- Change 2 cannot be treated as verified or archived until its contract, recovery,
+  offline acceptance, strict OpenSpec validation, and documentation checks pass.

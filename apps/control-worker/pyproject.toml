@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "WeFlow control-worker skeleton"
 requires-python = ">=3.12,<3.15"
 dependencies = [
+  "temporalio>=1.12,<2",
   "weflow-contracts",
   "weflow-control-kernel",
   "weflow-telemetry",

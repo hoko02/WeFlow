@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Cross-platform command surface for the WeFlow Change 1 local harness."""
+"""Cross-platform command surface for the WeFlow Change 2 local harness."""
 
 from __future__ import annotations
 
@@ -48,6 +48,7 @@ def check_environment(environment: dict[str, str] | None = None) -> tuple[int, d
         "pnpm_workspace": (ROOT / "pnpm-workspace.yaml").is_file(),
         "contract_directory": (ROOT / "contracts" / "jsonschema" / "v1").is_dir(),
         "replay_fixture_directory": (ROOT / "fixtures" / "replay").is_dir(),
+        "workflow_fixture_directory": (ROOT / "fixtures" / "workflow").is_dir(),
     }
     try:
         config = load_config(values)
@@ -163,6 +164,26 @@ def command_case_intake_acceptance(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_durable_workflow_acceptance(arguments: argparse.Namespace) -> int:
+    from durable_workflow_acceptance import run_durable_workflow_acceptance
+
+    try:
+        report = run_durable_workflow_acceptance(ROOT)
+        if arguments.output:
+            _write_acceptance_report(arguments.output, report)
+    except (RuntimeError, ValueError) as error:
+        _print(
+            {
+                "report_type": "weflow-change-2-durable-workflow-acceptance.v1",
+                "accepted": False,
+                "reason_code": str(error),
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
+
 def command_up(arguments: argparse.Namespace) -> int:
     report = start_services(arguments.mode)
     _print(report)
@@ -228,6 +249,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional repository-relative evidence path under reports/",
     )
     case_intake.set_defaults(handler=command_case_intake_acceptance)
+
+    durable_workflow = subcommands.add_parser(
+        "durable-workflow-acceptance",
+        help="run the offline deterministic durable-workflow acceptance sequence",
+    )
+    durable_workflow.add_argument(
+        "--output",
+        help="optional repository-relative evidence path under reports/",
+    )
+    durable_workflow.set_defaults(handler=command_durable_workflow_acceptance)
 
     up = subcommands.add_parser("up", help="accept a local startup request")
     up.add_argument("--mode", choices=("offline", "service-boundary"), default="offline")

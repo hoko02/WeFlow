@@ -34,6 +34,7 @@ def test_health_command_emits_a_redacted_machine_readable_foundation_report() ->
     assert report["processes_started"] is False
     assert report["operational_ready"] is False
     assert report["business_workflow_implemented"] is False
+    assert report["durable_support_workflow_implemented"] is True
     assert report["external_writes_enabled"] is False
     assert [service["service"] for service in report["services"]] == list(SERVICE_NAMES)
     assert all(

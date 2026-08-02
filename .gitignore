@@ -31,6 +31,9 @@ reports/*
 !reports/change-0-openspec-validation.json
 !reports/change-1-acceptance.json
 !reports/change-1-openspec-validation.json
+!reports/change-2-acceptance.json
+!reports/change-2-openspec-validation.json
+!reports/change-2-verification.json
 artifacts/*
 !artifacts/.gitkeep
 

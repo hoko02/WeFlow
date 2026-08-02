@@ -6,13 +6,14 @@ import { renderFoundationStatus, type RenderedFoundationStatus } from "./foundat
 
 type FoundationCapabilities = JsonObject & {
   business_workflow_implemented: boolean;
+  durable_support_workflow_implemented: boolean;
   external_writes_enabled: boolean;
   operational_ready: boolean;
   synthetic_case_intake_implemented: boolean;
 };
 
 const status = ref<"checking" | "ready" | "not-ready">("checking");
-const message = ref("Checking the local Platform API foundation endpoint.");
+const message = ref("Checking the local Platform API durable-workflow endpoint.");
 const capabilities = ref<FoundationCapabilities | null>(null);
 const renderedStatus = ref<RenderedFoundationStatus | null>(null);
 
@@ -30,7 +31,7 @@ onMounted(async () => {
     }
   } catch {
     status.value = "not-ready";
-    message.value = "Platform API is not running. Start the offline skeletons with scripts/dev.py up --mode offline.";
+    message.value = "Platform API is not running. Start the local services with scripts/dev.py up --mode offline.";
   }
 });
 </script>
@@ -38,9 +39,9 @@ onMounted(async () => {
 <template>
   <main class="shell">
     <section class="hero">
-      <p class="eyebrow">WeFlow / Change 1</p>
-      <h1>Case Intake Console</h1>
-      <p>This console reports local service, synthetic Case intake, and safety status only. It does not simulate customer-resolution outcomes.</p>
+      <p class="eyebrow">WeFlow / Change 2</p>
+      <h1>Durable Workflow Console</h1>
+      <p>This console reports local service, synthetic Case intake, durable-workflow, and safety status only. It does not claim customer-resolution outcomes.</p>
     </section>
 
     <section class="status" :data-status="status">
@@ -63,15 +64,20 @@ onMounted(async () => {
           <dt>Synthetic Case intake implemented</dt>
           <dd>{{ capabilities.synthetic_case_intake_implemented ? "yes" : "no" }}</dd>
         </div>
+        <div>
+          <dt>Fixture-local durable workflow implemented</dt>
+          <dd>{{ capabilities.durable_support_workflow_implemented ? "yes" : "no" }}</dd>
+        </div>
       </dl>
     </section>
 
     <section class="limits">
-      <h2>Change 1 limits</h2>
+      <h2>Change 2 limits</h2>
       <ul>
         <li>Replay is the only enabled provider path.</li>
         <li>No model, enterprise credential, or external write is configured.</li>
-        <li>Only fixture-backed synthetic Case intake is implemented; API-503 resolution begins in a later change.</li>
+        <li>Only fixture-local ticket handoff, checkpointing, recovery, and synthetic SLA are implemented.</li>
+        <li>No Agent, approval, outbound delivery, real provider, or customer-resolution state exists.</li>
       </ul>
     </section>
   </main>

@@ -16,6 +16,15 @@ SERVICE_NAMES = (
     "web-console",
 )
 
+_LIMITATIONS = [
+    "fixture-local-durable-workflow-only",
+    "no-business-workflow",
+    "no-agent-or-provider",
+    "no-approval-or-outbound-delivery",
+    "no-customer-resolution",
+    "no-external-writes",
+]
+
 _LOCAL_DEPENDENCIES = {
     "postgres": ("127.0.0.1", 5432),
     "temporal": ("127.0.0.1", 7233),
@@ -101,7 +110,7 @@ def build_service_status(
             "mode": "unknown",
             "components": [_component("configuration", False, denial.reason_code)],
             "policy_denial": denial.as_dict(),
-            "limitations": ["foundation-only", "no-business-workflow", "no-external-writes"],
+            "limitations": _LIMITATIONS,
         }
 
     components = (
@@ -118,7 +127,7 @@ def build_service_status(
         "mode": config.mode,
         "components": components,
         "policy_denial": None,
-        "limitations": ["foundation-only", "no-business-workflow", "no-external-writes"],
+        "limitations": _LIMITATIONS,
     }
 
 
@@ -126,15 +135,28 @@ def build_foundation_report(
     environment: Mapping[str, str] | None = None,
     root: Path | None = None,
 ) -> dict[str, object]:
-    """Return machine-readable operational evidence for all Change 0 boundaries."""
+    """Return machine-readable operational evidence for the bounded Change 2 harness."""
 
+    repository_root = root or find_repository_root()
     statuses = [
-        build_service_status(name, environment=environment, root=root) for name in SERVICE_NAMES
+        build_service_status(name, environment=environment, root=repository_root)
+        for name in SERVICE_NAMES
     ]
+    # Keep the complete business-workflow claim false while exposing the narrower local slice.
+    durable_workflow_assets = all(
+        (repository_root / "contracts" / "jsonschema" / "v1" / filename).is_file()
+        for filename in (
+            "workflow-projection.schema.json",
+            "workflow-checkpoint.schema.json",
+            "workflow-command.schema.json",
+            "side-effect-intent.schema.json",
+        )
+    )
     return {
         "report_type": "weflow-foundation-health.v1",
         "operational_ready": all(bool(status["ready"]) for status in statuses),
         "business_workflow_implemented": False,
+        "durable_support_workflow_implemented": durable_workflow_assets,
         "external_writes_enabled": False,
         "services": statuses,
     }

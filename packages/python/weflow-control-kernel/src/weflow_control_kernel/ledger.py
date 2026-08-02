@@ -25,6 +25,13 @@ from weflow_contracts import (
     validate_tenant_reference,
 )
 
+from .workflow_journal_schema import (
+    WorkflowJournalSchemaError,
+    initialize_workflow_journal_schema,
+    validate_workflow_journal_schema,
+)
+from .workflow_state import WorkflowTransitionError, validate_transition
+
 CASE_SCHEMA_ID = "https://weflow.local/contracts/v1/case.schema.json"
 CASE_REVISION_SCHEMA_ID = "https://weflow.local/contracts/v1/case-revision.schema.json"
 INITIAL_CASE_STATE = "RECEIVED"
@@ -33,6 +40,7 @@ INITIAL_EVENT_TYPES = (
     "case.revision-created.v1",
     "case.state-transitioned.v1",
 )
+WORKFLOW_STATE_EVENT_TYPE = "workflow.state-transitioned.v1"
 SNAPSHOT_SCHEMA_VERSION = "weflow-case-ledger-snapshot.v1"
 
 Clock = Callable[[], datetime]
@@ -254,6 +262,8 @@ class SQLiteCaseLedger:
                     case_event_index INTEGER NOT NULL,
                     payload_sha256 TEXT NOT NULL,
                     metadata_json TEXT NOT NULL,
+                    workflow_id TEXT,
+                    workflow_checkpoint_id TEXT,
                     PRIMARY KEY (tenant_id, event_id),
                     UNIQUE (tenant_id, case_id, case_event_index)
                 );
@@ -321,6 +331,10 @@ class SQLiteCaseLedger:
                 END;
                 """
             )
+            try:
+                initialize_workflow_journal_schema(connection)
+            except WorkflowJournalSchemaError as error:
+                raise LedgerIntegrityError(error.args[0]) from error
         finally:
             connection.close()
 
@@ -530,8 +544,9 @@ class SQLiteCaseLedger:
                     INSERT INTO business_events (
                         tenant_id, event_id, case_id, case_revision_id, event_type,
                         occurred_at, received_at, correlation_id, causation_id,
-                        case_event_index, payload_sha256, metadata_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        case_event_index, payload_sha256, metadata_json, workflow_id,
+                        workflow_checkpoint_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         event["tenant_id"],
@@ -546,6 +561,8 @@ class SQLiteCaseLedger:
                         event["case_event_index"],
                         event["payload_sha256"],
                         _canonical_json(metadata),
+                        None,
+                        None,
                     ),
                 )
 
@@ -699,14 +716,222 @@ class SQLiteCaseLedger:
             )
         return events
 
+    def _append_workflow_state_event(
+        self,
+        *,
+        tenant_id: str,
+        case_id: str,
+        case_revision_id: str,
+        workflow_id: str,
+        checkpoint_id: str,
+        transition_kind: str,
+        from_state: str,
+        to_state: str,
+        resume_state: str | None,
+        correlation_id: str,
+        occurred_at: str,
+    ) -> str:
+        """Internal-only port for an allowlisted workflow-originated Case event.
+
+        The public ledger interface deliberately has no arbitrary event/state mutation
+        method. Durable workflow code calls this underscored port only after it has
+        recorded an immutable checkpoint that proves the transition.
+        """
+
+        try:
+            validate_transition(
+                from_state,
+                transition_kind,
+                to_state,
+                resume_state=resume_state,
+            )
+        except WorkflowTransitionError as error:
+            raise CaseLedgerError(error.reason_code) from error
+        if not all(
+            isinstance(value, str) and value
+            for value in (
+                tenant_id,
+                case_id,
+                case_revision_id,
+                workflow_id,
+                checkpoint_id,
+                correlation_id,
+                occurred_at,
+            )
+        ):
+            raise CaseLedgerError("workflow_event_invalid")
+
+        metadata = {
+            "from_state": from_state,
+            "resume_state": resume_state,
+            "to_state": to_state,
+            "transition_kind": transition_kind,
+        }
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            projection = connection.execute(
+                """
+                SELECT state, correlation_id
+                FROM case_projection
+                WHERE tenant_id = ? AND case_id = ?
+                """,
+                (tenant_id, case_id),
+            ).fetchone()
+            revision = connection.execute(
+                """
+                SELECT 1
+                FROM case_revisions
+                WHERE tenant_id = ? AND case_id = ? AND case_revision_id = ?
+                """,
+                (tenant_id, case_id, case_revision_id),
+            ).fetchone()
+            if (
+                projection is None
+                or revision is None
+                or projection["correlation_id"] != correlation_id
+            ):
+                raise LedgerIntegrityError("ledger_invalid")
+
+            existing = connection.execute(
+                """
+                SELECT event_id, event_type, payload_sha256, metadata_json
+                FROM business_events
+                WHERE tenant_id = ? AND case_id = ? AND workflow_id = ?
+                  AND workflow_checkpoint_id = ?
+                """,
+                (tenant_id, case_id, workflow_id, checkpoint_id),
+            ).fetchone()
+            if existing is not None:
+                try:
+                    existing_metadata = json.loads(str(existing["metadata_json"]))
+                except json.JSONDecodeError as error:
+                    raise LedgerIntegrityError("ledger_invalid") from error
+                if (
+                    existing["event_type"] == WORKFLOW_STATE_EVENT_TYPE
+                    and existing_metadata == metadata
+                    and existing["payload_sha256"] == _sha256(metadata)
+                ):
+                    connection.commit()
+                    return str(existing["event_id"])
+                raise LedgerIntegrityError("workflow_event_conflict")
+
+            if projection["state"] != from_state:
+                raise LedgerIntegrityError("workflow_event_predecessor_mismatch")
+            event_index = int(
+                connection.execute(
+                    """
+                    SELECT COALESCE(MAX(case_event_index), 0) + 1
+                    FROM business_events
+                    WHERE tenant_id = ? AND case_id = ?
+                    """,
+                    (tenant_id, case_id),
+                ).fetchone()[0]
+            )
+            event = {
+                "schema_id": BUSINESS_EVENT_SCHEMA_ID,
+                "schema_version": "v1",
+                "tenant_id": tenant_id,
+                "event_id": self._event_id(case_id, WORKFLOW_STATE_EVENT_TYPE, event_index),
+                "case_id": case_id,
+                "case_revision_id": case_revision_id,
+                "event_type": WORKFLOW_STATE_EVENT_TYPE,
+                "occurred_at": occurred_at,
+                "received_at": occurred_at,
+                "correlation_id": correlation_id,
+                "causation_id": checkpoint_id,
+                "case_event_index": event_index,
+                "payload_sha256": _sha256(metadata),
+                "workflow_id": workflow_id,
+                "workflow_checkpoint_id": checkpoint_id,
+            }
+            validate_generated_ledger_event(event, self._contract_root)
+            connection.execute(
+                """
+                INSERT INTO business_events (
+                    tenant_id, event_id, case_id, case_revision_id, event_type,
+                    occurred_at, received_at, correlation_id, causation_id,
+                    case_event_index, payload_sha256, metadata_json, workflow_id,
+                    workflow_checkpoint_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event["tenant_id"],
+                    event["event_id"],
+                    event["case_id"],
+                    event["case_revision_id"],
+                    event["event_type"],
+                    event["occurred_at"],
+                    event["received_at"],
+                    event["correlation_id"],
+                    event["causation_id"],
+                    event["case_event_index"],
+                    event["payload_sha256"],
+                    _canonical_json(metadata),
+                    event["workflow_id"],
+                    event["workflow_checkpoint_id"],
+                ),
+            )
+            connection.execute(
+                """
+                UPDATE case_projection
+                SET state = ?, event_count = ?, updated_at = ?
+                WHERE tenant_id = ? AND case_id = ?
+                """,
+                (to_state, event_index, occurred_at, tenant_id, case_id),
+            )
+            connection.commit()
+            return str(event["event_id"])
+        except CaseLedgerError:
+            connection.rollback()
+            raise
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            if "append_only_violation" in str(error):
+                raise AppendOnlyViolation("append_only_violation") from error
+            raise LedgerIntegrityError("ledger_write_failed") from error
+        finally:
+            connection.close()
+
     def _projection_from_records(
         self,
         case: Mapping[str, Any],
         revision: Mapping[str, Any],
         events: list[Mapping[str, Any]],
+        metadata: list[Mapping[str, Any]] | None = None,
     ) -> JsonObject:
-        if [event["event_type"] for event in events] != list(INITIAL_EVENT_TYPES):
+        if len(events) < len(INITIAL_EVENT_TYPES) or [
+            event["event_type"] for event in events[: len(INITIAL_EVENT_TYPES)]
+        ] != list(INITIAL_EVENT_TYPES):
             raise LedgerIntegrityError("ledger_invalid")
+        if metadata is not None and len(metadata) != len(events):
+            raise LedgerIntegrityError("ledger_invalid")
+        state = INITIAL_CASE_STATE
+        if metadata is not None:
+            for event, event_metadata in zip(
+                events[len(INITIAL_EVENT_TYPES) :],
+                metadata[len(INITIAL_EVENT_TYPES) :],
+                strict=True,
+            ):
+                if (
+                    event["event_type"] != WORKFLOW_STATE_EVENT_TYPE
+                    or not isinstance(event.get("workflow_id"), str)
+                    or not isinstance(event.get("workflow_checkpoint_id"), str)
+                    or set(event_metadata)
+                    != {"from_state", "resume_state", "to_state", "transition_kind"}
+                    or event_metadata.get("from_state") != state
+                ):
+                    raise LedgerIntegrityError("ledger_invalid")
+                try:
+                    validate_transition(
+                        state,
+                        str(event_metadata["transition_kind"]),
+                        str(event_metadata["to_state"]),
+                        resume_state=event_metadata.get("resume_state"),
+                    )
+                except WorkflowTransitionError as error:
+                    raise LedgerIntegrityError("ledger_invalid") from error
+                state = str(event_metadata["to_state"])
         return {
             "schema_id": CASE_PROJECTION_SCHEMA_ID,
             "schema_version": "v1",
@@ -714,7 +939,7 @@ class SQLiteCaseLedger:
             "case_id": case["case_id"],
             "latest_case_revision_id": revision["case_revision_id"],
             "latest_revision": revision["revision"],
-            "state": INITIAL_CASE_STATE,
+            "state": state,
             "source_event_id": case["source_event_id"],
             "event_count": len(events),
             "correlation_id": case["correlation_id"],
@@ -781,21 +1006,27 @@ class SQLiteCaseLedger:
                 """
                 SELECT tenant_id, event_id, case_id, case_revision_id, event_type,
                        occurred_at, received_at, correlation_id, causation_id,
-                       case_event_index, payload_sha256
+                       case_event_index, payload_sha256, workflow_id, workflow_checkpoint_id
                 FROM business_events
                 WHERE tenant_id = ? AND case_id = ?
                 ORDER BY case_event_index ASC
                 """,
                 (tenant_id, case_id),
             ).fetchall()
-            events = [
-                {
-                    "schema_id": BUSINESS_EVENT_SCHEMA_ID,
-                    "schema_version": "v1",
-                    **_row_dict(row),
-                }
-                for row in rows
-            ]
+            events = []
+            for row in rows:
+                data = _row_dict(row)
+                if data.get("workflow_id") is None:
+                    data.pop("workflow_id")
+                if data.get("workflow_checkpoint_id") is None:
+                    data.pop("workflow_checkpoint_id")
+                events.append(
+                    {
+                        "schema_id": BUSINESS_EVENT_SCHEMA_ID,
+                        "schema_version": "v1",
+                        **data,
+                    }
+                )
             for event in events:
                 validate_generated_ledger_event(event, self._contract_root)
             return events
@@ -808,6 +1039,10 @@ class SQLiteCaseLedger:
         connection = self._connect()
         try:
             connection.execute("BEGIN IMMEDIATE")
+            try:
+                validate_workflow_journal_schema(connection)
+            except WorkflowJournalSchemaError as error:
+                raise LedgerIntegrityError(error.args[0]) from error
             connection.execute("DELETE FROM case_projection")
             case_rows = connection.execute(
                 """
@@ -856,13 +1091,13 @@ class SQLiteCaseLedger:
             raise LedgerIntegrityError("ledger_invalid")
 
         events, metadata = self._query_events_with_metadata(connection, tenant_id, case_id)
-        if len(events) != len(INITIAL_EVENT_TYPES):
-            raise LedgerIntegrityError("ledger_invalid")
         for index, event in enumerate(events, start=1):
             validate_generated_ledger_event(event, self._contract_root)
             if event["case_event_index"] != index:
                 raise LedgerIntegrityError("ledger_invalid")
-        if [event["event_type"] for event in events] != list(INITIAL_EVENT_TYPES):
+        if len(events) < len(INITIAL_EVENT_TYPES) or [
+            event["event_type"] for event in events[: len(INITIAL_EVENT_TYPES)]
+        ] != list(INITIAL_EVENT_TYPES):
             raise LedgerIntegrityError("ledger_invalid")
         validate_tenant_reference(case, revision, *events)
 
@@ -883,7 +1118,7 @@ class SQLiteCaseLedger:
             receipt_event_ids = json.loads(str(receipt["event_ids_json"]))
         except json.JSONDecodeError as error:
             raise LedgerIntegrityError("ledger_invalid") from error
-        expected_event_ids = [event["event_id"] for event in events]
+        expected_event_ids = [event["event_id"] for event in events[: len(INITIAL_EVENT_TYPES)]]
         if receipt_event_ids != expected_event_ids:
             raise LedgerIntegrityError("ledger_invalid")
 
@@ -902,15 +1137,22 @@ class SQLiteCaseLedger:
             },
         ]
         for event, event_metadata, expected in zip(
-            events,
-            metadata,
+            events[: len(INITIAL_EVENT_TYPES)],
+            metadata[: len(INITIAL_EVENT_TYPES)],
             expected_metadata,
             strict=True,
         ):
             if event_metadata != expected or _sha256(event_metadata) != event["payload_sha256"]:
                 raise LedgerIntegrityError("ledger_invalid")
 
-        projection = self._projection_from_records(case, revision, events)
+        for event, event_metadata in zip(
+            events[len(INITIAL_EVENT_TYPES) :],
+            metadata[len(INITIAL_EVENT_TYPES) :],
+            strict=True,
+        ):
+            if _sha256(event_metadata) != event["payload_sha256"]:
+                raise LedgerIntegrityError("ledger_invalid")
+        projection = self._projection_from_records(case, revision, events, metadata)
         validate_case_projection(projection, self._contract_root)
         connection.execute(
             """
@@ -969,7 +1211,8 @@ class SQLiteCaseLedger:
             """
             SELECT tenant_id, event_id, case_id, case_revision_id, event_type,
                    occurred_at, received_at, correlation_id, causation_id,
-                   case_event_index, payload_sha256, metadata_json
+                   case_event_index, payload_sha256, metadata_json, workflow_id,
+                   workflow_checkpoint_id
             FROM business_events
             WHERE tenant_id = ? AND case_id = ?
             ORDER BY case_event_index ASC
@@ -983,6 +1226,10 @@ class SQLiteCaseLedger:
             metadata_value = json.loads(str(data.pop("metadata_json")))
             if not isinstance(metadata_value, dict):
                 raise LedgerIntegrityError("ledger_invalid")
+            if data.get("workflow_id") is None:
+                data.pop("workflow_id")
+            if data.get("workflow_checkpoint_id") is None:
+                data.pop("workflow_checkpoint_id")
             events.append(
                 {
                     "schema_id": BUSINESS_EVENT_SCHEMA_ID,
@@ -1079,8 +1326,20 @@ class SQLiteCaseLedger:
         tenant_id: str,
         order_by: str,
     ) -> list[JsonObject]:
+        columns = "*"
+        if table == "business_events":
+            columns = (
+                "tenant_id, event_id, case_id, case_revision_id, event_type, occurred_at, "
+                "received_at, correlation_id, causation_id, case_event_index, payload_sha256, "
+                "metadata_json"
+            )
+        predicate = "tenant_id = ?"
+        if table == "business_events":
+            # The Change 1 ledger snapshot remains a legacy intake-only artifact.
+            # Change 2 state events are regenerated from its linked workflow journal.
+            predicate += " AND workflow_id IS NULL"
         rows = connection.execute(
-            f"SELECT * FROM {table} WHERE tenant_id = ? ORDER BY {order_by}",
+            f"SELECT {columns} FROM {table} WHERE {predicate} ORDER BY {order_by}",
             (tenant_id,),
         ).fetchall()
         return [_row_dict(row) for row in rows]

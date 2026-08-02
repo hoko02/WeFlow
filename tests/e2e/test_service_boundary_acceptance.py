@@ -1,3 +1,4 @@
+import asyncio
 import json
 import shutil
 import subprocess
@@ -8,6 +9,10 @@ from pathlib import Path
 import pytest
 from weflow_control_kernel import status as status_module
 from weflow_control_kernel.status import build_service_status
+from weflow_control_kernel.temporal_driver import (
+    TemporalDriverUnavailable,
+    TemporalServiceBoundaryDriver,
+)
 from weflow_telemetry import failure_evidence
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -107,4 +112,42 @@ def test_service_boundary_dependencies_and_timeout_evidence_remain_local_only(mo
         assert "not-a-secret" not in json.dumps(evidence, sort_keys=True)
     finally:
         run_dev("down", expected=0)
+        run_dev("compose", "down", expected=0)
+
+
+def test_temporal_driver_reports_loopback_readiness_and_timeout_without_external_effects(
+    tmp_path: Path,
+) -> None:
+    run_dev("compose", "up", expected=0)
+    try:
+        driver = TemporalServiceBoundaryDriver(
+            store_path=tmp_path / "case-ledger.sqlite3",
+            contract_root=ROOT,
+            timeout_seconds=5.0,
+        )
+        deadline = time.monotonic() + 60
+        readiness = None
+        while time.monotonic() < deadline and readiness is None:
+            try:
+                readiness = asyncio.run(driver.readiness())
+            except TemporalDriverUnavailable:
+                time.sleep(0.5)
+        assert readiness is not None
+        unavailable = TemporalServiceBoundaryDriver(
+            store_path=tmp_path / "case-ledger.sqlite3",
+            contract_root=ROOT,
+            target="127.0.0.1:65535",
+            timeout_seconds=0.01,
+        )
+
+        assert readiness == {
+            "driver": "temporal",
+            "ready": True,
+            "task_queue": "weflow-durable-support-workflow-v1",
+            "external_write": False,
+            "model_invocation": False,
+        }
+        with pytest.raises(TemporalDriverUnavailable, match="temporal_driver_not_ready"):
+            asyncio.run(unavailable.readiness())
+    finally:
         run_dev("compose", "down", expected=0)

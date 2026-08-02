@@ -1,0 +1,9 @@
+{
+  "fixture_id": "sla-expiry",
+  "synthetic": true,
+  "intake_fixture_id": "api-503-first-delivery",
+  "sla_deadline_seconds": 1,
+  "advance_clock_seconds": 2,
+  "fault_profile": "activation",
+  "expected_state": "WAITING_FOR_OPERATOR"
+}

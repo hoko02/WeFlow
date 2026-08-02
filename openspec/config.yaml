@@ -6,9 +6,14 @@ context: |
   identity/SLA enrichment, evidence-based investigation, idempotent ticketing, a
   hash-bound human approval, outbound reply, knowledge candidate, trace replay, and eval.
 
-  Current phase: exploration and specification only. No application capability is
-  considered implemented unless an archived OpenSpec change and its verification evidence
-  say so. Read README.md and docs/PROJECT_MEMORY.md before planning any change.
+  Changes 0 and 1 are archived with their retained verification evidence. Change 2
+  (`add-durable-support-workflow`) is the active Apply increment: it may add only the
+  offline fixture-local durable workflow, state machine, checkpoints, synthetic SLA,
+  idempotent local-effect recovery, and fault injection described by its change
+  artifacts. It must not enable an Agent, real provider, approval, outbound delivery,
+  real enterprise connector, or external write. A capability becomes verified only
+  after its change passes strict validation and is archived. Read README.md and
+  docs/PROJECT_MEMORY.md before planning any change.
 
   Architecture principles inherited from ForgeCode: one verifiable vertical slice first;
   immutable revisions; durable workflow plus an append-only business event ledger;

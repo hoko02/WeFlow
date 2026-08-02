@@ -1,0 +1,9 @@
+{
+  "fixture_id": "lost-response-recovery",
+  "synthetic": true,
+  "intake_fixture_id": "api-503-first-delivery",
+  "sla_deadline_seconds": 3600,
+  "advance_clock_seconds": 0,
+  "fault_profile": "lost-response",
+  "expected_state": "TICKET_READY"
+}

@@ -78,17 +78,18 @@ openspec status --change "<change-name>"
 
 ## 4. Change 2：`add-durable-support-workflow`
 
-**目的**：建立从 Case 接入到回复候选的持久化 Workflow 主干。
+**目的**：建立从合成 Case 接入到 fixture-local 工单交接的持久化 Workflow 主干，不产生回复候选或解决结论。
 
 **范围**：
 
-- Temporal workflow/activity、状态机、checkpoint；
-- pause/resume/cancel、等待客户/人工和 SLA timer；
-- 通用 side-effect intent/reconcile/execute/complete；
-- 工单 find-or-create 与 expected-version 更新；
-- Worker 中断和响应丢失故障注入。
+- driver-neutral 状态机、checkpoint、恢复扫描和合成 SLA timer；
+- `RECEIVED`、`TICKET_READY`、`PAUSED`、`WAITING_FOR_OPERATOR`、`NEEDS_RECONCILIATION`、`CANCELLED`；
+- tenant 派生的 pause/resume/cancel 与 expected-version 命令；
+- fixture-local 工单 find-or-create、expected-version handoff 和 `intent/reconcile/execute/observe/complete`；
+- Worker 中断、响应丢失与 reconciliation timeout 故障注入；
+- 使用同一 reducer/journal 的 opt-in、loopback-only Temporal service-boundary driver。
 
-**验收**：关键写入点杀死 Worker 后 100% 恢复；重复工单为 0；未知外部结果进入 reconciliation。
+**验收**：每个声明的持久化边界中断后均可离线恢复；本地工单 create/update 操作各至多一次；未知或冲突结果进入 `NEEDS_RECONCILIATION`；不声明客户问题已解决。Agent、真实 Provider、审批、外发和真实企业连接器仍不在范围内。
 
 ## 5. Change 3：`add-investigation-agent-loop`
 
