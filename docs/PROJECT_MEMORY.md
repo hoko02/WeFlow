@@ -1,6 +1,6 @@
 # WeFlow 项目长期记忆
 
-> 最近更新：2026-08-03
+> 最近更新：2026-08-04
 > 用途：保存跨 change 的产品定位、已锁定决策、边界和启动门槛。它不是某个 change 的实现规格；进入开发前仍需通过 OpenSpec proposal 固化本次范围。
 
 ## 1. 产品定位
@@ -336,3 +336,61 @@ Next-stage gate:
   intent/reconciliation, durable operator authorization lifecycle, auditable evidence
   retention, rollout/rollback controls, live safety verification, and a strict rule
   that provider acknowledgement never alone proves customer resolution.
+## 15. Archived Change 5 evidence trajectory and verification replay (2026-08-04)
+
+`add-evidence-and-trajectory-replay` was archived as
+`2026-08-04-add-evidence-and-trajectory-replay`. Its four delta capabilities are
+synced into the main OpenSpec specifications.
+
+Verified facts:
+
+- All 16 Change 5 tasks completed. Main-spec strict validation passed for 15
+  capabilities, and strict validation of the archived Change passed. The focused
+  Change 5 Python suite passed 28 tests; Python contract tests passed 47 cases; the
+  TypeScript contract corpus accepted 37 valid and rejected 28 invalid payloads.
+  Secret hygiene and repository lint passed.
+- The named API-503 fixture now derives one append-only, tenant-scoped,
+  content-addressed EvidenceTrajectory from retained Case, workflow, investigation,
+  policy, approval, and one fixture-local delivery record. Artifact, EvidenceReport,
+  and TrajectoryReplayResult are separate redacted durable facts; exact extraction and
+  replay retries converge without changing Case state, checkpoint, grant, approval,
+  intent, delivery, or effect records.
+- Evidence Reports are read-only and tenant-derived. They expose only safe IDs,
+  hashes, classifications, counts, fixed outcomes/failures, fixture identity, and
+  capability flags. A missing/foreign report remains indistinguishable; raw/private,
+  secret-like, customer-success, caller-authority, detached, duplicate, out-of-order,
+  or tampered inputs fail closed with no protected disclosure.
+- Deterministic verification replay re-resolves retained source facts. The authorized,
+  revoked-grant denial, and lost-response recovery paths reproduce the recorded root;
+  tampered lineage returns `lineage_invalid` without a workflow transition, model,
+  network request, Docker initialization, or external-write attempt.
+- Evidence is retained in `reports/change-5-evidence-trajectory-acceptance.json` and
+  `reports/change-5-verification.json`. The acceptance command is
+  `python scripts/dev.py evidence-trajectory-acceptance` and uses checked-in fixtures
+  plus temporary local SQLite only.
+
+Known limitations:
+
+- Docker is unavailable on the verification workstation. Node is available and is
+  required for the TypeScript contract check, but not for core evidence acceptance.
+  No network, model credential, enterprise credential, live provider, or external
+  service was used.
+- The aggregate `python scripts/dev.py test` command did not finish within the
+  120-second tool limit; its orphaned pytest process was stopped. The required focused
+  Change 5 regression suite completed successfully. This is a verification-runtime
+  limit, not evidence of a full-suite failure.
+- The scope remains one synthetic tenant and checked-in API-503 fixture. Raw artifact
+  export, real provider/credential use, network access, customer receipt/resolution,
+  knowledge publication, live trace export, real external delivery, and multi-Agent
+  execution remain disabled and unimplemented.
+
+Next-stage gate:
+
+- Create a new OpenSpec proposal before enabling any non-fixture evidence export,
+  real provider, credential, network destination, live trace backend, external delivery,
+  or multi-Agent execution. It must define retention and deletion policy, privacy and
+  redaction review, tenant/role authorization, provider-specific intent/reconciliation,
+  independent audit access, rollout/rollback, and live safety verification.
+- A provider acknowledgement, local adapter record, report, or replay result MUST NOT
+  alone establish customer receipt, incident resolution, Case completion, or permission
+  for another effect.

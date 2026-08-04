@@ -18,6 +18,7 @@ CONTROL_KERNEL_SRC = ROOT / "packages" / "python" / "weflow-control-kernel" / "s
 CONTRACTS_SRC = ROOT / "packages" / "python" / "weflow-contracts" / "src"
 BUSINESS_SIMULATOR_SRC = ROOT / "apps" / "business-simulator" / "src"
 AGENT_RUNTIME_SRC = ROOT / "apps" / "agent-runtime" / "src"
+EXTENSION_SDK_SRC = ROOT / "packages" / "python" / "weflow-extension-sdk" / "src"
 PLATFORM_API_SRC = ROOT / "apps" / "platform-api" / "src"
 for source_directory in (
     SCRIPTS_DIRECTORY,
@@ -25,6 +26,7 @@ for source_directory in (
     CONTRACTS_SRC,
     BUSINESS_SIMULATOR_SRC,
     AGENT_RUNTIME_SRC,
+    EXTENSION_SDK_SRC,
     PLATFORM_API_SRC,
 ):
     if str(source_directory) not in sys.path:
@@ -230,6 +232,25 @@ def command_policy_approval_acceptance(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_evidence_trajectory_acceptance(arguments: argparse.Namespace) -> int:
+    from evidence_trajectory_acceptance import run_evidence_trajectory_acceptance
+
+    try:
+        report = run_evidence_trajectory_acceptance(ROOT)
+        if arguments.output:
+            _write_acceptance_report(arguments.output, report)
+    except (RuntimeError, ValueError) as error:
+        _print(
+            {
+                "report_type": "weflow-change-5-evidence-trajectory-acceptance.v1",
+                "accepted": False,
+                "reason_code": str(error),
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
 def command_up(arguments: argparse.Namespace) -> int:
     report = start_services(arguments.mode)
     _print(report)
@@ -326,6 +347,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     policy_approval.set_defaults(handler=command_policy_approval_acceptance)
 
+    evidence_trajectory = subcommands.add_parser(
+        "evidence-trajectory-acceptance",
+        help="run the offline evidence trajectory and verification replay acceptance sequence",
+    )
+    evidence_trajectory.add_argument(
+        "--output",
+        help="optional repository-relative evidence path under reports/",
+    )
+    evidence_trajectory.set_defaults(handler=command_evidence_trajectory_acceptance)
     up = subcommands.add_parser("up", help="accept a local startup request")
     up.add_argument("--mode", choices=("offline", "service-boundary"), default="offline")
     up.set_defaults(handler=command_up)

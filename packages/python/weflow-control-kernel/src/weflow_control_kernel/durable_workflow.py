@@ -57,6 +57,12 @@ from weflow_contracts import (
     validate_workflow_projection,
 )
 
+from .evidence_trajectory import (
+    evidence_report_for_case,
+    extract_evidence_trajectory,
+    initialize_evidence_trajectory_schema,
+    replay_evidence_trajectory,
+)
 from .ledger import CaseLedgerError, SQLiteCaseLedger
 from .policy import (
     API_503_DELIVERY_RESOURCE_ID,
@@ -263,6 +269,11 @@ class SQLiteDurableWorkflow:
         self.ledger = ledger
         self._clock = clock or _utc_now
         self._contract_root = contract_root or ledger._contract_root
+        connection = self._connect()
+        try:
+            initialize_evidence_trajectory_schema(connection)
+        finally:
+            connection.close()
         self.rebuild_workflow_projection()
 
     def _connect(self) -> sqlite3.Connection:
@@ -4349,6 +4360,28 @@ class SQLiteDurableWorkflow:
         }
         return {**data, "content_sha256": _sha256(data)}
 
+    def extract_evidence_trajectory(
+        self,
+        tenant_id: str,
+        case_id: str,
+        *,
+        requested_outcome: str | None = None,
+    ) -> JsonObject:
+        """Build a redacted evidence artifact without changing workflow control."""
+
+        return extract_evidence_trajectory(
+            self, tenant_id, case_id, requested_outcome=requested_outcome
+        )
+
+    def replay_evidence_trajectory(self, tenant_id: str, trajectory_id: str) -> JsonObject:
+        """Verify a retained evidence trajectory without executing the workflow."""
+
+        return replay_evidence_trajectory(self, tenant_id, trajectory_id)
+
+    def evidence_report_for_case(self, tenant_id: str, case_id: str) -> JsonObject | None:
+        """Read one already persisted redacted report; never trigger extraction."""
+
+        return evidence_report_for_case(self, tenant_id, case_id)
     @staticmethod
     def _interrupt(fault_profile: FaultProfile | None, point: str) -> None:
         if fault_profile is not None and point in fault_profile.interrupt_after:

@@ -10,10 +10,11 @@ directory. Each boundary object SHALL declare a stable schema identifier and
 ContextManifest, AgentAction, ToolRequest, ToolResult, ResponseCandidate,
 VerifierOutcome, CapabilityGrant, PolicyDecision, AuthorizationBinding,
 ApprovalRequest, ApprovalDecision, OutboundDeliveryIntent,
-OutboundDeliveryObservation, and OutboundDeliveryCompletion. Each investigation and
-authorization boundary SHALL have stable schema identity/version, tenant/Case/revision
-linkage where applicable, forbid undeclared/raw fields, and validate in Python and
-TypeScript.
+OutboundDeliveryObservation, OutboundDeliveryCompletion, Artifact,
+EvidenceTrajectory, EvidenceReport, and TrajectoryReplayResult. Each investigation,
+authorization, and evidence boundary SHALL have stable schema identity/version,
+tenant/Case/revision linkage where applicable, forbid undeclared/raw fields, and
+validate in Python and TypeScript.
 
 #### Scenario: A valid contract fixture is consumed cross-language
 - **WHEN** a valid `v1` fixture for each supported boundary object is validated by the
@@ -37,6 +38,12 @@ TypeScript.
   outbound-delivery fixtures are consumed by both contract packages
 - **THEN** both SHALL agree on acceptance and rejection while all retained v1 fixtures
   remain valid
+#### Scenario: Evidence trajectory fixtures validate cross-language
+- **WHEN** valid and invalid Artifact, EvidenceTrajectory, EvidenceReport, and
+  TrajectoryReplayResult fixtures are consumed by both contract packages
+- **THEN** both SHALL agree on acceptance and rejection while every retained v1 fixture
+  remains valid
+
 ### Requirement: Case, event, artifact, and evidence invariants are representable
 Every tenant-scoped contract SHALL contain `tenant_id`. A Case SHALL have a stable case identity; every CaseRevision SHALL identify its case, be immutable, and carry a monotonic revision value and predecessor reference when applicable. A BusinessEvent SHALL have a unique event identity, case reference, event type, occurrence time, receipt time, correlation metadata, and causation metadata when available. Artifact and EvidenceReference contracts SHALL identify content by cryptographic hash and SHALL carry media type and redaction classification rather than raw private payloads.
 
@@ -222,3 +229,27 @@ outcomes without representing a customer-success assertion.
   foreign tenant, mismatched binding, or detached intent reference
 - **THEN** contract validation SHALL reject it before it can authorize or report a
   delivery
+
+### Requirement: Evidence contracts bind replay to a redacted immutable trajectory
+The system SHALL require Artifact, EvidenceTrajectory, EvidenceReport, and
+TrajectoryReplayResult contracts to bind their effective tenant, stable identity,
+schema version, safe classification, content/root hash, and source trajectory identity
+where applicable. A trajectory SHALL contain only ordered typed safe node references to
+Case/revision/workflow and existing source facts; a replay result SHALL bind both
+recorded and replayed roots plus a fixed verification outcome/failure code. Contract
+validation SHALL reject raw customer or
+tool content, credentials, caller-selected authority, foreign references, missing/
+duplicate/out-of-order node identities, detached report/replay references, invalid hash,
+or any customer-success claim.
+
+#### Scenario: A complete fixture-local report chain validates
+- **WHEN** a fixture contains a classified Artifact, canonical EvidenceTrajectory,
+  redacted EvidenceReport, and matching TrajectoryReplayResult for one tenant
+- **THEN** both contract packages SHALL accept the chain without requiring a provider,
+  network request, external delivery payload, or customer outcome
+
+#### Scenario: A trajectory or report is detached or unsafe
+- **WHEN** a fixture contains a foreign node, missing causal reference, changed root,
+  raw payload, secret-like value, invalid outcome code, or customer-resolution field
+- **THEN** both contract packages SHALL reject it before it can be persisted, replayed,
+  or exposed

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/trajectory-replay-result.schema.json",
+  "title": "TrajectoryReplayResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "replay_result_id", "trajectory_id", "report_id", "report_sha256", "recorded_root_sha256", "replayed_root_sha256", "mode", "verification_outcome", "failure_code", "capabilities", "result_sha256", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/trajectory-replay-result.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "replay_result_id": {"type": "string", "minLength": 1},
+    "trajectory_id": {"type": "string", "minLength": 1},
+    "report_id": {"type": "string", "minLength": 1},
+    "report_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "recorded_root_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "replayed_root_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "mode": {"const": "verification_replay"},
+    "verification_outcome": {"enum": ["verified", "lineage_invalid"]},
+    "failure_code": {"type": ["string", "null"], "enum": [null, "lineage_invalid"]},
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network_required", "model_invocation", "external_write", "docker_required"],
+      "properties": {
+        "network_required": {"const": false},
+        "model_invocation": {"const": false},
+        "external_write": {"const": false},
+        "docker_required": {"const": false}
+      }
+    },
+    "result_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "recorded_at": {"type": "string", "minLength": 1}
+  }
+}

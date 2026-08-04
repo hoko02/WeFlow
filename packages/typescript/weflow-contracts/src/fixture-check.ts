@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
   JsonObject,
   validateAgentActionForContext,
+  validateEvidenceChain,
   validateChange4AuthorizationProfile,
   validateHashBoundApproval,
   validateOutboundDeliveryChain,
@@ -86,7 +87,14 @@ const authorizationDelivery = JSON.parse(
   outbound_delivery_intent: JsonObject;
   outbound_delivery_observation: JsonObject;
   outbound_delivery_completion: JsonObject;
-};const missingIdentity = JSON.parse(
+};
+const evidenceTrajectory = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/evidence-trajectory.json"), "utf8"),
+) as { artifact: JsonObject; trajectory: JsonObject; report: JsonObject; replay_result: JsonObject };
+const evidenceInvalid = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/invalid/evidence-trajectory-invalid-payloads.json"), "utf8"),
+) as Record<string, { field: string; value?: unknown }>;
+const missingIdentity = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/missing-schema-identity.json"), "utf8"),
 ) as JsonObject;
 
@@ -170,7 +178,24 @@ if (
   ).valid
 ) {
   failedSchemas.push("change4-outbound-delivery-chain");
-}if (validatePayload(missingIdentity, root).valid) {
+}
+if (!validateEvidenceChain(evidenceTrajectory.artifact, evidenceTrajectory.trajectory, evidenceTrajectory.report, evidenceTrajectory.replay_result, root).valid) {
+  failedSchemas.push("evidence-chain");
+}
+for (const [name, mutation] of Object.entries(evidenceInvalid)) {
+  const artifact = structuredClone(evidenceTrajectory.artifact);
+  const trajectory = structuredClone(evidenceTrajectory.trajectory);
+  const report = structuredClone(evidenceTrajectory.report);
+  const replay = structuredClone(evidenceTrajectory.replay_result);
+  if (name === "raw_payload") (report as JsonObject)[mutation.field] = "blocked";
+  else if (name === "foreign_tenant") (report as JsonObject)[mutation.field] = mutation.value;
+  else if (name === "duplicate_node") ((trajectory.nodes as JsonObject[])[2])[mutation.field] = mutation.value;
+  else if (name === "out_of_order") ((trajectory.nodes as JsonObject[])[2])[mutation.field] = mutation.value;
+  else if (name === "customer_success") (report as JsonObject)[mutation.field] = mutation.value;
+  else (trajectory as JsonObject)[mutation.field] = mutation.value;
+  if (validateEvidenceChain(artifact, trajectory, report, replay, root).valid) failedSchemas.push(`invalid-evidence-${name}`);
+}
+if (validatePayload(missingIdentity, root).valid) {
   failedSchemas.push("missing-schema-identity");
 }
 if (validateGeneratedLedgerEvent(missingGeneratedMetadata, root).valid) {
@@ -219,6 +244,7 @@ console.log(
       Object.keys(invalidIntakePayloads).length +
       Object.keys(invalidWorkflowPayloads).length +
       Object.keys(invalidAgentPayloads).length +
+      Object.keys(evidenceInvalid).length +
       2,
   }),
 );

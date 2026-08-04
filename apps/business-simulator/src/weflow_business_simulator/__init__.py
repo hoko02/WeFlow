@@ -1,5 +1,6 @@
 """Deterministic local simulator boundary for replay and synthetic intake."""
 
+from .evidence import SyntheticEvidenceTrajectorySimulator
 from .fixtures import load_replay_fixture
 from .intake import (
     SyntheticIntakeSimulator,
@@ -11,6 +12,7 @@ from .policy_approval import SyntheticPolicyApprovalSimulator, load_policy_appro
 from .workflow import SyntheticWorkflowSimulator, load_workflow_fixture
 
 __all__ = [
+    "SyntheticEvidenceTrajectorySimulator",
     "SyntheticIntakeSimulator",
     "SyntheticInvestigationSimulator",
     "SyntheticPolicyApprovalSimulator",

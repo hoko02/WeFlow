@@ -37,6 +37,18 @@ from .authorization import (
     validate_outbound_delivery_observation,
     validate_policy_decision,
 )
+from .evidence import (
+    ARTIFACT_SCHEMA_ID,
+    EVIDENCE_REPORT_SCHEMA_ID,
+    EVIDENCE_TRAJECTORY_SCHEMA_ID,
+    TRAJECTORY_REPLAY_RESULT_SCHEMA_ID,
+    trajectory_root,
+    validate_artifact,
+    validate_evidence_chain,
+    validate_evidence_report,
+    validate_evidence_trajectory,
+    validate_trajectory_replay_result,
+)
 from .intake import (
     BUSINESS_EVENT_SCHEMA_ID,
     CASE_PROJECTION_SCHEMA_ID,
@@ -78,7 +90,10 @@ from .workflow import (
 )
 
 __all__ = [
-    "AGENT_ACTION_SCHEMA_ID",
+    "ARTIFACT_SCHEMA_ID",
+    "EVIDENCE_REPORT_SCHEMA_ID",
+    "EVIDENCE_TRAJECTORY_SCHEMA_ID",
+    "TRAJECTORY_REPLAY_RESULT_SCHEMA_ID",    "AGENT_ACTION_SCHEMA_ID",
     "BUSINESS_EVENT_SCHEMA_ID",
     "CASE_PROJECTION_SCHEMA_ID",
     "CONTEXT_MANIFEST_SCHEMA_ID",
@@ -101,7 +116,12 @@ __all__ = [
     "load_contract_schemas",
     "schema_fingerprints",
     "stable_idempotency_key",
-    "validate_agent_action",
+    "trajectory_root",
+    "validate_artifact",
+    "validate_evidence_chain",
+    "validate_evidence_report",
+    "validate_evidence_trajectory",
+    "validate_trajectory_replay_result",    "validate_agent_action",
     "validate_case_projection",
     "validate_checkpoint_sequence",
     "validate_context_manifest",

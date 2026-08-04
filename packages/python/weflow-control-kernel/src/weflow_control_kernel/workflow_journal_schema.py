@@ -36,6 +36,10 @@ WORKFLOW_SOURCE_TABLES = (
     "outbound_delivery_completions",
     "fixture_delivery_records",
     "fixture_delivery_operations",
+    "evidence_artifacts",
+    "evidence_trajectories",
+    "evidence_reports",
+    "trajectory_replay_results",
 )
 
 

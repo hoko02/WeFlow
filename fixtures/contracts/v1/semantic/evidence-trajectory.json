@@ -1,0 +1,70 @@
+{
+  "artifact": {
+    "schema_id": "https://weflow.local/contracts/v1/artifact.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-alpha",
+    "artifact_id": "artifact-evidence-api-503",
+    "artifact_kind": "evidence_report",
+    "case_id": "case-api-503",
+    "case_revision_id": "revision-api-503",
+    "workflow_id": "workflow-api-503",
+    "trajectory_id": "trajectory-api-503",
+    "report_profile_id": "fixture-local-evidence.v1",
+    "content_sha256": "b73367389aa3528639950c845c1c2b09d6a0257889afe5304cc388e1368e8789",
+    "media_type": "application/vnd.weflow.evidence-report+json",
+    "redaction_classification": "redacted",
+    "created_at": "2026-08-04T00:00:00Z",
+    "producer": "fixture-local-evidence"
+  },
+  "trajectory": {
+    "schema_id": "https://weflow.local/contracts/v1/evidence-trajectory.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-alpha",
+    "trajectory_id": "trajectory-api-503",
+    "case_id": "case-api-503",
+    "case_revision_id": "revision-api-503",
+    "workflow_id": "workflow-api-503",
+    "report_profile_id": "fixture-local-evidence.v1",
+    "root_sha256": "a0b01cf3140812a67db1ffba0faf6edbb8c1dc3c3bf6592380b253b5b4705e2d",
+    "nodes": [
+      {"node_id": "node-01", "sequence": 1, "source_kind": "accepted_intake", "source_id": "event-api-503", "predecessor_node_id": null, "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "classification": "synthetic"},
+      {"node_id": "node-02", "sequence": 2, "source_kind": "workflow_checkpoint", "source_id": "checkpoint-api-503", "predecessor_node_id": "node-01", "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "classification": "redacted"},
+      {"node_id": "node-03", "sequence": 3, "source_kind": "delivery_completion", "source_id": "delivery-completion-api-503", "predecessor_node_id": "node-02", "content_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "classification": "synthetic"}
+    ],
+    "created_at": "2026-08-04T00:00:00Z"
+  },
+  "report": {
+    "schema_id": "https://weflow.local/contracts/v1/evidence-report.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-alpha",
+    "report_id": "report-api-503",
+    "artifact_id": "artifact-evidence-api-503",
+    "trajectory_id": "trajectory-api-503",
+    "trajectory_root_sha256": "a0b01cf3140812a67db1ffba0faf6edbb8c1dc3c3bf6592380b253b5b4705e2d",
+    "report_profile_id": "fixture-local-evidence.v1",
+    "fixture_id": "api-503-policy-approval-delivery",
+    "outcome": "fixture_delivery_recorded",
+    "failure_code": null,
+    "node_count": 3,
+    "capabilities": {"network_required": false, "model_invocation": false, "external_write": false, "docker_required": false},
+    "content_sha256": "b73367389aa3528639950c845c1c2b09d6a0257889afe5304cc388e1368e8789",
+    "created_at": "2026-08-04T00:00:00Z"
+  },
+  "replay_result": {
+    "schema_id": "https://weflow.local/contracts/v1/trajectory-replay-result.schema.json",
+    "schema_version": "v1",
+    "tenant_id": "tenant-alpha",
+    "replay_result_id": "replay-api-503",
+    "trajectory_id": "trajectory-api-503",
+    "report_id": "report-api-503",
+    "report_sha256": "b73367389aa3528639950c845c1c2b09d6a0257889afe5304cc388e1368e8789",
+    "recorded_root_sha256": "a0b01cf3140812a67db1ffba0faf6edbb8c1dc3c3bf6592380b253b5b4705e2d",
+    "replayed_root_sha256": "a0b01cf3140812a67db1ffba0faf6edbb8c1dc3c3bf6592380b253b5b4705e2d",
+    "mode": "verification_replay",
+    "verification_outcome": "verified",
+    "failure_code": null,
+    "capabilities": {"network_required": false, "model_invocation": false, "external_write": false, "docker_required": false},
+    "result_sha256": "1096d914fb73206628981e78a9f6cb48111f3798d6c57cfdec71d408c89dc405",
+    "recorded_at": "2026-08-04T00:00:00Z"
+  }
+}

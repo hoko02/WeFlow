@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/evidence-report.schema.json",
+  "title": "EvidenceReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "report_id", "artifact_id", "trajectory_id", "trajectory_root_sha256", "report_profile_id", "fixture_id", "outcome", "failure_code", "node_count", "capabilities", "content_sha256", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/evidence-report.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "report_id": {"type": "string", "minLength": 1},
+    "artifact_id": {"type": "string", "minLength": 1},
+    "trajectory_id": {"type": "string", "minLength": 1},
+    "trajectory_root_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "report_profile_id": {"const": "fixture-local-evidence.v1"},
+    "fixture_id": {"const": "api-503-policy-approval-delivery"},
+    "outcome": {"enum": ["fixture_delivery_recorded", "authorization_denied", "recovered_after_interruption", "needs_reconciliation", "lineage_invalid"]},
+    "failure_code": {"type": ["string", "null"], "enum": [null, "authorization_denied_grant_revoked", "lineage_invalid", "needs_reconciliation"]},
+    "node_count": {"type": "integer", "minimum": 0},
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network_required", "model_invocation", "external_write", "docker_required"],
+      "properties": {
+        "network_required": {"const": false},
+        "model_invocation": {"const": false},
+        "external_write": {"const": false},
+        "docker_required": {"const": false}
+      }
+    },
+    "content_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

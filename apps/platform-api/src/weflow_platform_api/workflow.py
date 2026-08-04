@@ -154,6 +154,30 @@ def install_workflow_routes(app: FastAPI, boundary: WorkflowBoundary) -> None:
             return error_response(404, "workflow_not_found")
         return JSONResponse(content={"investigation": facts})
 
+    @app.get("/v1/cases/{case_id}/workflow/evidence", tags=["durable-workflow"])
+    def get_workflow_evidence_report(
+        case_id: str,
+        request: Request,
+        x_weflow_synthetic_actor: str | None = Header(default=None),
+    ) -> JSONResponse:
+        """Return only an already persisted redacted Evidence Report."""
+
+        if request.query_params:
+            return error_response(422, "evidence_request_invalid")
+        workflow = _workflow_or_error(boundary)
+        if isinstance(workflow, JSONResponse):
+            return workflow
+        tenant_id = _tenant_or_error(boundary, x_weflow_synthetic_actor)
+        if isinstance(tenant_id, JSONResponse):
+            return tenant_id
+        try:
+            report = workflow.evidence_report_for_case(tenant_id, case_id)
+        except WorkflowError as error:
+            return _workflow_error_response(error)
+        if report is None:
+            # No extraction is triggered and foreign/absent paths are indistinguishable.
+            return error_response(404, "workflow_not_found")
+        return JSONResponse(content=report)
     @app.get("/v1/cases/{case_id}/workflow/approval", tags=["durable-workflow"])
     def get_workflow_approval(
         case_id: str,

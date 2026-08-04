@@ -28,6 +28,10 @@ export const APPROVAL_DECISION_SCHEMA_ID = "https://weflow.local/contracts/v1/ap
 export const OUTBOUND_DELIVERY_INTENT_SCHEMA_ID = "https://weflow.local/contracts/v1/outbound-delivery-intent.schema.json";
 export const OUTBOUND_DELIVERY_OBSERVATION_SCHEMA_ID = "https://weflow.local/contracts/v1/outbound-delivery-observation.schema.json";
 export const OUTBOUND_DELIVERY_COMPLETION_SCHEMA_ID = "https://weflow.local/contracts/v1/outbound-delivery-completion.schema.json";
+export const ARTIFACT_SCHEMA_ID = "https://weflow.local/contracts/v1/artifact.schema.json";
+export const EVIDENCE_TRAJECTORY_SCHEMA_ID = "https://weflow.local/contracts/v1/evidence-trajectory.schema.json";
+export const EVIDENCE_REPORT_SCHEMA_ID = "https://weflow.local/contracts/v1/evidence-report.schema.json";
+export const TRAJECTORY_REPLAY_RESULT_SCHEMA_ID = "https://weflow.local/contracts/v1/trajectory-replay-result.schema.json";
 
 export type AgentActionType =
   | "read_crm"
@@ -428,6 +432,65 @@ export interface OutboundDeliveryCompletion extends JsonObject {
   content_sha256: string;
   completed_at: string;
 }
+export interface EvidenceTrajectoryNode extends JsonObject {
+  node_id: string;
+  sequence: number;
+  source_kind: string;
+  source_id: string;
+  predecessor_node_id: string | null;
+  content_sha256: string;
+  classification: "synthetic" | "redacted";
+}
+
+export interface EvidenceTrajectory extends JsonObject {
+  schema_id: typeof EVIDENCE_TRAJECTORY_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  trajectory_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  report_profile_id: "fixture-local-evidence.v1";
+  root_sha256: string;
+  nodes: EvidenceTrajectoryNode[];
+  created_at: string;
+}
+
+export interface EvidenceReport extends JsonObject {
+  schema_id: typeof EVIDENCE_REPORT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  report_id: string;
+  artifact_id: string;
+  trajectory_id: string;
+  trajectory_root_sha256: string;
+  report_profile_id: "fixture-local-evidence.v1";
+  fixture_id: "api-503-policy-approval-delivery";
+  outcome: "fixture_delivery_recorded" | "authorization_denied" | "recovered_after_interruption" | "needs_reconciliation" | "lineage_invalid";
+  failure_code: "authorization_denied_grant_revoked" | "lineage_invalid" | "needs_reconciliation" | null;
+  node_count: number;
+  capabilities: { network_required: false; model_invocation: false; external_write: false; docker_required: false };
+  content_sha256: string;
+  created_at: string;
+}
+
+export interface TrajectoryReplayResult extends JsonObject {
+  schema_id: typeof TRAJECTORY_REPLAY_RESULT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  replay_result_id: string;
+  trajectory_id: string;
+  report_id: string;
+  report_sha256: string;
+  recorded_root_sha256: string;
+  replayed_root_sha256: string;
+  mode: "verification_replay";
+  verification_outcome: "verified" | "lineage_invalid";
+  failure_code: "lineage_invalid" | null;
+  capabilities: { network_required: false; model_invocation: false; external_write: false; docker_required: false };
+  result_sha256: string;
+  recorded_at: string;
+}
 export interface ValidationResult {
   valid: boolean;
   reasonCode?: string;
@@ -533,6 +596,68 @@ export function validateVerifierOutcome(payload: JsonObject, root?: string): Val
   return validateExpectedSchema(payload, VERIFIER_OUTCOME_SCHEMA_ID, root);
 }
 
+export function validateArtifact(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, ARTIFACT_SCHEMA_ID, root);
+}
+
+export function validateEvidenceTrajectory(payload: JsonObject, root?: string): ValidationResult {
+  const schema = validateExpectedSchema(payload, EVIDENCE_TRAJECTORY_SCHEMA_ID, root);
+  if (!schema.valid) return schema;
+  const hash = change4ClaimedHash(payload, "root_sha256");
+  if (!hash.valid) return hash;
+  const nodes = payload.nodes;
+  if (!Array.isArray(nodes)) return { valid: false, reasonCode: "nodes_invalid" };
+  const nodeIds: string[] = [];
+  const sourceIds: string[] = [];
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index] as JsonObject;
+    if (!node || typeof node !== "object" || node.sequence !== index + 1) return { valid: false, reasonCode: "node_order_invalid" };
+    if (typeof node.node_id !== "string" || typeof node.source_id !== "string") return { valid: false, reasonCode: "node_identity_invalid" };
+    if (node.predecessor_node_id !== (index === 0 ? null : nodeIds[index - 1])) return { valid: false, reasonCode: "causal_predecessor_invalid" };
+    nodeIds.push(node.node_id);
+    sourceIds.push(node.source_id);
+  }
+  return nodeIds.length === new Set(nodeIds).size && sourceIds.length === new Set(sourceIds).size
+    ? { valid: true }
+    : { valid: false, reasonCode: "duplicate_node_or_source_identity" };
+}
+
+export function validateEvidenceReport(payload: JsonObject, root?: string, trajectory?: JsonObject): ValidationResult {
+  const schema = validateExpectedSchema(payload, EVIDENCE_REPORT_SCHEMA_ID, root);
+  if (!schema.valid) return schema;
+  const hash = change4ClaimedHash(payload, "content_sha256");
+  if (!hash.valid) return hash;
+  if (trajectory) {
+    const trajectoryResult = validateEvidenceTrajectory(trajectory, root);
+    if (!trajectoryResult.valid) return trajectoryResult;
+    if (payload.tenant_id !== trajectory.tenant_id || payload.trajectory_id !== trajectory.trajectory_id || payload.trajectory_root_sha256 !== trajectory.root_sha256 || payload.node_count !== (trajectory.nodes as unknown[]).length) return { valid: false, reasonCode: "trajectory_reference_mismatch" };
+  }
+  return { valid: true };
+}
+
+export function validateTrajectoryReplayResult(payload: JsonObject, root?: string, trajectory?: JsonObject, report?: JsonObject): ValidationResult {
+  const schema = validateExpectedSchema(payload, TRAJECTORY_REPLAY_RESULT_SCHEMA_ID, root);
+  if (!schema.valid) return schema;
+  const hash = change4ClaimedHash(payload, "result_sha256");
+  if (!hash.valid) return hash;
+  if (trajectory && (payload.tenant_id !== trajectory.tenant_id || payload.trajectory_id !== trajectory.trajectory_id || payload.recorded_root_sha256 !== trajectory.root_sha256)) return { valid: false, reasonCode: "recorded_root_mismatch" };
+  if (report && (payload.tenant_id !== report.tenant_id || payload.report_id !== report.report_id || payload.report_sha256 !== report.content_sha256)) return { valid: false, reasonCode: "report_reference_mismatch" };
+  if (payload.verification_outcome === "verified") return payload.recorded_root_sha256 === payload.replayed_root_sha256 && payload.failure_code === null ? { valid: true } : { valid: false, reasonCode: "replay_root_mismatch" };
+  return payload.failure_code === "lineage_invalid" ? { valid: true } : { valid: false, reasonCode: "failure_code_invalid" };
+}
+
+export function validateEvidenceChain(artifact: JsonObject, trajectory: JsonObject, report: JsonObject, replay: JsonObject, root?: string): ValidationResult {
+  for (const result of [validateArtifact(artifact, root), validateEvidenceTrajectory(trajectory, root), validateEvidenceReport(report, root, trajectory), validateTrajectoryReplayResult(replay, root, trajectory, report)]) if (!result.valid) return result;
+  const artifactMatchesTrajectory = ["tenant_id", "case_id", "case_revision_id", "workflow_id", "trajectory_id", "report_profile_id"].every(
+    (field) => artifact[field] === trajectory[field],
+  );
+  const artifactMatchesReport = ["tenant_id", "artifact_id", "trajectory_id", "report_profile_id"].every(
+    (field) => artifact[field] === report[field],
+  );
+  return artifactMatchesTrajectory && artifactMatchesReport && artifact.content_sha256 === report.content_sha256
+    ? { valid: true }
+    : { valid: false, reasonCode: "artifact_reference_mismatch" };
+}
 function requireChange4Fields(payload: JsonObject, fields: string[]): ValidationResult {
   for (const field of fields) {
     const value = payload[field];

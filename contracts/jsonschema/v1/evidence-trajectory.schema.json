@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/evidence-trajectory.schema.json",
+  "title": "EvidenceTrajectory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "trajectory_id", "case_id", "case_revision_id", "workflow_id", "report_profile_id", "root_sha256", "nodes", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/evidence-trajectory.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "trajectory_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "workflow_id": {"type": "string", "minLength": 1},
+    "report_profile_id": {"const": "fixture-local-evidence.v1"},
+    "root_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "sequence", "source_kind", "source_id", "predecessor_node_id", "content_sha256", "classification"],
+        "properties": {
+          "node_id": {"type": "string", "minLength": 1},
+          "sequence": {"type": "integer", "minimum": 1},
+          "source_kind": {"enum": ["accepted_intake", "case_revision", "case_event", "workflow_activation", "workflow_checkpoint", "context_manifest", "agent_step", "tool_request", "tool_result", "evidence", "response_candidate", "verifier_outcome", "policy_activation", "capability_grant", "policy_decision", "authorization_binding", "approval_request", "approval_decision", "delivery_intent", "delivery_completion"]},
+          "source_id": {"type": "string", "minLength": 1},
+          "predecessor_node_id": {"type": ["string", "null"]},
+          "content_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+          "classification": {"enum": ["synthetic", "redacted"]}
+        }
+      }
+    },
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}
