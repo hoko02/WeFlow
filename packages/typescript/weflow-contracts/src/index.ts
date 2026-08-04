@@ -15,6 +15,129 @@ export const SYNTHETIC_SLA_POLICY_SCHEMA_ID = "https://weflow.local/contracts/v1
 export const WORKFLOW_CHECKPOINT_SCHEMA_ID = "https://weflow.local/contracts/v1/workflow-checkpoint.schema.json";
 export const WORKFLOW_COMMAND_SCHEMA_ID = "https://weflow.local/contracts/v1/workflow-command.schema.json";
 export const WORKFLOW_PROJECTION_SCHEMA_ID = "https://weflow.local/contracts/v1/workflow-projection.schema.json";
+export const CONTEXT_MANIFEST_SCHEMA_ID = "https://weflow.local/contracts/v1/context-manifest.schema.json";
+export const AGENT_ACTION_SCHEMA_ID = "https://weflow.local/contracts/v1/agent-action.schema.json";
+export const TOOL_REQUEST_SCHEMA_ID = "https://weflow.local/contracts/v1/tool-request.schema.json";
+export const TOOL_RESULT_SCHEMA_ID = "https://weflow.local/contracts/v1/tool-result.schema.json";
+export const RESPONSE_CANDIDATE_SCHEMA_ID = "https://weflow.local/contracts/v1/response-candidate.schema.json";
+export const VERIFIER_OUTCOME_SCHEMA_ID = "https://weflow.local/contracts/v1/verifier-outcome.schema.json";export const AUTHORIZATION_BINDING_SCHEMA_ID = "https://weflow.local/contracts/v1/authorization-binding.schema.json";
+export const CAPABILITY_GRANT_SCHEMA_ID = "https://weflow.local/contracts/v1/capability-grant.schema.json";
+export const POLICY_DECISION_SCHEMA_ID = "https://weflow.local/contracts/v1/policy-decision.schema.json";
+export const APPROVAL_REQUEST_SCHEMA_ID = "https://weflow.local/contracts/v1/approval-request.schema.json";
+export const APPROVAL_DECISION_SCHEMA_ID = "https://weflow.local/contracts/v1/approval-decision.schema.json";
+export const OUTBOUND_DELIVERY_INTENT_SCHEMA_ID = "https://weflow.local/contracts/v1/outbound-delivery-intent.schema.json";
+export const OUTBOUND_DELIVERY_OBSERVATION_SCHEMA_ID = "https://weflow.local/contracts/v1/outbound-delivery-observation.schema.json";
+export const OUTBOUND_DELIVERY_COMPLETION_SCHEMA_ID = "https://weflow.local/contracts/v1/outbound-delivery-completion.schema.json";
+
+export type AgentActionType =
+  | "read_crm"
+  | "read_monitoring"
+  | "read_knowledge"
+  | "needs_information"
+  | "needs_operator"
+  | "response_candidate";
+
+export interface ContextManifest extends JsonObject {
+  schema_id: typeof CONTEXT_MANIFEST_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  context_manifest_id: string;
+  context_sha256: string;
+  environment_snapshot_sha256: string;
+  evidence_references: string[];
+  action_budget: number;
+  tool_budget: number;
+  no_progress_limit: number;
+  created_at: string;
+}
+
+export interface AgentAction extends JsonObject {
+  schema_id: typeof AGENT_ACTION_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  context_manifest_id: string;
+  step_id: string;
+  action_type: AgentActionType;
+  action_sha256: string;
+  created_at: string;
+}
+
+export interface ToolRequest extends JsonObject {
+  schema_id: typeof TOOL_REQUEST_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  context_manifest_id: string;
+  tool_request_id: string;
+  step_id: string;
+  tool_name: "crm" | "monitoring" | "knowledge";
+  request_sha256: string;
+  created_at: string;
+}
+
+export interface ToolResult extends JsonObject {
+  schema_id: typeof TOOL_RESULT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  context_manifest_id: string;
+  tool_name: "crm" | "monitoring" | "knowledge";
+  tool_result_id: string;
+  tool_request_id: string;
+  evidence_id: string;
+  content_sha256: string;
+  redaction_classification: "synthetic";
+  recorded_at: string;
+}
+
+export interface ResponseCandidate extends JsonObject {
+  schema_id: typeof RESPONSE_CANDIDATE_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  context_manifest_id: string;
+  candidate_id: string;
+  context_sha256: string;
+  evidence_hashes: string[];
+  candidate_sha256: string;
+  risk: "low" | "medium" | "high";
+  next_step: "operator_review" | "awaiting_information";
+  created_at: string;
+}
+
+export interface VerifierOutcome extends JsonObject {
+  schema_id: typeof VERIFIER_OUTCOME_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  context_manifest_id: string;
+  verifier_outcome_id: string;
+  candidate_id: string;
+  candidate_sha256: string;
+  outcome: "verified" | "rejected";
+  reason_code: string;
+  recorded_at: string;
+}
 
 export interface InboundMessageEvent extends JsonObject {
   schema_id: typeof INBOUND_MESSAGE_EVENT_SCHEMA_ID;
@@ -51,6 +174,11 @@ export interface CaseProjection extends JsonObject {
 export type WorkflowState =
   | "RECEIVED"
   | "TICKET_READY"
+  | "INVESTIGATING"
+  | "RESPONSE_READY"
+  | "AWAITING_APPROVAL"
+  | "DELIVERING"
+  | "DELIVERY_RECORDED"
   | "PAUSED"
   | "WAITING_FOR_OPERATOR"
   | "NEEDS_RECONCILIATION"
@@ -176,6 +304,130 @@ export interface SideEffectCompletion extends JsonObject {
   completed_at: string;
 }
 
+export type Change4Action =
+  | "approval.request"
+  | "approval.decide"
+  | "outbound_delivery.execute";
+
+export interface AuthorizationBinding extends JsonObject {
+  schema_id: typeof AUTHORIZATION_BINDING_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  authorization_binding_id: string;
+  authorization_binding_sha256: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  workflow_version: number;
+  candidate_hash: string;
+  evidence_hashes: string[];
+  action: Change4Action;
+  policy_decision_id: string;
+  policy_version: string;
+  policy_decision_sha256: string;
+  grant_id: string;
+  grant_version: string;
+  grant_sha256: string;
+  subject_id: string;
+  role: string;
+  delivery_resource_id: string;
+  delivery_resource_scope: string;
+  data_classification: "synthetic" | "unsafe_instruction" | "secret" | "raw_private";
+  remaining_budget: number;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface CapabilityGrant extends JsonObject {
+  schema_id: typeof CAPABILITY_GRANT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  grant_id: string;
+  subject_id: string;
+  capability: string;
+  scopes: string[];
+  issued_at: string;
+  expires_at: string;
+  status: "active" | "revoked" | "expired";
+  grant_version?: string;
+  grant_sha256?: string;
+  role?: string;
+  resource_scope?: string;
+  data_classifications?: string[];
+}
+
+export interface PolicyDecision extends JsonObject {
+  schema_id: typeof POLICY_DECISION_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  policy_decision_id: string;
+  case_id: string;
+  case_revision_id: string;
+  decision: "allow" | "deny";
+  reason_code: string;
+  evidence_hashes: string[];
+  decided_at: string;
+}
+
+export interface OutboundDeliveryIntent extends JsonObject {
+  schema_id: typeof OUTBOUND_DELIVERY_INTENT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  intent_id: string;
+  effect_kind: "fixture-local-outbound-delivery";
+  operation: "deliver";
+  channel: "fixture-local-im";
+  conversation_id: string;
+  delivery_resource_id: string;
+  candidate_hash: string;
+  authorization_binding_sha256: string;
+  natural_key: string;
+  intended_state_hash: string;
+  idempotency_key: string;
+  evidence_hashes: string[];
+  correlation_id: string;
+  created_at: string;
+}
+
+export interface OutboundDeliveryObservation extends JsonObject {
+  schema_id: typeof OUTBOUND_DELIVERY_OBSERVATION_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  observation_id: string;
+  intent_id: string;
+  status: "absent" | "present" | "unknown" | "conflict";
+  observed_delivery_id: string | null;
+  observed_version: number | null;
+  content_sha256: string | null;
+  reason_code: string | null;
+  recorded_at: string;
+}
+
+export interface OutboundDeliveryCompletion extends JsonObject {
+  schema_id: typeof OUTBOUND_DELIVERY_COMPLETION_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  workflow_id: string;
+  checkpoint_id: string;
+  completion_id: string;
+  intent_id: string;
+  observation_id: string;
+  observed_delivery_id: string;
+  observed_version: number;
+  content_sha256: string;
+  completed_at: string;
+}
 export interface ValidationResult {
   valid: boolean;
   reasonCode?: string;
@@ -255,6 +507,318 @@ function validateExpectedSchema(
     return result;
   }
   return payload.schema_id === schemaId ? { valid: true } : { valid: false, reasonCode: "unexpected_schema" };
+}
+
+export function validateContextManifest(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, CONTEXT_MANIFEST_SCHEMA_ID, root);
+}
+
+export function validateAgentAction(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, AGENT_ACTION_SCHEMA_ID, root);
+}
+
+export function validateToolRequest(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, TOOL_REQUEST_SCHEMA_ID, root);
+}
+
+export function validateToolResult(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, TOOL_RESULT_SCHEMA_ID, root);
+}
+
+export function validateResponseCandidate(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, RESPONSE_CANDIDATE_SCHEMA_ID, root);
+}
+
+export function validateVerifierOutcome(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, VERIFIER_OUTCOME_SCHEMA_ID, root);
+}
+
+function requireChange4Fields(payload: JsonObject, fields: string[]): ValidationResult {
+  for (const field of fields) {
+    const value = payload[field];
+    if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
+      return { valid: false, reasonCode: `${field}_required` };
+    }
+  }
+  return { valid: true };
+}
+
+function change4Same(left: JsonObject, right: JsonObject, fields: string[]): ValidationResult {
+  for (const field of fields) {
+    if (left[field] !== right[field]) {
+      return { valid: false, reasonCode: field === "tenant_id" ? "tenant_identity_mismatch" : "binding_mismatch" };
+    }
+  }
+  return { valid: true };
+}
+
+function change4OrderedEqual(left: unknown, right: unknown): boolean {
+  return Array.isArray(left) && Array.isArray(right) && canonicalJson(left) === canonicalJson(right);
+}
+
+export function change4ContentHash(payload: JsonObject, hashField: string): string {
+  const material = { ...payload };
+  delete material[hashField];
+  return createHash("sha256").update(canonicalJson(material), "utf8").digest("hex");
+}
+
+function change4ClaimedHash(payload: JsonObject, hashField: string): ValidationResult {
+  return payload[hashField] === change4ContentHash(payload, hashField)
+    ? { valid: true }
+    : { valid: false, reasonCode: `${hashField}_mismatch` };
+}
+
+export function validateCapabilityGrant(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, CAPABILITY_GRANT_SCHEMA_ID, root);
+}
+
+export function validatePolicyDecision(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, POLICY_DECISION_SCHEMA_ID, root);
+}
+
+export function validateApprovalRequest(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, APPROVAL_REQUEST_SCHEMA_ID, root);
+}
+
+export function validateApprovalDecision(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, APPROVAL_DECISION_SCHEMA_ID, root);
+}
+
+export function validateAuthorizationBinding(payload: JsonObject, root?: string): ValidationResult {
+  const schema = validateExpectedSchema(payload, AUTHORIZATION_BINDING_SCHEMA_ID, root);
+  if (!schema.valid) {
+    return schema;
+  }
+  const hash = change4ClaimedHash(payload, "authorization_binding_sha256");
+  if (!hash.valid) {
+    return hash;
+  }
+  const evidence = payload.evidence_hashes;
+  return Array.isArray(evidence) && evidence.length === new Set(evidence).size
+    ? { valid: true }
+    : { valid: false, reasonCode: "evidence_not_ordered_unique" };
+}
+
+export function validateOutboundDeliveryIntent(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, OUTBOUND_DELIVERY_INTENT_SCHEMA_ID, root);
+}
+
+export function validateOutboundDeliveryObservation(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, OUTBOUND_DELIVERY_OBSERVATION_SCHEMA_ID, root);
+}
+
+export function validateOutboundDeliveryCompletion(payload: JsonObject, root?: string): ValidationResult {
+  return validateExpectedSchema(payload, OUTBOUND_DELIVERY_COMPLETION_SCHEMA_ID, root);
+}
+
+export interface Change4AuthorizationContext {
+  action: Change4Action;
+  currentCaseRevisionId: string;
+  currentCheckpointId: string;
+  currentWorkflowVersion: number;
+  currentCandidateHash: string;
+  currentEvidenceHashes: string[];
+  resourceId: string;
+  dataClassification: string;
+  effectiveTenantId?: string;
+  effectiveSubjectId?: string;
+  effectiveRole?: string;
+  now?: string;
+}
+
+export function validateChange4AuthorizationProfile(
+  binding: JsonObject,
+  grant: JsonObject,
+  decision: JsonObject,
+  context: Change4AuthorizationContext,
+  root?: string,
+): ValidationResult {
+  if (!["approval.request", "approval.decide", "outbound_delivery.execute"].includes(context.action)) {
+    return { valid: false, reasonCode: "action_not_allowlisted" };
+  }
+  for (const result of [validateAuthorizationBinding(binding, root), validateCapabilityGrant(grant, root), validatePolicyDecision(decision, root)]) {
+    if (!result.valid) {
+      return result;
+    }
+  }
+  const requiredGrant = requireChange4Fields(grant, ["grant_version", "grant_sha256", "role", "resource_scope", "data_classifications"]);
+  if (!requiredGrant.valid) {
+    return requiredGrant;
+  }
+  const grantHash = change4ClaimedHash(grant, "grant_sha256");
+  if (!grantHash.valid) {
+    return grantHash;
+  }
+  const requiredDecision = requireChange4Fields(decision, ["checkpoint_id", "workflow_id", "workflow_version", "candidate_hash", "action", "policy_version", "policy_input_sha256", "policy_decision_sha256", "grant_id", "grant_sha256", "subject_id", "role", "resource_id", "data_classification"]);
+  if (!requiredDecision.valid) {
+    return requiredDecision;
+  }
+  const decisionHash = change4ClaimedHash(decision, "policy_decision_sha256");
+  if (!decisionHash.valid) {
+    return decisionHash;
+  }
+  if (decision.decision !== "allow") {
+    return { valid: false, reasonCode: "policy_denied" };
+  }
+  const current = Date.parse(context.now ?? new Date().toISOString());
+  if (
+    grant.status !== "active" ||
+    Date.parse(String(grant.expires_at)) <= current ||
+    Date.parse(String(binding.expires_at)) <= current ||
+    !Array.isArray(grant.scopes) ||
+    !grant.scopes.includes(context.action) ||
+    grant.resource_scope !== context.resourceId ||
+    !Array.isArray(grant.data_classifications) ||
+    !grant.data_classifications.includes(context.dataClassification) ||
+    context.dataClassification !== "synthetic"
+  ) {
+    return { valid: false, reasonCode: "grant_scope_denied" };
+  }
+  for (const result of [
+    change4Same(binding, grant, ["tenant_id", "grant_id", "grant_version", "grant_sha256", "subject_id", "role"]),
+    change4Same(binding, decision, ["tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id", "workflow_version", "candidate_hash", "policy_decision_id", "policy_version", "policy_decision_sha256", "grant_id", "grant_sha256", "subject_id", "role"]),
+  ]) {
+    if (!result.valid) {
+      return result;
+    }
+  }
+  if (
+    !change4OrderedEqual(binding.evidence_hashes, decision.evidence_hashes) ||
+    binding.action !== context.action || decision.action !== context.action ||
+    binding.delivery_resource_id !== context.resourceId || decision.resource_id !== context.resourceId ||
+    binding.data_classification !== context.dataClassification || decision.data_classification !== context.dataClassification ||
+    binding.case_revision_id !== context.currentCaseRevisionId || binding.checkpoint_id !== context.currentCheckpointId ||
+    binding.workflow_version !== context.currentWorkflowVersion || binding.candidate_hash !== context.currentCandidateHash ||
+    !change4OrderedEqual(binding.evidence_hashes, context.currentEvidenceHashes)
+  ) {
+    return { valid: false, reasonCode: "binding_mismatch" };
+  }
+  if (context.effectiveTenantId !== undefined && binding.tenant_id !== context.effectiveTenantId) {
+    return { valid: false, reasonCode: "tenant_identity_mismatch" };
+  }
+  if (context.effectiveSubjectId !== undefined && binding.subject_id !== context.effectiveSubjectId) {
+    return { valid: false, reasonCode: "subject_identity_mismatch" };
+  }
+  if (context.effectiveRole !== undefined && binding.role !== context.effectiveRole) {
+    return { valid: false, reasonCode: "role_identity_mismatch" };
+  }
+  return { valid: true };
+}
+
+export function validateHashBoundApproval(
+  request: JsonObject,
+  decision: JsonObject,
+  binding: JsonObject,
+  context: Omit<Change4AuthorizationContext, "action" | "resourceId" | "dataClassification"> & { effectiveApproverId: string; effectiveApproverRole: string },
+  root?: string,
+): ValidationResult {
+  for (const result of [validateApprovalRequest(request, root), validateApprovalDecision(decision, root), validateAuthorizationBinding(binding, root)]) {
+    if (!result.valid) {
+      return result;
+    }
+  }
+  const req = requireChange4Fields(request, ["workflow_id", "checkpoint_id", "workflow_version", "authorization_binding_sha256", "policy_decision_sha256", "policy_version", "grant_sha256"]);
+  const dec = requireChange4Fields(decision, ["workflow_id", "checkpoint_id", "workflow_version", "authorization_binding_sha256", "approver_id", "approver_role", "decision_sha256"]);
+  if (!req.valid || !dec.valid) {
+    return !req.valid ? req : dec;
+  }
+  const hash = change4ClaimedHash(decision, "decision_sha256");
+  if (!hash.valid || decision.decision !== "approved") {
+    return !hash.valid ? hash : { valid: false, reasonCode: "approval_not_granted" };
+  }
+  const links = change4Same(request, decision, ["tenant_id", "approval_request_id", "case_id", "case_revision_id", "candidate_hash", "workflow_id", "checkpoint_id", "workflow_version", "authorization_binding_sha256"]);
+  if (!links.valid || !change4OrderedEqual(request.evidence_hashes, decision.evidence_hashes)) {
+    return links.valid ? { valid: false, reasonCode: "binding_mismatch" } : links;
+  }
+  if (
+    request.authorization_binding_sha256 !== binding.authorization_binding_sha256 ||
+    request.policy_decision_sha256 !== binding.policy_decision_sha256 || request.policy_version !== binding.policy_version || request.grant_sha256 !== binding.grant_sha256 ||
+    decision.tenant_id !== context.effectiveTenantId || decision.approver_id !== context.effectiveApproverId || decision.approver_role !== context.effectiveApproverRole ||
+    request.case_revision_id !== context.currentCaseRevisionId || request.checkpoint_id !== context.currentCheckpointId || request.workflow_version !== context.currentWorkflowVersion ||
+    request.candidate_hash !== context.currentCandidateHash || !change4OrderedEqual(request.evidence_hashes, context.currentEvidenceHashes) ||
+    Date.parse(String(decision.expires_at)) <= Date.parse(context.now ?? new Date().toISOString())
+  ) {
+    return { valid: false, reasonCode: "approval_stale_or_mismatched" };
+  }
+  return { valid: true };
+}
+
+export function validateOutboundDeliveryChain(intent: JsonObject, observations: JsonObject[], completions: JsonObject[], binding: JsonObject, root?: string): ValidationResult {
+  for (const result of [validateOutboundDeliveryIntent(intent, root), validateAuthorizationBinding(binding, root)]) {
+    if (!result.valid) {
+      return result;
+    }
+  }
+  if (intent.authorization_binding_sha256 !== binding.authorization_binding_sha256 || intent.candidate_hash !== binding.candidate_hash || !change4OrderedEqual(intent.evidence_hashes, binding.evidence_hashes)) {
+    return { valid: false, reasonCode: "binding_mismatch" };
+  }
+  if (completions.length > 1) {
+    return { valid: false, reasonCode: "multiple_completions" };
+  }
+  const observationIds = new Set<string>();
+  for (const observation of observations) {
+    const result = validateOutboundDeliveryObservation(observation, root);
+    if (!result.valid) {
+      return result;
+    }
+    const id = String(observation.observation_id);
+    if (observationIds.has(id)) {
+      return { valid: false, reasonCode: "duplicate_observation" };
+    }
+    observationIds.add(id);
+    const links = change4Same(intent, observation, ["tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id"]);
+    if (!links.valid || observation.intent_id !== intent.intent_id) {
+      return links.valid ? { valid: false, reasonCode: "intent_reference_mismatch" } : links;
+    }
+  }
+  for (const completion of completions) {
+    const result = validateOutboundDeliveryCompletion(completion, root);
+    if (!result.valid) {
+      return result;
+    }
+    const links = change4Same(intent, completion, ["tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id"]);
+    if (!links.valid || completion.intent_id !== intent.intent_id) {
+      return links.valid ? { valid: false, reasonCode: "intent_reference_mismatch" } : links;
+    }
+    const observation = observations.find((item) => item.observation_id === completion.observation_id && item.status === "present");
+    if (!observation) {
+      return { valid: false, reasonCode: "completion_observation_missing" };
+    }
+    if (observation.observed_delivery_id !== completion.observed_delivery_id || observation.observed_version !== completion.observed_version || observation.content_sha256 !== completion.content_sha256) {
+      return { valid: false, reasonCode: "completion_observation_mismatch" };
+    }
+  }
+  return { valid: true };
+}
+
+const CONTEXT_LINK_FIELDS = [
+  "tenant_id",
+  "case_id",
+  "case_revision_id",
+  "workflow_id",
+  "checkpoint_id",
+  "context_manifest_id",
+] as const;
+
+export function validateAgentActionForContext(
+  payload: JsonObject,
+  contextManifest: JsonObject,
+  root?: string,
+): ValidationResult {
+  const action = validateAgentAction(payload, root);
+  if (!action.valid) {
+    return action;
+  }
+  const manifest = validateContextManifest(contextManifest, root);
+  if (!manifest.valid) {
+    return manifest;
+  }
+  for (const field of CONTEXT_LINK_FIELDS) {
+    if (payload[field] !== contextManifest[field]) {
+      return { valid: false, reasonCode: field === "tenant_id" ? "tenant_identity_mismatch" : "causation_mismatch" };
+    }
+  }
+  return { valid: true };
 }
 
 export function validateInboundMessageEvent(

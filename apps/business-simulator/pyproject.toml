@@ -5,6 +5,7 @@ description = "WeFlow deterministic business-simulator skeleton"
 requires-python = ">=3.12,<3.15"
 dependencies = [
   "weflow-contracts",
+  "weflow-agent-runtime",
   "weflow-telemetry",
   "weflow-testkit",
   "weflow-control-kernel",
@@ -12,6 +13,7 @@ dependencies = [
 
 [tool.uv.sources]
 weflow-contracts = { workspace = true }
+weflow-agent-runtime = { workspace = true }
 weflow-telemetry = { workspace = true }
 weflow-control-kernel = { workspace = true }
 weflow-testkit = { workspace = true }

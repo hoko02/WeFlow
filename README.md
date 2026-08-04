@@ -9,11 +9,15 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 
 首个纵向场景锁定为“企业客户 API 503 故障支持闭环”。M1 的目标不是做通用客服平台，也不是堆叠多个 Agent，而是证明一条高价值业务链路能够稳定恢复、严格授权、避免重复副作用、留下可审计证据，并在重复运行中得到量化结果。
 
-> Current Change 2 adds only a fixture-local durable workflow after synthetic API-503 Case intake. It can checkpoint, recover, enforce a synthetic SLA, and reconcile one local ticket handoff. It does not implement an Agent, investigation, approval, outbound reply, real provider/connector, external write, or customer-resolution success.
+> Change 2 is archived: it adds a fixture-local durable workflow after synthetic API-503 Case intake. It can checkpoint, recover, enforce a synthetic SLA, and reconcile one local ticket handoff.
+>
+> Change 3 (`add-investigation-agent-loop`) is archived as `2026-08-03-add-investigation-agent-loop`: one deterministic Replay Agent can investigate the named API-503 fixture through three read-only local tools. A deterministic verifier may advance only to `RESPONSE_READY`; it does not approve, send, or resolve anything.
+>
+> Change 4 (`add-policy-and-approval-gates`) is archived as `2026-08-04-add-policy-and-approval-gates`: its nine delta capabilities are synced into the main specs. The named API-503 fixture binds policy, approval, and one local delivery record while remaining offline, deterministic, unable to perform a real external write, and unable to claim customer resolution.
 
 ## 当前状态
 
-### Verified Change 0/1 and active Change 2 durable-workflow implementation
+### Verified Changes 0–4, including fixture policy/approval/delivery
 
 - Local Git repository, uv/pnpm workspace, five loopback-only skeleton services, and a Vue diagnostics console are implemented.
 - Replay is the only enabled provider path; live providers, credentials, external writes, and multi-agent coordination fail closed.
@@ -21,14 +25,16 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 - The health report separates operational readiness from unimplemented business capabilities.
 - Change 1 accepts only canonical synthetic IM envelopes, derives tenant identity from an allowlisted actor header, and creates one Case, revision 1, and three append-only ledger events.
 - Exact retries are deduplicated; conflicting replays and sequence gaps fail closed; foreign Case reads do not disclose existence.
-- The active Change 2 implementation adds an append-only workflow journal, driver-neutral `RECEIVED` → `TICKET_READY` control path, immutable checkpoints, pause/resume/cancel commands, and a fixture-defined SLA clock. `TICKET_READY` means only that the local handoff is known; it is not a resolution state. It remains pending final validation and archive evidence.
+- Archived Change 2 adds an append-only workflow journal, driver-neutral `RECEIVED` → `TICKET_READY` control path, immutable checkpoints, pause/resume/cancel commands, and a fixture-defined SLA clock. `TICKET_READY` means only that the local handoff is known; it is not a resolution state.
 - The only effect is a deterministic, fixture-local ticket `find-or-create` plus expected-version handoff. It uses persisted `intent → reconcile → execute → observe → complete` evidence and recovery after every declared interruption boundary, including lost responses.
-- The API-503 investigation/resolution workflow, Agent/model use, real Tencent/WeCom integrations, approvals, outbound delivery, external writes, and customer-resolution success remain out of scope.
+- Change 3 adds a deterministic Replay-only investigation continuation from `TICKET_READY` through `INVESTIGATING` to verifier-authorized `RESPONSE_READY`. It persists a Context Manifest, closed Agent actions, three local read-only tool results, evidence hashes, a response candidate, and a verifier outcome; recovery after each new durable boundary is deterministic.
+- `RESPONSE_READY` is only a verified response candidate state. Retained Change 3 histories remain inert until the control kernel records an explicit Change 4 fixture activation.
+- Change 4 adds one named API-503-only, default-deny Capability/Policy, hash-bound approval, and idempotent local delivery slice. It uses append-only SQLite intent/reconcile/execute/observe/complete evidence and recovers without duplicate local delivery.
+- Fixture approval/delivery are explicitly distinguishable from live capability. Real providers, credentials, enterprise connectors, external writes, customer receipt/resolution, knowledge publication, and multi-Agent coordination remain disabled and unimplemented.
 
 ### Historical Explore snapshot (superseded)
 
-This historical note predates the archived Change 0/1 increments and the active
-Change 2 Apply work. The current status above, `docs/PROJECT_MEMORY.md`, and the
+This historical note predates the archived Change 0/1/2 increments. The current status above, `docs/PROJECT_MEMORY.md`, and the
 OpenSpec change artifacts are authoritative.
 
 ## Quick start
@@ -45,6 +51,8 @@ python scripts/dev.py contracts
 python scripts/dev.py test
 python scripts/dev.py case-intake-acceptance --output reports/change-1-acceptance.json
 python scripts/dev.py durable-workflow-acceptance --output reports/change-2-acceptance.json
+python scripts/dev.py investigation-agent-acceptance --output reports/change-3-acceptance.json
+python scripts/dev.py policy-approval-acceptance --output reports/change-4-acceptance.json
 
 python scripts/dev.py up --mode offline
 python scripts/dev.py health
@@ -62,6 +70,8 @@ For the optional Docker-backed boundary mode, run `compose up`, then `up --mode 
 - [Change 0 Foundation Development Guide](docs/development/change-0-foundation.md)
 - [Change 1 Synthetic Case Intake Development Guide](docs/development/change-1-case-intake.md)
 - [Change 2 Durable Support Workflow Development Guide](docs/development/change-2-durable-workflow.md)
+- [Change 3 Bounded Replay Investigation Agent Development Guide](docs/development/change-3-investigation-agent-loop.md)
+- [Change 4 Policy and Approval Gates Development Guide](docs/development/change-4-policy-approval-gates.md)
 - [MVP 探索结论](docs/exploration/weflow-mvp-exploration.md)
 - [参考架构](docs/architecture/reference-architecture.md)
 - [OpenSpec 分步开发路线](docs/development/openspec-roadmap.md)

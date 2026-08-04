@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Cross-platform command surface for the WeFlow Change 2 local harness."""
+"""Cross-platform command surface for the WeFlow Change 4 local harness."""
 
 from __future__ import annotations
 
@@ -17,12 +17,14 @@ SCRIPTS_DIRECTORY = Path(__file__).resolve().parent
 CONTROL_KERNEL_SRC = ROOT / "packages" / "python" / "weflow-control-kernel" / "src"
 CONTRACTS_SRC = ROOT / "packages" / "python" / "weflow-contracts" / "src"
 BUSINESS_SIMULATOR_SRC = ROOT / "apps" / "business-simulator" / "src"
+AGENT_RUNTIME_SRC = ROOT / "apps" / "agent-runtime" / "src"
 PLATFORM_API_SRC = ROOT / "apps" / "platform-api" / "src"
 for source_directory in (
     SCRIPTS_DIRECTORY,
     CONTROL_KERNEL_SRC,
     CONTRACTS_SRC,
     BUSINESS_SIMULATOR_SRC,
+    AGENT_RUNTIME_SRC,
     PLATFORM_API_SRC,
 ):
     if str(source_directory) not in sys.path:
@@ -49,6 +51,10 @@ def check_environment(environment: dict[str, str] | None = None) -> tuple[int, d
         "contract_directory": (ROOT / "contracts" / "jsonschema" / "v1").is_dir(),
         "replay_fixture_directory": (ROOT / "fixtures" / "replay").is_dir(),
         "workflow_fixture_directory": (ROOT / "fixtures" / "workflow").is_dir(),
+        "investigation_fixture_directory": (ROOT / "fixtures" / "investigation").is_dir(),
+        "policy_approval_fixture": (
+            ROOT / "fixtures" / "policy" / "api-503-policy-approval-delivery.json"
+        ).is_file(),
     }
     try:
         config = load_config(values)
@@ -184,6 +190,46 @@ def command_durable_workflow_acceptance(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_investigation_agent_acceptance(arguments: argparse.Namespace) -> int:
+    from investigation_agent_acceptance import run_investigation_agent_acceptance
+
+    try:
+        report = run_investigation_agent_acceptance(ROOT)
+        if arguments.output:
+            _write_acceptance_report(arguments.output, report)
+    except (RuntimeError, ValueError) as error:
+        _print(
+            {
+                "report_type": "weflow-change-3-investigation-agent-acceptance.v1",
+                "accepted": False,
+                "reason_code": str(error),
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
+
+def command_policy_approval_acceptance(arguments: argparse.Namespace) -> int:
+    from policy_approval_acceptance import run_policy_approval_acceptance
+
+    try:
+        report = run_policy_approval_acceptance(ROOT)
+        if arguments.output:
+            _write_acceptance_report(arguments.output, report)
+    except (RuntimeError, ValueError) as error:
+        _print(
+            {
+                "report_type": "weflow-change-4-policy-approval-acceptance.v1",
+                "accepted": False,
+                "reason_code": str(error),
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
+
 def command_up(arguments: argparse.Namespace) -> int:
     report = start_services(arguments.mode)
     _print(report)
@@ -259,6 +305,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional repository-relative evidence path under reports/",
     )
     durable_workflow.set_defaults(handler=command_durable_workflow_acceptance)
+
+    investigation_agent = subcommands.add_parser(
+        "investigation-agent-acceptance",
+        help="run the offline API-503 replay-investigation acceptance sequence",
+    )
+    investigation_agent.add_argument(
+        "--output",
+        help="optional repository-relative evidence path under reports/",
+    )
+    investigation_agent.set_defaults(handler=command_investigation_agent_acceptance)
+
+    policy_approval = subcommands.add_parser(
+        "policy-approval-acceptance",
+        help="run the offline API-503 policy/approval/local-delivery acceptance sequence",
+    )
+    policy_approval.add_argument(
+        "--output",
+        help="optional repository-relative evidence path under reports/",
+    )
+    policy_approval.set_defaults(handler=command_policy_approval_acceptance)
 
     up = subcommands.add_parser("up", help="accept a local startup request")
     up.add_argument("--mode", choices=("offline", "service-boundary"), default="offline")

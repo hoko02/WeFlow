@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/tool-request.schema.json",
+  "title": "ToolRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id", "context_manifest_id", "tool_request_id", "step_id", "tool_name", "request_sha256", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/tool-request.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "workflow_id": {"type": "string", "minLength": 1},
+    "checkpoint_id": {"type": "string", "minLength": 1},
+    "context_manifest_id": {"type": "string", "minLength": 1},
+    "tool_request_id": {"type": "string", "minLength": 1},
+    "step_id": {"type": "string", "minLength": 1},
+    "tool_name": {"enum": ["crm", "monitoring", "knowledge"]},
+    "request_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

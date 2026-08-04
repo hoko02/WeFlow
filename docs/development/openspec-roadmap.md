@@ -93,19 +93,30 @@ openspec status --change "<change-name>"
 
 ## 5. Change 3：`add-investigation-agent-loop`
 
-**目的**：让单 Agent 在有界上下文和受控工具中完成调查并提出回复候选。
+**状态**：已归档：`2026-08-03-add-investigation-agent-loop`；已完成本地离线验证。
+
+**目的**：让一个确定性 Replay Agent 在有界 Context Manifest 和只读 fixture 工具中完成
+API-503 调查，并只提出受验证的回复候选。
 
 **范围**：
 
-- Provider Adapter、Replay Adapter 和首个 live OpenAI-compatible Adapter；
-- Context Compiler/Manifest；
-- Business Tool Gateway；
-- CRM/监控/知识只读工具和工单请求工具；
-- 重复行动、无进展、格式错误和预算临界终止；
-- 503 fixture 从分诊运行到 `RESPONSE_READY`。
+- 只支持命名的 synthetic API-503 transcript；不初始化 live provider、网络客户端或凭据；
+- `ContextManifest`、闭合 `AgentAction`、`ToolRequest/Result`、Evidence hash、
+  `ResponseCandidate` 与 `VerifierOutcome` 的 v1 合同；
+- 仅 CRM、monitoring、knowledge 三类 tenant-scoped、fixture-local、只读工具；
+- `TICKET_READY -> INVESTIGATING -> RESPONSE_READY`，第二个转换仅由确定性 verifier
+  在完整、匹配、脱敏的 evidence 后触发；
+- Action/tool/no-progress budget、稳定 step ID、action/tool/candidate/verifier 持久化后的
+  故障恢复，以及不含账本原始内容的 inspection snapshot；
+- 只读 investigation API、能力诊断、Business Simulator 与 Control Worker recovery。
 
-**验收**：Replay 端到端确定性；模型无法直接改变状态或发送消息；关键断言携带 Evidence；无密钥也能跑完整 fixture。
+**验收**：API-503 fixture 必须在离线 SQLite 中产生 3 个按序 evidence hash、1 个
+verified candidate 和 `RESPONSE_READY`；两次 baseline 完全一致；四个恢复断点无重复
+工具结果或状态转换。跨 tenant、未授权工具、原始字段、格式/authority claim、live provider、
+无进展、预算超限和未验证 candidate 都必须安全失败。无需 Docker、网络、模型密钥或企业凭据。
 
+不包含审批、外发、知识发布、真实企微/腾讯云、真实工单或多 Agent。`RESPONSE_READY`
+不是审批、发送或客户问题已解决。
 ## 6. Change 4：`add-policy-and-approval-gates`
 
 **目的**：把租户、数据、预算和外发权限固化为模型外硬边界。

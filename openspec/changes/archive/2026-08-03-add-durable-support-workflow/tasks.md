@@ -56,4 +56,4 @@
 - [x] 7.2 Update `openspec/config.yaml` and relevant long-lived documentation to remove the stale “exploration and specification only” claim while retaining the verified limits of Changes 0 and 1.
 - [x] 7.3 Run `python scripts/dev.py check`, `lint`, `contracts`, `test`, and the Change 1/Change 2 offline acceptance commands; retain redacted machine-readable command evidence and record any local tool or Docker limitation explicitly.
 - [x] 7.4 Run `openspec validate add-durable-support-workflow --type change --strict`, resolve every issue, and confirm every task above has a passing acceptance check before archive.
-- [ ] 7.5 Archive through OpenSpec only after all verification passes; update `docs/PROJECT_MEMORY.md` with verified Change 2 facts, limitations, metrics, and the gate for the next Agent/investigation change.
+- [x] 7.5 Archive through OpenSpec only after all verification passes; update `docs/PROJECT_MEMORY.md` with verified Change 2 facts, limitations, metrics, and the gate for the next Agent/investigation change.

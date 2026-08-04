@@ -1,20 +1,92 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://weflow.local/contracts/v1/capability-grant.schema.json",
-  "title": "CapabilityGrant",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schema_id", "schema_version", "tenant_id", "grant_id", "subject_id", "capability", "issued_at", "expires_at", "status"],
-  "properties": {
-    "schema_id": {"const": "https://weflow.local/contracts/v1/capability-grant.schema.json"},
-    "schema_version": {"const": "v1"},
-    "tenant_id": {"type": "string", "minLength": 1},
-    "grant_id": {"type": "string", "minLength": 1},
-    "subject_id": {"type": "string", "minLength": 1},
-    "capability": {"type": "string", "minLength": 1},
-    "scopes": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "issued_at": {"type": "string", "minLength": 1},
-    "expires_at": {"type": "string", "minLength": 1},
-    "status": {"enum": ["active", "revoked", "expired"]}
-  }
+    "$schema":  "https://json-schema.org/draft/2020-12/schema",
+    "$id":  "https://weflow.local/contracts/v1/capability-grant.schema.json",
+    "title":  "CapabilityGrant",
+    "type":  "object",
+    "additionalProperties":  false,
+    "required":  [
+                     "schema_id",
+                     "schema_version",
+                     "tenant_id",
+                     "grant_id",
+                     "subject_id",
+                     "capability",
+                     "issued_at",
+                     "expires_at",
+                     "status"
+                 ],
+    "properties":  {
+                       "schema_id":  {
+                                         "const":  "https://weflow.local/contracts/v1/capability-grant.schema.json"
+                                     },
+                       "schema_version":  {
+                                              "const":  "v1"
+                                          },
+                       "tenant_id":  {
+                                         "type":  "string",
+                                         "minLength":  1
+                                     },
+                       "grant_id":  {
+                                        "type":  "string",
+                                        "minLength":  1
+                                    },
+                       "subject_id":  {
+                                          "type":  "string",
+                                          "minLength":  1
+                                      },
+                       "capability":  {
+                                          "type":  "string",
+                                          "minLength":  1
+                                      },
+                       "scopes":  {
+                                      "type":  "array",
+                                      "items":  {
+                                                    "type":  "string",
+                                                    "minLength":  1
+                                                }
+                                  },
+                       "issued_at":  {
+                                         "type":  "string",
+                                         "minLength":  1
+                                     },
+                       "expires_at":  {
+                                          "type":  "string",
+                                          "minLength":  1
+                                      },
+                       "status":  {
+                                      "enum":  [
+                                                   "active",
+                                                   "revoked",
+                                                   "expired"
+                                               ]
+                                  },
+                       "grant_version":  {
+                                             "minLength":  1,
+                                             "type":  "string"
+                                         },
+                       "grant_sha256":  {
+                                            "type":  "string",
+                                            "pattern":  "^[a-f0-9]{64}$"
+                                        },
+                       "role":  {
+                                    "minLength":  1,
+                                    "type":  "string"
+                                },
+                       "resource_scope":  {
+                                              "minLength":  1,
+                                              "type":  "string"
+                                          },
+                       "data_classifications":  {
+                                                    "minItems":  1,
+                                                    "items":  {
+                                                                  "enum":  [
+                                                                               "synthetic",
+                                                                               "unsafe_instruction",
+                                                                               "secret",
+                                                                               "raw_private"
+                                                                           ]
+                                                              },
+                                                    "type":  "array"
+                                                }
+                   }
 }

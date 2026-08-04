@@ -35,7 +35,19 @@ def test_health_command_emits_a_redacted_machine_readable_foundation_report() ->
     assert report["operational_ready"] is False
     assert report["business_workflow_implemented"] is False
     assert report["durable_support_workflow_implemented"] is True
+    assert report["replay_investigation_agent_implemented"] is True
+    assert report["response_candidate_verification_implemented"] is True
+    assert report["fixture_policy_approval_delivery_implemented"] is True
+    assert report["fixture_approval_enabled"] is True
+    assert report["fixture_outbound_delivery_enabled"] is True
+    assert report["live_approval_enabled"] is False
+    assert report["live_outbound_delivery_enabled"] is False
+    assert report["real_provider_enabled"] is False
+    assert report["multi_agent_enabled"] is False
     assert report["external_writes_enabled"] is False
+    assert report["approval_enabled"] is False
+    assert report["outbound_delivery_enabled"] is False
+    assert report["customer_resolution_enabled"] is False
     assert [service["service"] for service in report["services"]] == list(SERVICE_NAMES)
     assert all(
         not list(Draft202012Validator(schema).iter_errors(service))

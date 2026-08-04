@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/context-manifest.schema.json",
+  "title": "ContextManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id", "context_manifest_id", "context_sha256", "environment_snapshot_sha256", "evidence_references", "action_budget", "tool_budget", "no_progress_limit", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/context-manifest.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "workflow_id": {"type": "string", "minLength": 1},
+    "checkpoint_id": {"type": "string", "minLength": 1},
+    "context_manifest_id": {"type": "string", "minLength": 1},
+    "context_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "environment_snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidence_references": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "action_budget": {"type": "integer", "minimum": 1},
+    "tool_budget": {"type": "integer", "minimum": 1},
+    "no_progress_limit": {"type": "integer", "minimum": 1},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

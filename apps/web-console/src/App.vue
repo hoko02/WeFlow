@@ -7,13 +7,25 @@ import { renderFoundationStatus, type RenderedFoundationStatus } from "./foundat
 type FoundationCapabilities = JsonObject & {
   business_workflow_implemented: boolean;
   durable_support_workflow_implemented: boolean;
+  replay_investigation_agent_implemented: boolean;
+  response_candidate_verification_implemented: boolean;
+  fixture_policy_approval_delivery_implemented: boolean;
+  fixture_approval_enabled: boolean;
+  fixture_outbound_delivery_enabled: boolean;
+  live_approval_enabled: boolean;
+  live_outbound_delivery_enabled: boolean;
+  real_provider_enabled: boolean;
+  multi_agent_enabled: boolean;
+  approval_enabled: boolean;
+  outbound_delivery_enabled: boolean;
+  customer_resolution_enabled: boolean;
   external_writes_enabled: boolean;
   operational_ready: boolean;
   synthetic_case_intake_implemented: boolean;
 };
 
 const status = ref<"checking" | "ready" | "not-ready">("checking");
-const message = ref("Checking the local Platform API durable-workflow endpoint.");
+const message = ref("Checking the local Platform API fixture-control endpoint.");
 const capabilities = ref<FoundationCapabilities | null>(null);
 const renderedStatus = ref<RenderedFoundationStatus | null>(null);
 
@@ -39,9 +51,9 @@ onMounted(async () => {
 <template>
   <main class="shell">
     <section class="hero">
-      <p class="eyebrow">WeFlow / Change 2</p>
-      <h1>Durable Workflow Console</h1>
-      <p>This console reports local service, synthetic Case intake, durable-workflow, and safety status only. It does not claim customer-resolution outcomes.</p>
+      <p class="eyebrow">WeFlow / Change 4</p>
+      <h1>Fixture Policy and Approval Console</h1>
+      <p>This console reports local service, synthetic Case intake, durable workflow, replay investigation, and fixture-only policy/approval/delivery safety status. It never claims a live external write, customer receipt, or resolution outcome.</p>
     </section>
 
     <section class="status" :data-status="status">
@@ -68,16 +80,41 @@ onMounted(async () => {
           <dt>Fixture-local durable workflow implemented</dt>
           <dd>{{ capabilities.durable_support_workflow_implemented ? "yes" : "no" }}</dd>
         </div>
+        <div>
+          <dt>Replay investigation Agent implemented</dt>
+          <dd>{{ capabilities.replay_investigation_agent_implemented ? "yes" : "no" }}</dd>
+        </div>
+        <div>
+          <dt>Response-candidate verifier implemented</dt>
+          <dd>{{ capabilities.response_candidate_verification_implemented ? "yes" : "no" }}</dd>
+        </div>
+        <div>
+          <dt>Live provider enabled</dt>
+          <dd>{{ capabilities.real_provider_enabled ? "yes" : "no" }}</dd>
+        </div>
+        <div>
+          <dt>Fixture policy/approval/delivery implemented</dt>
+          <dd>{{ capabilities.fixture_policy_approval_delivery_implemented ? "yes" : "no" }}</dd>
+        </div>
+        <div>
+          <dt>Fixture approval and local delivery enabled</dt>
+          <dd>{{ (capabilities.fixture_approval_enabled && capabilities.fixture_outbound_delivery_enabled) ? "yes" : "no" }}</dd>
+        </div>
+        <div>
+          <dt>Live approval, live delivery, or customer resolution enabled</dt>
+          <dd>{{ (capabilities.live_approval_enabled || capabilities.live_outbound_delivery_enabled || capabilities.customer_resolution_enabled) ? "yes" : "no" }}</dd>
+        </div>
       </dl>
     </section>
 
     <section class="limits">
-      <h2>Change 2 limits</h2>
+      <h2>Change 4 limits</h2>
       <ul>
-        <li>Replay is the only enabled provider path.</li>
-        <li>No model, enterprise credential, or external write is configured.</li>
-        <li>Only fixture-local ticket handoff, checkpointing, recovery, and synthetic SLA are implemented.</li>
-        <li>No Agent, approval, outbound delivery, real provider, or customer-resolution state exists.</li>
+        <li>Exactly one deterministic Replay Agent may use checked-in API-503 fixtures.</li>
+        <li>Only CRM, monitoring, and knowledge fixture reads can produce redacted evidence hashes.</li>
+        <li>The deterministic verifier may advance to RESPONSE_READY; only an explicit, hash-bound fixture activation may continue to approval.</li>
+        <li>One fixture-local adapter can record an idempotent local delivery after policy and approval; it is not a network call or customer-success claim.</li>
+        <li>Live providers, credentials, multi-Agent coordination, real approval, real delivery, external writes, and customer resolution remain disabled.</li>
       </ul>
     </section>
   </main>

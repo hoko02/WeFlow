@@ -1,4 +1,4 @@
-"""Local-only process orchestration for the fixture-backed Change 2 harness."""
+"""Local-only process orchestration for the fixture-backed Change 4 harness."""
 
 from __future__ import annotations
 
@@ -22,8 +22,11 @@ LOG_DIRECTORY = STATE_DIRECTORY / "logs"
 _LIMITATIONS = [
     "fixture-local-durable-workflow-only",
     "no-business-workflow",
-    "no-agent-or-provider",
-    "no-approval-or-outbound-delivery",
+    "fixture-local-replay-agent-only",
+    "live_provider_disabled",
+    "fixture-local-policy-approval-delivery-only",
+    "no-live-approval-service",
+    "no-real-outbound-delivery",
     "no-customer-resolution",
     "no-external-writes",
 ]
@@ -245,7 +248,19 @@ def start_services(mode: str) -> dict[str, Any]:
             "services": statuses,
             "business_workflow_implemented": False,
             "durable_support_workflow_implemented": True,
+            "replay_investigation_agent_implemented": True,
+            "response_candidate_verification_implemented": True,
+            "fixture_policy_approval_delivery_implemented": True,
+            "fixture_approval_enabled": True,
+            "fixture_outbound_delivery_enabled": True,
+            "live_approval_enabled": False,
+            "live_outbound_delivery_enabled": False,
+            "real_provider_enabled": False,
+            "multi_agent_enabled": False,
             "external_writes_enabled": False,
+            "approval_enabled": False,
+            "outbound_delivery_enabled": False,
+            "customer_resolution_enabled": False,
         }
     except OSError:
         terminated = _terminate_entries(processes)
@@ -315,7 +330,19 @@ def runtime_report() -> dict[str, Any]:
         "operational_ready": all(status.get("ready") for status in statuses),
         "business_workflow_implemented": False,
         "durable_support_workflow_implemented": True,
+        "replay_investigation_agent_implemented": True,
+        "response_candidate_verification_implemented": True,
+        "fixture_policy_approval_delivery_implemented": True,
+        "fixture_approval_enabled": True,
+        "fixture_outbound_delivery_enabled": True,
+        "live_approval_enabled": False,
+        "live_outbound_delivery_enabled": False,
+        "real_provider_enabled": False,
+        "multi_agent_enabled": False,
         "external_writes_enabled": False,
+        "approval_enabled": False,
+        "outbound_delivery_enabled": False,
+        "customer_resolution_enabled": False,
         "mode": mode,
         "services": statuses,
     }

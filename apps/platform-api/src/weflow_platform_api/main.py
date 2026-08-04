@@ -55,10 +55,22 @@ class HealthStatusResponse(BaseModel):
 
 class FoundationCapabilitiesResponse(BaseModel):
     business_workflow_implemented: bool
-    external_writes_enabled: bool
-    operational_ready: bool
-    synthetic_case_intake_implemented: bool
     durable_support_workflow_implemented: bool
+    replay_investigation_agent_implemented: bool
+    response_candidate_verification_implemented: bool
+    fixture_policy_approval_delivery_implemented: bool
+    fixture_approval_enabled: bool
+    fixture_outbound_delivery_enabled: bool
+    live_approval_enabled: bool
+    live_outbound_delivery_enabled: bool
+    synthetic_case_intake_implemented: bool
+    operational_ready: bool
+    real_provider_enabled: bool
+    multi_agent_enabled: bool
+    external_writes_enabled: bool
+    approval_enabled: bool
+    outbound_delivery_enabled: bool
+    customer_resolution_enabled: bool
 
 
 HEALTH_SCHEMA_ID = "https://weflow.local/contracts/v1/health-status.schema.json"
@@ -175,6 +187,7 @@ def _status_with_ledger(
         *status["limitations"],
         "synthetic-case-intake-only",
         "fixture-local-durable-workflow-only",
+        "fixture-local-policy-approval-delivery-only",
     ]
     return status
 
@@ -223,10 +236,12 @@ def create_app(
     )
     app = FastAPI(
         title="WeFlow Platform API",
-        version="0.2.0",
+        version="0.3.0",
         description=(
-            "Change 2 fixture-local durable workflow observation/commands and Change 1 intake. "
-            "No support resolution, approval, provider, or external write is implemented."
+            "Fixture-local durable workflow observation, synthetic intake, and bounded Replay "
+            "Agent investigation facts plus a bounded fixture-local policy/approval/delivery "
+            "slice. No live provider, real approval service, real delivery, customer "
+            "resolution, or external write is implemented."
         ),
     )
     app.state.case_intake_boundary = boundary
@@ -264,10 +279,32 @@ def create_app(
         report = build_foundation_report(environment=environment, root=repository_root)
         return {
             "business_workflow_implemented": report["business_workflow_implemented"],
-            "external_writes_enabled": report["external_writes_enabled"],
-            "operational_ready": report["operational_ready"] and boundary.ready,
-            "synthetic_case_intake_implemented": boundary.ready,
             "durable_support_workflow_implemented": workflow_boundary.ready,
+            "replay_investigation_agent_implemented": (
+                workflow_boundary.ready and report["replay_investigation_agent_implemented"]
+            ),
+            "response_candidate_verification_implemented": (
+                workflow_boundary.ready and report["response_candidate_verification_implemented"]
+            ),
+            "fixture_policy_approval_delivery_implemented": (
+                workflow_boundary.ready and report["fixture_policy_approval_delivery_implemented"]
+            ),
+            "fixture_approval_enabled": (
+                workflow_boundary.ready and report["fixture_approval_enabled"]
+            ),
+            "fixture_outbound_delivery_enabled": (
+                workflow_boundary.ready and report["fixture_outbound_delivery_enabled"]
+            ),
+            "live_approval_enabled": report["live_approval_enabled"],
+            "live_outbound_delivery_enabled": report["live_outbound_delivery_enabled"],
+            "synthetic_case_intake_implemented": boundary.ready,
+            "operational_ready": report["operational_ready"] and boundary.ready,
+            "real_provider_enabled": report["real_provider_enabled"],
+            "multi_agent_enabled": report["multi_agent_enabled"],
+            "external_writes_enabled": report["external_writes_enabled"],
+            "approval_enabled": report["approval_enabled"],
+            "outbound_delivery_enabled": report["outbound_delivery_enabled"],
+            "customer_resolution_enabled": report["customer_resolution_enabled"],
         }
 
     install_case_intake_routes(app, boundary)

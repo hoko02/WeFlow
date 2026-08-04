@@ -1,0 +1,21 @@
+{
+  "fixture_id": "api-503-investigation",
+  "synthetic": true,
+  "intake_fixture_id": "api-503-first-delivery",
+  "environment_snapshot_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "action_budget": 6,
+  "tool_budget": 3,
+  "no_progress_limit": 2,
+  "actions": [
+    "read_crm",
+    "read_monitoring",
+    "read_knowledge",
+    "response_candidate"
+  ],
+  "required_tools": ["crm", "monitoring", "knowledge"],
+  "candidate": {
+    "risk": "medium",
+    "next_step": "operator_review",
+    "candidate_material_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  }
+}

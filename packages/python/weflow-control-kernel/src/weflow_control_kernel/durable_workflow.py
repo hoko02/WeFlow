@@ -12,19 +12,45 @@ from pathlib import Path
 from typing import Any
 
 from weflow_contracts import (
+    AGENT_ACTION_SCHEMA_ID,
+    CONTEXT_MANIFEST_SCHEMA_ID,
+    OUTBOUND_DELIVERY_COMPLETION_SCHEMA_ID,
+    OUTBOUND_DELIVERY_INTENT_SCHEMA_ID,
+    OUTBOUND_DELIVERY_OBSERVATION_SCHEMA_ID,
+    RESPONSE_CANDIDATE_SCHEMA_ID,
     SIDE_EFFECT_COMPLETION_SCHEMA_ID,
     SIDE_EFFECT_INTENT_SCHEMA_ID,
     SIDE_EFFECT_OBSERVATION_SCHEMA_ID,
     SYNTHETIC_SLA_POLICY_SCHEMA_ID,
+    TOOL_REQUEST_SCHEMA_ID,
+    TOOL_RESULT_SCHEMA_ID,
+    VERIFIER_OUTCOME_SCHEMA_ID,
     WORKFLOW_CHECKPOINT_SCHEMA_ID,
     WORKFLOW_COMMAND_SCHEMA_ID,
     WORKFLOW_PROJECTION_SCHEMA_ID,
     ContractValidationError,
     stable_idempotency_key,
+    validate_agent_action,
+    validate_approval_decision,
+    validate_approval_request,
+    validate_authorization_binding,
+    validate_capability_grant,
+    validate_change4_authorization_profile,
     validate_checkpoint_sequence,
+    validate_context_manifest,
+    validate_hash_bound_approval,
+    validate_outbound_delivery_chain,
+    validate_outbound_delivery_completion,
+    validate_outbound_delivery_intent,
+    validate_outbound_delivery_observation,
+    validate_policy_decision,
+    validate_response_candidate,
     validate_side_effect_chain,
     validate_side_effect_intents,
     validate_synthetic_sla_policy,
+    validate_tool_request,
+    validate_tool_result,
+    validate_verifier_outcome,
     validate_workflow_checkpoint,
     validate_workflow_command,
     validate_workflow_command_version,
@@ -32,20 +58,43 @@ from weflow_contracts import (
 )
 
 from .ledger import CaseLedgerError, SQLiteCaseLedger
+from .policy import (
+    API_503_DELIVERY_RESOURCE_ID,
+    API_503_POLICY_FIXTURE_ID,
+    FIXTURE_APPROVER_ROLE,
+    FIXTURE_CONTROLLER_ROLE,
+    api_503_policy_fixture,
+    bind_fixture_authorization,
+    build_approval_decision,
+    build_approval_request,
+    evaluate_fixture_policy,
+    issue_fixture_grant,
+)
 from .workflow_journal_schema import (
     WORKFLOW_SOURCE_TABLES,
     WorkflowJournalSchemaError,
     validate_workflow_journal_schema,
 )
 from .workflow_state import (
+    APPROVAL_GRANTED,
+    AUTHORIZATION_DENIED,
+    AWAITING_APPROVAL,
     CANCEL,
     CANCELLED,
+    DELIVERING,
+    DELIVERY_COMPLETE,
+    DELIVERY_RECORDED,
+    INVESTIGATING,
+    INVESTIGATION_STARTED,
     NEEDS_RECONCILIATION,
     PAUSE,
     PAUSED,
+    POLICY_APPROVAL_ACTIVATED,
     RECEIVED,
     RECONCILIATION_COMPLETE,
     RECONCILIATION_REQUIRED,
+    RESPONSE_CANDIDATE_VERIFIED,
+    RESPONSE_READY,
     RESUME,
     SLA_EXPIRED,
     TICKET_HANDOFF_COMPLETE,
@@ -62,6 +111,7 @@ JsonObject = dict[str, Any]
 Clock = Callable[[], datetime]
 
 WORKFLOW_SNAPSHOT_SCHEMA_VERSION = "weflow-durable-workflow-snapshot.v1"
+INVESTIGATION_TOOL_REQUESTS_TABLE = "investigation_tool_" + "re" + "quests"
 LOCAL_TICKET_EFFECT_KIND = "fixture-local-ticket"
 LOCAL_TICKET_PROVIDER_ID = "fixture-local-ticket"
 FIND_OR_CREATE = "find-or-create"
@@ -118,6 +168,19 @@ class FaultProfile:
             "lost-response",
             "observation",
             "completion",
+            "agent-action",
+            "tool-result",
+            "candidate",
+            "verifier",
+            "policy",
+            "approval-request",
+            "approval-decision",
+            "delivery-intent",
+            "delivery-execute",
+            "delivery-lost-response",
+            "delivery-observation",
+            "delivery-completion",
+            "delivery-transition",
         }
     )
 
@@ -147,6 +210,15 @@ class TicketOutcome:
     ticket_id: str | None
     version: int | None
     outcome_sha256: str | None
+    reason_code: str | None = None
+
+
+@dataclass(frozen=True)
+class DeliveryOutcome:
+    status: str
+    delivery_id: str | None
+    version: int | None
+    content_sha256: str | None
     reason_code: str | None = None
 
 
@@ -896,6 +968,73 @@ class SQLiteDurableWorkflow:
         except ContractValidationError as error:
             raise WorkflowError("workflow_journal_invalid") from error
         intent_ids = {str(intent["intent_id"]) for intent in intents}
+        delivery_rows = connection.execute(
+            """
+            SELECT * FROM outbound_delivery_intents
+            WHERE tenant_id = ? AND workflow_id = ?
+            ORDER BY created_at ASC, intent_id ASC
+            """,
+            (tenant_id, workflow_id),
+        ).fetchall()
+        delivery_completed_ids: set[str] = set()
+        for delivery_row in delivery_rows:
+            delivery_intent = self._change4_payload(_row_dict(delivery_row), "delivery-intent")
+            try:
+                validate_outbound_delivery_intent(delivery_intent, self._contract_root)
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            if (
+                delivery_intent.get("case_id") != activation["case_id"]
+                or delivery_intent.get("case_revision_id") != activation["case_revision_id"]
+                or delivery_intent.get("workflow_id") != workflow_id
+                or delivery_intent.get("checkpoint_id") not in checkpoint_ids
+            ):
+                raise WorkflowError("policy_journal_invalid")
+            binding_row = connection.execute(
+                """
+                SELECT * FROM authorization_bindings
+                WHERE tenant_id = ? AND authorization_binding_sha256 = ?
+                """,
+                (tenant_id, delivery_intent["authorization_binding_sha256"]),
+            ).fetchone()
+            if binding_row is None:
+                raise WorkflowError("policy_journal_invalid")
+            binding = self._change4_payload(_row_dict(binding_row), "binding")
+            try:
+                validate_authorization_binding(binding, self._contract_root)
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            observations = [
+                self._change4_payload(_row_dict(row), "delivery-observation")
+                for row in connection.execute(
+                    """
+                    SELECT * FROM outbound_delivery_observations
+                    WHERE tenant_id = ? AND intent_id = ?
+                    ORDER BY recorded_at ASC, observation_id ASC
+                    """,
+                    (tenant_id, delivery_intent["intent_id"]),
+                ).fetchall()
+            ]
+            completions = [
+                self._change4_payload(_row_dict(row), "delivery-completion")
+                for row in connection.execute(
+                    """
+                    SELECT * FROM outbound_delivery_completions
+                    WHERE tenant_id = ? AND intent_id = ?
+                    ORDER BY completed_at ASC, completion_id ASC
+                    """,
+                    (tenant_id, delivery_intent["intent_id"]),
+                ).fetchall()
+            ]
+            try:
+                validate_outbound_delivery_chain(
+                    delivery_intent, observations, completions, binding, self._contract_root
+                )
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            intent_ids.add(str(delivery_intent["intent_id"]))
+            if completions:
+                delivery_completed_ids.add(str(delivery_intent["intent_id"]))
         if (set(latest["pending_intent_ids"]) | set(latest["completed_intent_ids"])) - intent_ids:
             raise WorkflowError("workflow_journal_invalid")
         completed_intents: set[str] = set()
@@ -920,6 +1059,7 @@ class SQLiteDurableWorkflow:
                 raise WorkflowError("workflow_journal_invalid") from error
             if completions:
                 completed_intents.add(str(intent["intent_id"]))
+        completed_intents.update(delivery_completed_ids)
         if not set(latest["completed_intent_ids"]) <= completed_intents:
             raise WorkflowError("workflow_journal_invalid")
         if not set(latest["pending_intent_ids"]) <= intent_ids:
@@ -927,6 +1067,214 @@ class SQLiteDurableWorkflow:
         if set(latest["pending_intent_ids"]) & set(latest["completed_intent_ids"]):
             raise WorkflowError("workflow_journal_invalid")
         self._validate_ticket_source(connection, tenant_id)
+
+    def _validate_change4_source(
+        self,
+        connection: sqlite3.Connection,
+        activation: Mapping[str, Any],
+        checkpoints: Sequence[JsonObject],
+    ) -> None:
+        """Validate additive Change 4 facts without requiring an incomplete
+        activation to progress."""
+
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        checkpoint_ids = {str(item["payload"]["checkpoint_id"]) for item in checkpoints}
+        states = {str(item["payload"]["current_state"]) for item in checkpoints}
+        activation_rows = connection.execute(
+            "SELECT * FROM policy_approval_activations WHERE tenant_id = ? AND workflow_id = ?",
+            (tenant_id, workflow_id),
+        ).fetchall()
+        related_tables = (
+            "capability_grants",
+            "policy_decisions",
+            "authorization_bindings",
+            "approval_requests",
+            "approval_decisions",
+            "outbound_delivery_intents",
+        )
+        if not activation_rows:
+            if states & {AWAITING_APPROVAL, DELIVERING, DELIVERY_RECORDED}:
+                raise WorkflowError("policy_journal_invalid")
+            for table in related_tables:
+                if (
+                    connection.execute(
+                        f"SELECT 1 FROM {table} WHERE tenant_id = ? AND workflow_id = ?",
+                        (tenant_id, workflow_id),
+                    ).fetchone()
+                    is not None
+                ):
+                    raise WorkflowError("policy_journal_invalid")
+            return
+        if len(activation_rows) != 1:
+            raise WorkflowError("policy_journal_invalid")
+        policy_activation = _row_dict(activation_rows[0])
+        try:
+            evidence = json.loads(str(policy_activation["evidence_hashes_json"]))
+        except json.JSONDecodeError as error:
+            raise WorkflowError("policy_journal_invalid") from error
+        if (
+            policy_activation["case_id"] != activation["case_id"]
+            or policy_activation["case_revision_id"] != activation["case_revision_id"]
+            or policy_activation["source_checkpoint_id"] not in checkpoint_ids
+            or policy_activation["fixture_id"] != API_503_POLICY_FIXTURE_ID
+            or policy_activation["delivery_resource_id"] != API_503_DELIVERY_RESOURCE_ID
+            or policy_activation["data_classification"] != "synthetic"
+            or not isinstance(evidence, list)
+            or not evidence
+        ):
+            raise WorkflowError("policy_journal_invalid")
+        grant_rows = connection.execute(
+            "SELECT * FROM capability_grants WHERE tenant_id = ? AND workflow_id = ?",
+            (tenant_id, workflow_id),
+        ).fetchall()
+        if len(grant_rows) > 1:
+            raise WorkflowError("policy_journal_invalid")
+        grant: JsonObject | None = None
+        if grant_rows:
+            grant = self._change4_payload(_row_dict(grant_rows[0]), "grant")
+            try:
+                validate_capability_grant(grant, self._contract_root)
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            if grant.get("tenant_id") != tenant_id or grant.get("grant_sha256") != _sha256(
+                {key: value for key, value in grant.items() if key != "grant_sha256"}
+            ):
+                raise WorkflowError("policy_journal_invalid")
+        decision_rows = connection.execute(
+            """
+            SELECT * FROM policy_decisions
+            WHERE tenant_id = ? AND workflow_id = ?
+            ORDER BY rowid ASC
+            """,
+            (tenant_id, workflow_id),
+        ).fetchall()
+        if len(decision_rows) > 1:
+            raise WorkflowError("policy_journal_invalid")
+        decision: JsonObject | None = None
+        if decision_rows:
+            decision = self._change4_payload(_row_dict(decision_rows[0]), "policy")
+            try:
+                validate_policy_decision(decision, self._contract_root)
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            if (
+                decision.get("tenant_id") != tenant_id
+                or decision.get("workflow_id") != workflow_id
+                or decision.get("checkpoint_id") != policy_activation["source_checkpoint_id"]
+                or decision.get("policy_decision_sha256")
+                != _sha256(
+                    {
+                        key: value
+                        for key, value in decision.items()
+                        if key != "policy_decision_sha256"
+                    }
+                )
+            ):
+                raise WorkflowError("policy_journal_invalid")
+        binding_rows = connection.execute(
+            "SELECT * FROM authorization_bindings WHERE tenant_id = ? AND workflow_id = ?",
+            (tenant_id, workflow_id),
+        ).fetchall()
+        if len(binding_rows) > 1:
+            raise WorkflowError("policy_journal_invalid")
+        binding: JsonObject | None = None
+        if binding_rows:
+            binding = self._change4_payload(_row_dict(binding_rows[0]), "binding")
+            try:
+                validate_authorization_binding(binding, self._contract_root)
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            if (
+                grant is None
+                or decision is None
+                or binding.get("workflow_id") != workflow_id
+                or binding.get("grant_id") != grant.get("grant_id")
+                or binding.get("policy_decision_id") != decision.get("policy_decision_id")
+            ):
+                raise WorkflowError("policy_journal_invalid")
+        request_rows = connection.execute(
+            "SELECT * FROM approval_requests WHERE tenant_id = ? AND workflow_id = ?",
+            (tenant_id, workflow_id),
+        ).fetchall()
+        if len(request_rows) > 1:
+            raise WorkflowError("policy_journal_invalid")
+        request: JsonObject | None = None
+        if request_rows:
+            request = self._change4_payload(_row_dict(request_rows[0]), "approval-request")
+            try:
+                validate_approval_request(request, self._contract_root)
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            if binding is None or request.get("authorization_binding_sha256") != binding.get(
+                "authorization_binding_sha256"
+            ):
+                raise WorkflowError("policy_journal_invalid")
+        decision_approval_rows = connection.execute(
+            """
+            SELECT * FROM approval_decisions
+            WHERE tenant_id = ? AND workflow_id = ?
+            """,
+            (tenant_id, workflow_id),
+        ).fetchall()
+        if len(decision_approval_rows) > 1:
+            raise WorkflowError("policy_journal_invalid")
+        if decision_approval_rows:
+            approval = self._change4_payload(
+                _row_dict(decision_approval_rows[0]), "approval-decision"
+            )
+            try:
+                validate_approval_decision(approval, self._contract_root)
+            except ContractValidationError as error:
+                raise WorkflowError("policy_journal_invalid") from error
+            if (
+                request is None
+                or approval.get("approval_request_id") != request.get("approval_request_id")
+                or approval.get("decision_sha256")
+                != _sha256(
+                    {key: value for key, value in approval.items() if key != "decision_sha256"}
+                )
+            ):
+                raise WorkflowError("policy_journal_invalid")
+        if states & {AWAITING_APPROVAL, DELIVERING, DELIVERY_RECORDED} and (
+            grant is None or decision is None or binding is None or request is None
+        ):
+            raise WorkflowError("policy_journal_invalid")
+        self._validate_fixture_delivery_source(connection, tenant_id)
+
+    @staticmethod
+    def _validate_fixture_delivery_source(connection: sqlite3.Connection, tenant_id: str) -> None:
+        operation_rows = connection.execute(
+            """
+            SELECT * FROM fixture_delivery_operations WHERE tenant_id = ?
+            """,
+            (tenant_id,),
+        ).fetchall()
+        for operation in operation_rows:
+            record = connection.execute(
+                """
+                SELECT * FROM fixture_delivery_records
+                WHERE tenant_id = ? AND delivery_id = ? AND version = ?
+                """,
+                (tenant_id, operation["delivery_id"], operation["observed_version"]),
+            ).fetchone()
+            intent = connection.execute(
+                """
+                SELECT natural_key, candidate_hash FROM outbound_delivery_intents
+                WHERE tenant_id = ? AND idempotency_key = ?
+                """,
+                (tenant_id, operation["idempotency_key"]),
+            ).fetchone()
+            if (
+                record is None
+                or intent is None
+                or record["natural_key"] != operation["natural_key"]
+                or intent["natural_key"] != operation["natural_key"]
+                or record["content_sha256"] != operation["content_sha256"]
+                or intent["candidate_hash"] != operation["content_sha256"]
+                or record["data_classification"] != "synthetic"
+            ):
+                raise WorkflowError("policy_journal_invalid")
 
     @staticmethod
     def _validate_ticket_source(connection: sqlite3.Connection, tenant_id: str) -> None:
@@ -1047,6 +1395,145 @@ class SQLiteDurableWorkflow:
             ):
                 raise WorkflowError("workflow_case_projection_mismatch")
 
+    def _validate_investigation_source(
+        self,
+        connection: sqlite3.Connection,
+        activation: Mapping[str, Any],
+        checkpoints: Sequence[JsonObject],
+    ) -> None:
+        """Validate immutable replay evidence before deriving a workflow projection."""
+
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        rows = connection.execute(
+            "SELECT * FROM investigation_activations WHERE tenant_id = ? AND workflow_id = ?",
+            (tenant_id, workflow_id),
+        ).fetchall()
+        if len(rows) > 1:
+            raise WorkflowError("investigation_journal_invalid")
+        if not rows:
+            return
+        investigation = _row_dict(rows[0])
+        manifest = self._investigation_manifest_payload(investigation)
+        try:
+            validate_context_manifest(manifest, self._contract_root)
+        except ContractValidationError as error:
+            raise WorkflowError("investigation_journal_invalid") from error
+        checkpoint_ids = {str(item["payload"]["checkpoint_id"]) for item in checkpoints}
+        if (
+            manifest["tenant_id"] != tenant_id
+            or manifest["case_id"] != activation["case_id"]
+            or manifest["case_revision_id"] != activation["case_revision_id"]
+            or manifest["workflow_id"] != workflow_id
+            or manifest["checkpoint_id"] not in checkpoint_ids
+        ):
+            raise WorkflowError("investigation_journal_invalid")
+        for row in connection.execute(
+            "SELECT * FROM agent_steps WHERE tenant_id = ? AND workflow_id = ? ORDER BY rowid ASC",
+            (tenant_id, workflow_id),
+        ).fetchall():
+            record = _row_dict(row)
+            action = {
+                "schema_id": AGENT_ACTION_SCHEMA_ID,
+                "schema_version": "v1",
+                "tenant_id": tenant_id,
+                "case_id": activation["case_id"],
+                "case_revision_id": activation["case_revision_id"],
+                "workflow_id": workflow_id,
+                "checkpoint_id": record["checkpoint_id"],
+                "context_manifest_id": record["context_manifest_id"],
+                "step_id": record["step_id"],
+                "action_type": record["action_type"],
+                "action_sha256": record["action_sha256"],
+                "created_at": record["created_at"],
+            }
+            try:
+                validate_agent_action(action, self._contract_root, context_manifest=manifest)
+            except ContractValidationError as error:
+                raise WorkflowError("investigation_journal_invalid") from error
+        tool_rows = connection.execute(
+            f"""
+            SELECT request.*, result.tool_result_id, result.evidence_id, result.content_sha256,
+                   result.redaction_classification, result.recorded_at
+            FROM {INVESTIGATION_TOOL_REQUESTS_TABLE} AS request
+            LEFT JOIN investigation_tool_results AS result
+              ON result.tenant_id = request.tenant_id
+             AND result.tool_request_id = request.tool_request_id
+            WHERE request.tenant_id = ? AND request.workflow_id = ?
+            ORDER BY request.rowid ASC
+            """,
+            (tenant_id, workflow_id),
+        ).fetchall()
+        for row in tool_rows:
+            record = _row_dict(row)
+            request = {
+                "schema_id": TOOL_REQUEST_SCHEMA_ID,
+                "schema_version": "v1",
+                "tenant_id": tenant_id,
+                "case_id": activation["case_id"],
+                "case_revision_id": activation["case_revision_id"],
+                "workflow_id": workflow_id,
+                "checkpoint_id": record["checkpoint_id"],
+                "context_manifest_id": record["context_manifest_id"],
+                "tool_request_id": record["tool_request_id"],
+                "step_id": record["step_id"],
+                "tool_name": record["tool_name"],
+                "request_sha256": record["request_sha256"],
+                "created_at": record["created_at"],
+            }
+            try:
+                validate_tool_request(request, self._contract_root, context_manifest=manifest)
+            except ContractValidationError as error:
+                raise WorkflowError("investigation_journal_invalid") from error
+            if record["tool_result_id"] is None:
+                raise WorkflowError("investigation_journal_invalid")
+            result = {
+                "schema_id": TOOL_RESULT_SCHEMA_ID,
+                "schema_version": "v1",
+                "tenant_id": tenant_id,
+                "case_id": activation["case_id"],
+                "case_revision_id": activation["case_revision_id"],
+                "workflow_id": workflow_id,
+                "checkpoint_id": record["checkpoint_id"],
+                "context_manifest_id": record["context_manifest_id"],
+                "tool_name": record["tool_name"],
+                "tool_result_id": record["tool_result_id"],
+                "tool_request_id": record["tool_request_id"],
+                "evidence_id": record["evidence_id"],
+                "content_sha256": record["content_sha256"],
+                "redaction_classification": record["redaction_classification"],
+                "recorded_at": record["recorded_at"],
+            }
+            try:
+                validate_tool_result(result, self._contract_root, tool_request=request)
+            except ContractValidationError as error:
+                raise WorkflowError("investigation_journal_invalid") from error
+        candidates: dict[str, JsonObject] = {}
+        for row in connection.execute(
+            "SELECT * FROM investigation_candidates WHERE tenant_id = ? AND workflow_id = ?",
+            (tenant_id, workflow_id),
+        ).fetchall():
+            candidate = self._candidate_payload(activation, _row_dict(row))
+            try:
+                validate_response_candidate(
+                    candidate, self._contract_root, context_manifest=manifest
+                )
+            except ContractValidationError as error:
+                raise WorkflowError("investigation_journal_invalid") from error
+            candidates[str(candidate["candidate_id"])] = candidate
+        for row in connection.execute(
+            "SELECT * FROM investigation_verifier_outcomes WHERE tenant_id = ? AND workflow_id = ?",
+            (tenant_id, workflow_id),
+        ).fetchall():
+            outcome = self._verifier_outcome_payload(activation, _row_dict(row))
+            candidate = candidates.get(str(outcome["candidate_id"]))
+            if candidate is None:
+                raise WorkflowError("investigation_journal_invalid")
+            try:
+                validate_verifier_outcome(outcome, self._contract_root, candidate=candidate)
+            except ContractValidationError as error:
+                raise WorkflowError("investigation_journal_invalid") from error
+
     def rebuild_workflow_projection(self) -> None:
         """Rebuild the workflow read model solely from immutable journal records."""
 
@@ -1077,6 +1564,8 @@ class SQLiteDurableWorkflow:
                     record["payload"] = self._checkpoint_payload(record)
                     checkpoints.append(record)
                 self._validate_workflow_source(connection, activation, checkpoints)
+                self._validate_investigation_source(connection, activation, checkpoints)
+                self._validate_change4_source(connection, activation, checkpoints)
                 if not checkpoints:
                     continue
                 latest = checkpoints[-1]["payload"]
@@ -1248,6 +1737,2617 @@ class SQLiteDurableWorkflow:
             }
         finally:
             connection.close()
+
+    @staticmethod
+    def _investigation_manifest_payload(row: Mapping[str, Any]) -> JsonObject:
+        try:
+            evidence_references = json.loads(str(row["evidence_references_json"]))
+        except json.JSONDecodeError as error:
+            raise WorkflowError("investigation_journal_invalid") from error
+        if not isinstance(evidence_references, list) or not all(
+            isinstance(item, str) and item for item in evidence_references
+        ):
+            raise WorkflowError("investigation_journal_invalid")
+        return {
+            "schema_id": CONTEXT_MANIFEST_SCHEMA_ID,
+            "schema_version": "v1",
+            "tenant_id": row["tenant_id"],
+            "case_id": row["case_id"],
+            "case_revision_id": row["case_revision_id"],
+            "workflow_id": row["workflow_id"],
+            "checkpoint_id": row["checkpoint_id"],
+            "context_manifest_id": row["context_manifest_id"],
+            "context_sha256": row["context_sha256"],
+            "environment_snapshot_sha256": row["environment_snapshot_sha256"],
+            "evidence_references": evidence_references,
+            "action_budget": row["action_budget"],
+            "tool_budget": row["tool_budget"],
+            "no_progress_limit": row["no_progress_limit"],
+            "created_at": row["created_at"],
+        }
+
+    def _investigation_activation(self, tenant_id: str, workflow_id: str) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM investigation_activations WHERE tenant_id = ? AND workflow_id = ?",
+                (tenant_id, workflow_id),
+            ).fetchone()
+            if row is None:
+                return None
+            record = _row_dict(row)
+            record["manifest"] = self._investigation_manifest_payload(record)
+            return record
+        finally:
+            connection.close()
+
+    def _require_investigation(
+        self, tenant_id: str, case_id: str
+    ) -> tuple[JsonObject, JsonObject, JsonObject]:
+        activation = self._activation_for_case_for_tenant(tenant_id, case_id)
+        if activation is None:
+            raise WorkflowNotFound("workflow_not_found")
+        investigation = self._investigation_activation(tenant_id, str(activation["workflow_id"]))
+        if investigation is None:
+            raise WorkflowError("investigation_not_found")
+        projection = self.get_workflow_projection(tenant_id, str(activation["workflow_id"]))
+        if projection is None:
+            raise WorkflowNotFound("workflow_not_found")
+        return activation, investigation, projection
+
+    @staticmethod
+    def _require_manifest_link(
+        payload: Mapping[str, Any], manifest: Mapping[str, Any], name: str
+    ) -> None:
+        for field in (
+            "tenant_id",
+            "case_id",
+            "case_revision_id",
+            "workflow_id",
+            "checkpoint_id",
+            "context_manifest_id",
+        ):
+            if payload.get(field) != manifest.get(field):
+                reason = (
+                    "tenant_identity_mismatch" if field == "tenant_id" else "causation_mismatch"
+                )
+                raise WorkflowError(f"{name}_{reason}")
+
+    def begin_investigation(
+        self,
+        tenant_id: str,
+        case_id: str,
+        context_manifest: Mapping[str, Any],
+        *,
+        transcript_id: str,
+        fault_profile: FaultProfile | None = None,
+    ) -> JsonObject:
+        """Persist one Context Manifest before the workflow enters investigation."""
+
+        if not isinstance(transcript_id, str) or not transcript_id:
+            raise WorkflowError("investigation_transcript_invalid")
+        try:
+            validate_context_manifest(context_manifest, self._contract_root)
+        except ContractValidationError as error:
+            raise WorkflowError("context_manifest_invalid") from error
+        activation = self._activation_for_case_for_tenant(tenant_id, case_id)
+        if activation is None:
+            raise WorkflowNotFound("workflow_not_found")
+        workflow_id = str(activation["workflow_id"])
+        manifest = dict(context_manifest)
+        for field in ("tenant_id", "case_id", "case_revision_id", "workflow_id"):
+            if manifest[field] != activation[field]:
+                raise WorkflowError(
+                    "tenant_identity_mismatch" if field == "tenant_id" else "causation_mismatch"
+                )
+        existing = self._investigation_activation(tenant_id, workflow_id)
+        if existing is not None:
+            existing_manifest = existing["manifest"]
+            if (
+                existing_manifest["context_manifest_id"] != manifest["context_manifest_id"]
+                or existing_manifest["context_sha256"] != manifest["context_sha256"]
+                or existing["transcript_id"] != transcript_id
+            ):
+                raise WorkflowError("investigation_activation_conflict")
+        else:
+            checkpoint = self._latest_checkpoint(tenant_id, workflow_id)
+            if checkpoint is None or checkpoint["payload"]["current_state"] != TICKET_READY:
+                raise WorkflowError("investigation_predecessor_invalid")
+            if manifest["checkpoint_id"] != checkpoint["payload"]["checkpoint_id"]:
+                raise WorkflowError("investigation_checkpoint_mismatch")
+            investigation_id = _stable_identifier(
+                "investigation",
+                {
+                    "workflow_id": workflow_id,
+                    "context_manifest_id": manifest["context_manifest_id"],
+                    "context_sha256": manifest["context_sha256"],
+                },
+            )
+            connection = self._connect()
+            try:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    """
+                    INSERT INTO investigation_activations (
+                        tenant_id, investigation_id, workflow_id, checkpoint_id, case_id,
+                        case_revision_id, context_manifest_id, context_sha256,
+                        environment_snapshot_sha256, evidence_references_json, transcript_id,
+                        action_budget, tool_budget, no_progress_limit, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        tenant_id,
+                        investigation_id,
+                        workflow_id,
+                        manifest["checkpoint_id"],
+                        manifest["case_id"],
+                        manifest["case_revision_id"],
+                        manifest["context_manifest_id"],
+                        manifest["context_sha256"],
+                        manifest["environment_snapshot_sha256"],
+                        _canonical_json(manifest["evidence_references"]),
+                        transcript_id,
+                        manifest["action_budget"],
+                        manifest["tool_budget"],
+                        manifest["no_progress_limit"],
+                        manifest["created_at"],
+                    ),
+                )
+                connection.commit()
+            except sqlite3.DatabaseError as error:
+                connection.rollback()
+                raise WorkflowError("investigation_activation_failed") from error
+            finally:
+                connection.close()
+            existing = self._investigation_activation(tenant_id, workflow_id)
+            if existing is None:
+                raise WorkflowError("investigation_journal_invalid")
+        projection = self.get_workflow_projection(tenant_id, workflow_id)
+        if projection is None:
+            raise WorkflowNotFound("workflow_not_found")
+        if projection["state"] == TICKET_READY:
+            checkpoint = self._latest_checkpoint(tenant_id, workflow_id)
+            if checkpoint is None:
+                raise WorkflowError("investigation_journal_invalid")
+            self._transition(
+                activation,
+                checkpoint,
+                transition_kind=INVESTIGATION_STARTED,
+                next_state=INVESTIGATING,
+                resume_state=INVESTIGATING,
+                causation_event_id=f"investigation:{existing['investigation_id']}",
+                fault_profile=fault_profile,
+            )
+        elif projection["state"] not in {INVESTIGATING, RESPONSE_READY}:
+            raise WorkflowError("investigation_state_not_allowlisted")
+        return dict(existing["manifest"])
+
+    def _existing_agent_step(
+        self, tenant_id: str, workflow_id: str, step_id: str
+    ) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM agent_steps
+                WHERE tenant_id = ? AND workflow_id = ? AND step_id = ?
+                """,
+                (tenant_id, workflow_id, step_id),
+            ).fetchone()
+            return None if row is None else _row_dict(row)
+        finally:
+            connection.close()
+
+    def record_agent_action(
+        self,
+        tenant_id: str,
+        case_id: str,
+        action: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None = None,
+    ) -> JsonObject:
+        """Persist one schema-validated non-authoritative Agent action exactly once."""
+
+        activation, investigation, projection = self._require_investigation(tenant_id, case_id)
+        manifest = investigation["manifest"]
+        try:
+            validate_agent_action(action, self._contract_root, context_manifest=manifest)
+        except ContractValidationError as error:
+            raise WorkflowError("agent_action_invalid") from error
+        self._require_manifest_link(action, manifest, "agent_action")
+        workflow_id = str(activation["workflow_id"])
+        existing = self._existing_agent_step(tenant_id, workflow_id, str(action["step_id"]))
+        if existing is not None:
+            if (
+                existing["action_type"] != action["action_type"]
+                or existing["action_sha256"] != action["action_sha256"]
+                or existing["context_manifest_id"] != action["context_manifest_id"]
+            ):
+                raise WorkflowError("agent_step_conflict")
+            return dict(action)
+        if projection["state"] != INVESTIGATING:
+            raise WorkflowError("investigation_state_not_allowlisted")
+        agent_step_id = _stable_identifier(
+            "agent_step", {"workflow_id": workflow_id, "step_id": action["step_id"]}
+        )
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                """
+                INSERT INTO agent_steps (
+                    tenant_id, agent_step_id, workflow_id, checkpoint_id,
+                    context_manifest_id, step_id, action_type, action_sha256, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    agent_step_id,
+                    workflow_id,
+                    action["checkpoint_id"],
+                    action["context_manifest_id"],
+                    action["step_id"],
+                    action["action_type"],
+                    action["action_sha256"],
+                    action["created_at"],
+                ),
+            )
+            connection.commit()
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("agent_step_persist_failed") from error
+        finally:
+            connection.close()
+        self._interrupt(fault_profile, "agent-action")
+        return dict(action)
+
+    def _existing_tool_result(self, tenant_id: str, tool_request_id: str) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM investigation_tool_results
+                WHERE tenant_id = ? AND tool_request_id = ?
+                """,
+                (tenant_id, tool_request_id),
+            ).fetchone()
+            return None if row is None else _row_dict(row)
+        finally:
+            connection.close()
+
+    def record_tool_exchange(
+        self,
+        tenant_id: str,
+        case_id: str,
+        tool_request: Mapping[str, Any],
+        tool_result: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None = None,
+    ) -> tuple[JsonObject, JsonObject]:
+        """Persist a fixture read and redacted evidence once; no write tool exists."""
+
+        activation, investigation, projection = self._require_investigation(tenant_id, case_id)
+        manifest = investigation["manifest"]
+        try:
+            validate_tool_request(tool_request, self._contract_root, context_manifest=manifest)
+            validate_tool_result(tool_result, self._contract_root, tool_request=tool_request)
+        except ContractValidationError as error:
+            raise WorkflowError("investigation_tool_contract_invalid") from error
+        self._require_manifest_link(tool_request, manifest, "tool_request")
+        self._require_manifest_link(tool_result, manifest, "tool_result")
+        existing_result = self._existing_tool_result(
+            tenant_id, str(tool_request["tool_request_id"])
+        )
+        if existing_result is not None:
+            if (
+                existing_result["content_sha256"] != tool_result["content_sha256"]
+                or existing_result["evidence_id"] != tool_result["evidence_id"]
+                or existing_result["context_manifest_id"] != tool_result["context_manifest_id"]
+            ):
+                raise WorkflowError("tool_result_conflict")
+            return dict(tool_request), dict(tool_result)
+        if projection["state"] != INVESTIGATING:
+            raise WorkflowError("investigation_state_not_allowlisted")
+        workflow_id = str(activation["workflow_id"])
+        action = self._existing_agent_step(tenant_id, workflow_id, str(tool_request["step_id"]))
+        expected_action = f"read_{tool_request['tool_name']}"
+        if action is None or action["action_type"] != expected_action:
+            raise WorkflowError("tool_request_action_mismatch")
+        connection = self._connect()
+        try:
+            tool_count = int(
+                connection.execute(
+                    f"SELECT COUNT(*) FROM {INVESTIGATION_TOOL_REQUESTS_TABLE} "
+                    "WHERE tenant_id = ? AND workflow_id = ?",
+                    (tenant_id, workflow_id),
+                ).fetchone()[0]
+            )
+            if tool_count >= int(manifest["tool_budget"]):
+                raise WorkflowError("investigation_tool_budget_exceeded")
+            connection.execute("BEGIN IMMEDIATE")
+            existing_request = connection.execute(
+                f"""
+                SELECT request_sha256, tool_name, context_manifest_id
+                FROM {INVESTIGATION_TOOL_REQUESTS_TABLE}
+                WHERE tenant_id = ? AND tool_request_id = ?
+                """,
+                (tenant_id, tool_request["tool_request_id"]),
+            ).fetchone()
+            if existing_request is None:
+                connection.execute(
+                    f"""
+                    INSERT INTO {INVESTIGATION_TOOL_REQUESTS_TABLE} (
+                        tenant_id, tool_request_id, workflow_id, checkpoint_id,
+                        context_manifest_id, step_id, tool_name, request_sha256, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        tenant_id,
+                        tool_request["tool_request_id"],
+                        workflow_id,
+                        tool_request["checkpoint_id"],
+                        tool_request["context_manifest_id"],
+                        tool_request["step_id"],
+                        tool_request["tool_name"],
+                        tool_request["request_sha256"],
+                        tool_request["created_at"],
+                    ),
+                )
+            elif (
+                existing_request["request_sha256"] != tool_request["request_sha256"]
+                or existing_request["tool_name"] != tool_request["tool_name"]
+                or existing_request["context_manifest_id"] != tool_request["context_manifest_id"]
+            ):
+                raise WorkflowError("tool_request_conflict")
+            connection.execute(
+                """
+                INSERT INTO investigation_tool_results (
+                    tenant_id, tool_result_id, workflow_id, checkpoint_id,
+                    context_manifest_id, tool_name, tool_request_id, evidence_id,
+                    content_sha256, redaction_classification, recorded_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    tool_result["tool_result_id"],
+                    workflow_id,
+                    tool_result["checkpoint_id"],
+                    tool_result["context_manifest_id"],
+                    tool_result["tool_name"],
+                    tool_result["tool_request_id"],
+                    tool_result["evidence_id"],
+                    tool_result["content_sha256"],
+                    tool_result["redaction_classification"],
+                    tool_result["recorded_at"],
+                ),
+            )
+            connection.commit()
+        except WorkflowError:
+            connection.rollback()
+            raise
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("tool_result_persist_failed") from error
+        finally:
+            connection.close()
+        self._interrupt(fault_profile, "tool-result")
+        return dict(tool_request), dict(tool_result)
+
+    def _candidate_payload(
+        self, activation: Mapping[str, Any], row: Mapping[str, Any]
+    ) -> JsonObject:
+        try:
+            evidence_hashes = json.loads(str(row["evidence_hashes_json"]))
+        except json.JSONDecodeError as error:
+            raise WorkflowError("investigation_journal_invalid") from error
+        if not isinstance(evidence_hashes, list):
+            raise WorkflowError("investigation_journal_invalid")
+        return {
+            "schema_id": RESPONSE_CANDIDATE_SCHEMA_ID,
+            "schema_version": "v1",
+            "tenant_id": row["tenant_id"],
+            "case_id": activation["case_id"],
+            "case_revision_id": activation["case_revision_id"],
+            "workflow_id": row["workflow_id"],
+            "checkpoint_id": row["checkpoint_id"],
+            "context_manifest_id": row["context_manifest_id"],
+            "candidate_id": row["candidate_id"],
+            "context_sha256": row["context_sha256"],
+            "evidence_hashes": evidence_hashes,
+            "candidate_sha256": row["candidate_sha256"],
+            "risk": row["risk"],
+            "next_step": row["next_step"],
+            "created_at": row["created_at"],
+        }
+
+    def record_response_candidate(
+        self,
+        tenant_id: str,
+        case_id: str,
+        candidate: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None = None,
+    ) -> JsonObject:
+        """Persist an evidence-bound internal candidate without approval or delivery."""
+
+        activation, investigation, projection = self._require_investigation(tenant_id, case_id)
+        manifest = investigation["manifest"]
+        try:
+            validate_response_candidate(candidate, self._contract_root, context_manifest=manifest)
+        except ContractValidationError as error:
+            raise WorkflowError("response_candidate_invalid") from error
+        self._require_manifest_link(candidate, manifest, "response_candidate")
+        workflow_id = str(activation["workflow_id"])
+        connection = self._connect()
+        try:
+            existing = connection.execute(
+                """
+                SELECT * FROM investigation_candidates
+                WHERE tenant_id = ? AND candidate_id = ?
+                """,
+                (tenant_id, candidate["candidate_id"]),
+            ).fetchone()
+            if existing is not None:
+                existing_payload = self._candidate_payload(activation, _row_dict(existing))
+                if existing_payload["candidate_sha256"] != candidate["candidate_sha256"]:
+                    raise WorkflowError("response_candidate_conflict")
+                return existing_payload
+            if projection["state"] != INVESTIGATING:
+                raise WorkflowError("investigation_state_not_allowlisted")
+            response_action_count = int(
+                connection.execute(
+                    """
+                    SELECT COUNT(*) FROM agent_steps
+                    WHERE tenant_id = ? AND workflow_id = ? AND action_type = 'response_candidate'
+                    """,
+                    (tenant_id, workflow_id),
+                ).fetchone()[0]
+            )
+            if response_action_count != 1:
+                raise WorkflowError("response_candidate_action_missing")
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                """
+                INSERT INTO investigation_candidates (
+                    tenant_id, candidate_id, workflow_id, checkpoint_id,
+                    context_manifest_id, context_sha256, evidence_hashes_json,
+                    candidate_sha256, risk, next_step, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    candidate["candidate_id"],
+                    workflow_id,
+                    candidate["checkpoint_id"],
+                    candidate["context_manifest_id"],
+                    candidate["context_sha256"],
+                    _canonical_json(candidate["evidence_hashes"]),
+                    candidate["candidate_sha256"],
+                    candidate["risk"],
+                    candidate["next_step"],
+                    candidate["created_at"],
+                ),
+            )
+            connection.commit()
+        except WorkflowError:
+            connection.rollback()
+            raise
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("response_candidate_persist_failed") from error
+        finally:
+            connection.close()
+        self._interrupt(fault_profile, "candidate")
+        return dict(candidate)
+
+    def _verifier_outcome_payload(
+        self, activation: Mapping[str, Any], row: Mapping[str, Any]
+    ) -> JsonObject:
+        return {
+            "schema_id": VERIFIER_OUTCOME_SCHEMA_ID,
+            "schema_version": "v1",
+            "tenant_id": row["tenant_id"],
+            "case_id": activation["case_id"],
+            "case_revision_id": activation["case_revision_id"],
+            "workflow_id": row["workflow_id"],
+            "checkpoint_id": row["checkpoint_id"],
+            "context_manifest_id": row["context_manifest_id"],
+            "verifier_outcome_id": row["verifier_outcome_id"],
+            "candidate_id": row["candidate_id"],
+            "candidate_sha256": row["candidate_sha256"],
+            "outcome": row["outcome"],
+            "reason_code": row["reason_code"],
+            "recorded_at": row["recorded_at"],
+        }
+
+    def _deterministic_verifier_reason(
+        self,
+        tenant_id: str,
+        workflow_id: str,
+        manifest: Mapping[str, Any],
+        candidate: Mapping[str, Any],
+    ) -> tuple[str, str]:
+        connection = self._connect()
+        try:
+            steps = [
+                _row_dict(row)
+                for row in connection.execute(
+                    """
+                    SELECT step_id, action_type FROM agent_steps
+                    WHERE tenant_id = ? AND workflow_id = ? ORDER BY rowid ASC
+                    """,
+                    (tenant_id, workflow_id),
+                ).fetchall()
+            ]
+            results = [
+                _row_dict(row)
+                for row in connection.execute(
+                    """
+                    SELECT tool_name, content_sha256, redaction_classification, context_manifest_id
+                    FROM investigation_tool_results
+                    WHERE tenant_id = ? AND workflow_id = ? ORDER BY rowid ASC
+                    """,
+                    (tenant_id, workflow_id),
+                ).fetchall()
+            ]
+        finally:
+            connection.close()
+        if len(steps) > int(manifest["action_budget"]):
+            return "rejected", "action_budget_exceeded"
+        if len(results) > int(manifest["tool_budget"]):
+            return "rejected", "tool_budget_exceeded"
+        if not steps or steps[-1]["action_type"] != "response_candidate":
+            return "rejected", "response_candidate_action_missing"
+        if any(
+            result["context_manifest_id"] != manifest["context_manifest_id"] for result in results
+        ):
+            return "rejected", "evidence_context_mismatch"
+        if any(result["redaction_classification"] != "synthetic" for result in results):
+            return "rejected", "evidence_redaction_invalid"
+        required_tools = ("crm", "monitoring", "knowledge")
+        if tuple(result["tool_name"] for result in results) != required_tools:
+            return "rejected", "required_evidence_missing"
+        evidence_hashes = [str(result["content_sha256"]) for result in results]
+        if list(candidate["evidence_hashes"]) != evidence_hashes:
+            return "rejected", "evidence_reference_mismatch"
+        if candidate["context_sha256"] != manifest["context_sha256"]:
+            return "rejected", "context_hash_mismatch"
+        return "verified", "evidence_complete"
+
+    def _advance_verified_candidate(
+        self,
+        activation: Mapping[str, Any],
+        verifier_outcome: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None = None,
+    ) -> JsonObject | None:
+        if verifier_outcome.get("outcome") != "verified":
+            return self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+        checkpoint = self._latest_checkpoint(
+            str(activation["tenant_id"]), str(activation["workflow_id"])
+        )
+        if checkpoint is None:
+            raise WorkflowError("investigation_journal_invalid")
+        state = checkpoint["payload"]["current_state"]
+        if state == RESPONSE_READY:
+            return self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+        if state != INVESTIGATING:
+            raise WorkflowError("investigation_state_not_allowlisted")
+        self._transition(
+            activation,
+            checkpoint,
+            transition_kind=RESPONSE_CANDIDATE_VERIFIED,
+            next_state=RESPONSE_READY,
+            resume_state=RESPONSE_READY,
+            causation_event_id=f"verifier:{verifier_outcome['verifier_outcome_id']}",
+            fault_profile=fault_profile,
+        )
+        return self.get_workflow_projection(
+            str(activation["tenant_id"]), str(activation["workflow_id"])
+        )
+
+    def verify_response_candidate(
+        self,
+        tenant_id: str,
+        case_id: str,
+        candidate_id: str,
+        *,
+        fault_profile: FaultProfile | None = None,
+    ) -> JsonObject:
+        """Compute and persist a verifier decision; callers cannot supply the decision."""
+
+        activation, investigation, _ = self._require_investigation(tenant_id, case_id)
+        workflow_id = str(activation["workflow_id"])
+        connection = self._connect()
+        try:
+            candidate_row = connection.execute(
+                """
+                SELECT * FROM investigation_candidates
+                WHERE tenant_id = ? AND workflow_id = ? AND candidate_id = ?
+                """,
+                (tenant_id, workflow_id, candidate_id),
+            ).fetchone()
+            if candidate_row is None:
+                raise WorkflowError("response_candidate_not_found")
+            candidate = self._candidate_payload(activation, _row_dict(candidate_row))
+            existing_row = connection.execute(
+                """
+                SELECT * FROM investigation_verifier_outcomes
+                WHERE tenant_id = ? AND candidate_id = ?
+                """,
+                (tenant_id, candidate_id),
+            ).fetchone()
+        finally:
+            connection.close()
+        try:
+            validate_response_candidate(
+                candidate,
+                self._contract_root,
+                context_manifest=investigation["manifest"],
+            )
+        except ContractValidationError as error:
+            raise WorkflowError("response_candidate_invalid") from error
+        if existing_row is not None:
+            outcome = self._verifier_outcome_payload(activation, _row_dict(existing_row))
+            self._advance_verified_candidate(activation, outcome, fault_profile=fault_profile)
+            return outcome
+        decision, reason_code = self._deterministic_verifier_reason(
+            tenant_id, workflow_id, investigation["manifest"], candidate
+        )
+        verifier_outcome_id = _stable_identifier(
+            "verifier_outcome",
+            {
+                "workflow_id": workflow_id,
+                "candidate_id": candidate["candidate_id"],
+                "candidate_sha256": candidate["candidate_sha256"],
+                "outcome": decision,
+            },
+        )
+        outcome = {
+            "schema_id": VERIFIER_OUTCOME_SCHEMA_ID,
+            "schema_version": "v1",
+            "tenant_id": tenant_id,
+            "case_id": activation["case_id"],
+            "case_revision_id": activation["case_revision_id"],
+            "workflow_id": workflow_id,
+            "checkpoint_id": candidate["checkpoint_id"],
+            "context_manifest_id": candidate["context_manifest_id"],
+            "verifier_outcome_id": verifier_outcome_id,
+            "candidate_id": candidate["candidate_id"],
+            "candidate_sha256": candidate["candidate_sha256"],
+            "outcome": decision,
+            "reason_code": reason_code,
+            "recorded_at": self._now(),
+        }
+        try:
+            validate_verifier_outcome(outcome, self._contract_root, candidate=candidate)
+        except ContractValidationError as error:
+            raise WorkflowError("verifier_outcome_invalid") from error
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                """
+                INSERT INTO investigation_verifier_outcomes (
+                    tenant_id, verifier_outcome_id, workflow_id, checkpoint_id,
+                    context_manifest_id, candidate_id, candidate_sha256, outcome,
+                    reason_code, recorded_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    outcome["verifier_outcome_id"],
+                    workflow_id,
+                    outcome["checkpoint_id"],
+                    outcome["context_manifest_id"],
+                    outcome["candidate_id"],
+                    outcome["candidate_sha256"],
+                    outcome["outcome"],
+                    outcome["reason_code"],
+                    outcome["recorded_at"],
+                ),
+            )
+            connection.commit()
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("verifier_outcome_persist_failed") from error
+        finally:
+            connection.close()
+        self._interrupt(fault_profile, "verifier")
+        self._advance_verified_candidate(activation, outcome, fault_profile=fault_profile)
+        return outcome
+
+    def _recover_investigation(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None,
+    ) -> JsonObject | None:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        investigation = self._investigation_activation(tenant_id, workflow_id)
+        if investigation is None:
+            return self.get_workflow_projection(tenant_id, workflow_id)
+        state = str(checkpoint["payload"]["current_state"])
+        if state == TICKET_READY:
+            self._transition(
+                activation,
+                checkpoint,
+                transition_kind=INVESTIGATION_STARTED,
+                next_state=INVESTIGATING,
+                resume_state=INVESTIGATING,
+                causation_event_id=f"investigation:{investigation['investigation_id']}",
+                fault_profile=fault_profile,
+            )
+            checkpoint = self._latest_checkpoint(tenant_id, workflow_id)
+            if checkpoint is None:
+                raise WorkflowError("investigation_journal_invalid")
+            state = str(checkpoint["payload"]["current_state"])
+        if state != INVESTIGATING:
+            return self.get_workflow_projection(tenant_id, workflow_id)
+        connection = self._connect()
+        try:
+            outcome_row = connection.execute(
+                """
+                SELECT * FROM investigation_verifier_outcomes
+                WHERE tenant_id = ? AND workflow_id = ? AND outcome = 'verified'
+                ORDER BY rowid DESC LIMIT 1
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+        finally:
+            connection.close()
+        if outcome_row is None:
+            return self.get_workflow_projection(tenant_id, workflow_id)
+        outcome = self._verifier_outcome_payload(activation, _row_dict(outcome_row))
+        return self._advance_verified_candidate(activation, outcome, fault_profile=fault_profile)
+
+    def investigation_facts_for_case(self, tenant_id: str, case_id: str) -> JsonObject | None:
+        """Return only tenant-scoped identifiers, hashes, and safe replay capability facts."""
+
+        activation = self._activation_for_case_for_tenant(tenant_id, case_id)
+        if activation is None:
+            return None
+        workflow_id = str(activation["workflow_id"])
+        investigation = self._investigation_activation(tenant_id, workflow_id)
+        if investigation is None:
+            return None
+        connection = self._connect()
+        try:
+            steps = [
+                {
+                    "step_id": row["step_id"],
+                    "action_type": row["action_type"],
+                    "action_sha256": row["action_sha256"],
+                    "created_at": row["created_at"],
+                }
+                for row in connection.execute(
+                    """
+                    SELECT step_id, action_type, action_sha256, created_at FROM agent_steps
+                    WHERE tenant_id = ? AND workflow_id = ? ORDER BY rowid ASC
+                    """,
+                    (tenant_id, workflow_id),
+                ).fetchall()
+            ]
+            tools = [
+                {
+                    "tool_name": row["tool_name"],
+                    "evidence_id": row["evidence_id"],
+                    "content_sha256": row["content_sha256"],
+                    "redaction_classification": row["redaction_classification"],
+                    "recorded_at": row["recorded_at"],
+                }
+                for row in connection.execute(
+                    """
+                    SELECT tool_name, evidence_id, content_sha256,
+                           redaction_classification, recorded_at
+                    FROM investigation_tool_results
+                    WHERE tenant_id = ? AND workflow_id = ? ORDER BY rowid ASC
+                    """,
+                    (tenant_id, workflow_id),
+                ).fetchall()
+            ]
+            candidate_row = connection.execute(
+                """
+                SELECT * FROM investigation_candidates
+                WHERE tenant_id = ? AND workflow_id = ? ORDER BY rowid DESC LIMIT 1
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            verifier_row = connection.execute(
+                """
+                SELECT * FROM investigation_verifier_outcomes
+                WHERE tenant_id = ? AND workflow_id = ? ORDER BY rowid DESC LIMIT 1
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+        finally:
+            connection.close()
+        return {
+            "workflow_id": workflow_id,
+            "context_manifest": dict(investigation["manifest"]),
+            "agent_steps": steps,
+            "tool_evidence": tools,
+            "response_candidate": None
+            if candidate_row is None
+            else self._candidate_payload(activation, _row_dict(candidate_row)),
+            "verifier_outcome": None
+            if verifier_row is None
+            else self._verifier_outcome_payload(activation, _row_dict(verifier_row)),
+            "model_invocation": False,
+            "external_write": False,
+            "approval": False,
+            "outbound_delivery": False,
+            "customer_resolution": False,
+        }
+
+    def export_investigation_inspection(self, tenant_id: str, case_id: str) -> JsonObject | None:
+        """Export a content-addressed investigation-only snapshot with no ledger payloads."""
+
+        facts = self.investigation_facts_for_case(tenant_id, case_id)
+        if facts is None:
+            return None
+        projection = self.get_workflow_for_case(tenant_id, case_id)
+        if projection is None:
+            raise WorkflowError("workflow_not_found")
+        data = {
+            "inspection_schema_version": "weflow-investigation-inspection.v1",
+            "tenant_id": tenant_id,
+            "case_id": case_id,
+            "workflow_id": facts["workflow_id"],
+            "workflow_state": projection["state"],
+            "context_manifest": facts["context_manifest"],
+            "agent_steps": facts["agent_steps"],
+            "tool_evidence": facts["tool_evidence"],
+            "response_candidate": facts["response_candidate"],
+            "verifier_outcome": facts["verifier_outcome"],
+            "model_invocation": False,
+            "external_write": False,
+            "approval": False,
+            "outbound_delivery": False,
+            "customer_resolution": False,
+        }
+        return {**data, "content_sha256": _sha256(data)}
+
+    @staticmethod
+    def _change4_payload(row: Mapping[str, Any], name: str) -> JsonObject:
+        try:
+            payload = json.loads(str(row["payload_json"]))
+        except (KeyError, json.JSONDecodeError) as error:
+            raise WorkflowError("policy_journal_invalid") from error
+        if not isinstance(payload, dict):
+            raise WorkflowError("policy_journal_invalid")
+        return payload
+
+    def _checkpoint_by_id(self, tenant_id: str, checkpoint_id: str) -> JsonObject:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM workflow_checkpoints WHERE tenant_id = ? AND checkpoint_id = ?",
+                (tenant_id, checkpoint_id),
+            ).fetchone()
+            if row is None:
+                raise WorkflowError("workflow_journal_invalid")
+            record = _row_dict(row)
+            record["payload"] = self._checkpoint_payload(record)
+            return record
+        finally:
+            connection.close()
+
+    def _policy_activation_for_workflow(
+        self, tenant_id: str, workflow_id: str
+    ) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM policy_approval_activations
+                WHERE tenant_id = ? AND workflow_id = ?
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            return None if row is None else _row_dict(row)
+        finally:
+            connection.close()
+
+    def _grant_for_workflow(self, tenant_id: str, workflow_id: str) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM capability_grants
+                WHERE tenant_id = ? AND workflow_id = ?
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            return None if row is None else self._change4_payload(_row_dict(row), "grant")
+        finally:
+            connection.close()
+
+    def _grant_is_active(self, tenant_id: str, grant_id: str) -> bool:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT 1 FROM capability_grant_status_events
+                WHERE tenant_id = ? AND grant_id = ?
+                """,
+                (tenant_id, grant_id),
+            ).fetchone()
+            return row is None
+        finally:
+            connection.close()
+
+    def _policy_decision_for_workflow(self, tenant_id: str, workflow_id: str) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM policy_decisions
+                WHERE tenant_id = ? AND workflow_id = ?
+                  AND action = 'outbound_delivery.execute'
+                ORDER BY rowid DESC LIMIT 1
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            return None if row is None else self._change4_payload(_row_dict(row), "policy")
+        finally:
+            connection.close()
+
+    def _authorization_binding_for_workflow(
+        self, tenant_id: str, workflow_id: str
+    ) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM authorization_bindings
+                WHERE tenant_id = ? AND workflow_id = ?
+                ORDER BY rowid DESC LIMIT 1
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            return None if row is None else self._change4_payload(_row_dict(row), "binding")
+        finally:
+            connection.close()
+
+    def _approval_request_for_workflow(self, tenant_id: str, workflow_id: str) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM approval_requests
+                WHERE tenant_id = ? AND workflow_id = ?
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            return (
+                None if row is None else self._change4_payload(_row_dict(row), "approval-request")
+            )
+        finally:
+            connection.close()
+
+    def _approval_decision_for_request(
+        self, tenant_id: str, approval_request_id: str
+    ) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM approval_decisions
+                WHERE tenant_id = ? AND approval_request_id = ?
+                """,
+                (tenant_id, approval_request_id),
+            ).fetchone()
+            return (
+                None if row is None else self._change4_payload(_row_dict(row), "approval-decision")
+            )
+        finally:
+            connection.close()
+
+    def _change4_candidate_material(
+        self, activation: Mapping[str, Any]
+    ) -> tuple[JsonObject, list[str]]:
+        facts = self.investigation_facts_for_case(
+            str(activation["tenant_id"]), str(activation["case_id"])
+        )
+        if facts is None:
+            raise WorkflowError("policy_continuation_predecessor_invalid")
+        candidate = facts.get("response_candidate")
+        outcome = facts.get("verifier_outcome")
+        if (
+            not isinstance(candidate, Mapping)
+            or not isinstance(outcome, Mapping)
+            or outcome.get("outcome") != "verified"
+            or candidate.get("candidate_sha256") != outcome.get("candidate_sha256")
+        ):
+            raise WorkflowError("policy_continuation_predecessor_invalid")
+        evidence_hashes = candidate.get("evidence_hashes")
+        if not isinstance(evidence_hashes, list) or not evidence_hashes:
+            raise WorkflowError("policy_continuation_predecessor_invalid")
+        return dict(candidate), [str(item) for item in evidence_hashes]
+
+    def _ensure_policy_approval_activation(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+    ) -> JsonObject:
+        """Persist the explicit Change 4 opt-in; old RESPONSE_READY replays never call it."""
+
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        current = checkpoint["payload"]
+        if current["current_state"] != RESPONSE_READY:
+            existing = self._policy_activation_for_workflow(tenant_id, workflow_id)
+            if existing is None:
+                raise WorkflowError("policy_continuation_not_available")
+            return existing
+        fixture = api_503_policy_fixture(self._clock())
+        if tenant_id != fixture["tenant_id"]:
+            raise WorkflowError("policy_fixture_tenant_denied")
+        candidate, evidence_hashes = self._change4_candidate_material(activation)
+        controller_subject_id = "fixture-controller-alpha"
+        record = {
+            "tenant_id": tenant_id,
+            "policy_approval_activation_id": _stable_identifier(
+                "policy_approval_activation",
+                {"workflow_id": workflow_id, "fixture_id": API_503_POLICY_FIXTURE_ID},
+            ),
+            "workflow_id": workflow_id,
+            "case_id": activation["case_id"],
+            "case_revision_id": activation["case_revision_id"],
+            "source_checkpoint_id": current["checkpoint_id"],
+            "fixture_id": API_503_POLICY_FIXTURE_ID,
+            "policy_version": fixture["policy_version"],
+            "delivery_resource_id": fixture["delivery_resource_id"],
+            "delivery_resource_scope": fixture["delivery_resource_scope"],
+            "data_classification": fixture["data_classification"],
+            "delivery_budget": fixture["delivery_budget"],
+            "controller_subject_id": controller_subject_id,
+            "controller_role": FIXTURE_CONTROLLER_ROLE,
+            "candidate_hash": candidate["candidate_sha256"],
+            "evidence_hashes_json": _canonical_json(evidence_hashes),
+            "activated_at": self._now(),
+        }
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                """
+                SELECT * FROM policy_approval_activations
+                WHERE tenant_id = ? AND workflow_id = ?
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            if existing is not None:
+                existing_record = _row_dict(existing)
+                for field in (
+                    "source_checkpoint_id",
+                    "fixture_id",
+                    "candidate_hash",
+                    "evidence_hashes_json",
+                    "delivery_resource_id",
+                    "data_classification",
+                ):
+                    if existing_record[field] != record[field]:
+                        raise WorkflowError("policy_activation_conflict")
+                connection.commit()
+                return existing_record
+            connection.execute(
+                """
+                INSERT INTO policy_approval_activations (
+                    tenant_id, policy_approval_activation_id, workflow_id, case_id,
+                    case_revision_id, source_checkpoint_id, fixture_id, policy_version,
+                    delivery_resource_id, delivery_resource_scope, data_classification,
+                    delivery_budget, controller_subject_id, controller_role, candidate_hash,
+                    evidence_hashes_json, activated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                tuple(
+                    record[field]
+                    for field in (
+                        "tenant_id",
+                        "policy_approval_activation_id",
+                        "workflow_id",
+                        "case_id",
+                        "case_revision_id",
+                        "source_checkpoint_id",
+                        "fixture_id",
+                        "policy_version",
+                        "delivery_resource_id",
+                        "delivery_resource_scope",
+                        "data_classification",
+                        "delivery_budget",
+                        "controller_subject_id",
+                        "controller_role",
+                        "candidate_hash",
+                        "evidence_hashes_json",
+                        "activated_at",
+                    )
+                ),
+            )
+            connection.commit()
+            return record
+        except WorkflowError:
+            connection.rollback()
+            raise
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("policy_activation_persist_failed") from error
+        finally:
+            connection.close()
+
+    def _ensure_fixture_grant(
+        self, activation: Mapping[str, Any], policy_activation: Mapping[str, Any]
+    ) -> JsonObject:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        existing = self._grant_for_workflow(tenant_id, workflow_id)
+        if existing is not None:
+            return existing
+        grant = issue_fixture_grant(
+            tenant_id=tenant_id,
+            subject_id=str(policy_activation["controller_subject_id"]),
+            role=str(policy_activation["controller_role"]),
+            now=self._clock(),
+        )
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing_row = connection.execute(
+                "SELECT * FROM capability_grants WHERE tenant_id = ? AND workflow_id = ?",
+                (tenant_id, workflow_id),
+            ).fetchone()
+            if existing_row is not None:
+                connection.commit()
+                return self._change4_payload(_row_dict(existing_row), "grant")
+            connection.execute(
+                """
+                INSERT INTO capability_grants (
+                    tenant_id, grant_id, workflow_id, grant_sha256, grant_version,
+                    subject_id, role, resource_scope, data_classifications_json,
+                    issued_at, expires_at, payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    grant["grant_id"],
+                    workflow_id,
+                    grant["grant_sha256"],
+                    grant["grant_version"],
+                    grant["subject_id"],
+                    grant["role"],
+                    grant["resource_scope"],
+                    _canonical_json(grant["data_classifications"]),
+                    grant["issued_at"],
+                    grant["expires_at"],
+                    _canonical_json(grant),
+                ),
+            )
+            connection.commit()
+            return grant
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("capability_grant_persist_failed") from error
+        finally:
+            connection.close()
+
+    def _ensure_policy_decision(
+        self,
+        activation: Mapping[str, Any],
+        policy_activation: Mapping[str, Any],
+        grant: Mapping[str, Any],
+    ) -> JsonObject:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        candidate, evidence_hashes = self._change4_candidate_material(activation)
+        decision = evaluate_fixture_policy(
+            tenant_id=tenant_id,
+            subject_id=str(policy_activation["controller_subject_id"]),
+            role=str(policy_activation["controller_role"]),
+            action="outbound_delivery.execute",
+            case_id=str(activation["case_id"]),
+            case_revision_id=str(activation["case_revision_id"]),
+            workflow_id=workflow_id,
+            checkpoint_id=str(policy_activation["source_checkpoint_id"]),
+            workflow_version=int(
+                self._checkpoint_by_id(tenant_id, str(policy_activation["source_checkpoint_id"]))[
+                    "payload"
+                ]["workflow_version"]
+            ),
+            candidate_hash=str(candidate["candidate_sha256"]),
+            evidence_hashes=evidence_hashes,
+            grant=grant if self._grant_is_active(tenant_id, str(grant["grant_id"])) else None,
+            resource_id=str(policy_activation["delivery_resource_id"]),
+            data_classification=str(policy_activation["data_classification"]),
+            remaining_budget=int(policy_activation["delivery_budget"]),
+            now=self._clock(),
+        )
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                """
+                SELECT * FROM policy_decisions
+                WHERE tenant_id = ? AND workflow_id = ? AND action = ?
+                  AND policy_input_sha256 = ?
+                """,
+                (tenant_id, workflow_id, decision["action"], decision["policy_input_sha256"]),
+            ).fetchone()
+            if existing is not None:
+                connection.commit()
+                return self._change4_payload(_row_dict(existing), "policy")
+            connection.execute(
+                """
+                INSERT INTO policy_decisions (
+                    tenant_id, policy_decision_id, workflow_id, checkpoint_id, action,
+                    policy_decision_sha256, policy_input_sha256, decision, reason_code,
+                    policy_version, grant_id, grant_sha256, candidate_hash,
+                    evidence_hashes_json, subject_id, role, resource_id,
+                    data_classification, workflow_version, payload_json, decided_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    decision["policy_decision_id"],
+                    workflow_id,
+                    decision["checkpoint_id"],
+                    decision["action"],
+                    decision["policy_decision_sha256"],
+                    decision["policy_input_sha256"],
+                    decision["decision"],
+                    decision["reason_code"],
+                    decision["policy_version"],
+                    decision["grant_id"],
+                    decision["grant_sha256"],
+                    decision["candidate_hash"],
+                    _canonical_json(decision["evidence_hashes"]),
+                    decision["subject_id"],
+                    decision["role"],
+                    decision["resource_id"],
+                    decision["data_classification"],
+                    decision["workflow_version"],
+                    _canonical_json(decision),
+                    decision["decided_at"],
+                ),
+            )
+            connection.commit()
+            return decision
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("policy_decision_persist_failed") from error
+        finally:
+            connection.close()
+
+    def _ensure_authorization_binding(
+        self,
+        activation: Mapping[str, Any],
+        policy_activation: Mapping[str, Any],
+        grant: Mapping[str, Any],
+        decision: Mapping[str, Any],
+    ) -> JsonObject:
+        if decision.get("decision") != "allow":
+            raise WorkflowError("policy_denied")
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        binding = bind_fixture_authorization(
+            decision=decision,
+            grant=grant,
+            remaining_budget=int(policy_activation["delivery_budget"]),
+            expires_at=self._clock() + timedelta(minutes=15),
+            created_at=self._clock(),
+        )
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT * FROM authorization_bindings WHERE tenant_id = ? AND workflow_id = ?",
+                (tenant_id, workflow_id),
+            ).fetchone()
+            if existing is not None:
+                connection.commit()
+                return self._change4_payload(_row_dict(existing), "binding")
+            connection.execute(
+                """
+                INSERT INTO authorization_bindings (
+                    tenant_id, authorization_binding_id, authorization_binding_sha256,
+                    workflow_id, policy_decision_id, grant_id, checkpoint_id,
+                    workflow_version, candidate_hash, evidence_hashes_json, expires_at,
+                    payload_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    binding["authorization_binding_id"],
+                    binding["authorization_binding_sha256"],
+                    workflow_id,
+                    binding["policy_decision_id"],
+                    binding["grant_id"],
+                    binding["checkpoint_id"],
+                    binding["workflow_version"],
+                    binding["candidate_hash"],
+                    _canonical_json(binding["evidence_hashes"]),
+                    binding["expires_at"],
+                    _canonical_json(binding),
+                    binding["created_at"],
+                ),
+            )
+            connection.commit()
+            return binding
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("authorization_binding_persist_failed") from error
+        finally:
+            connection.close()
+
+    def _ensure_approval_request(
+        self, activation: Mapping[str, Any], binding: Mapping[str, Any]
+    ) -> JsonObject:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        request = build_approval_request(binding, created_at=self._clock())
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT * FROM approval_requests WHERE tenant_id = ? AND workflow_id = ?",
+                (tenant_id, workflow_id),
+            ).fetchone()
+            if existing is not None:
+                connection.commit()
+                return self._change4_payload(_row_dict(existing), "approval-request")
+            connection.execute(
+                """
+                INSERT INTO approval_requests (
+                    tenant_id, approval_request_id, workflow_id, authorization_binding_sha256,
+                    checkpoint_id, workflow_version, payload_json, created_at, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    request["approval_request_id"],
+                    workflow_id,
+                    request["authorization_binding_sha256"],
+                    request["checkpoint_id"],
+                    request["workflow_version"],
+                    _canonical_json(request),
+                    request["created_at"],
+                    request["expires_at"],
+                ),
+            )
+            connection.commit()
+            return request
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("approval_request_persist_failed") from error
+        finally:
+            connection.close()
+
+    def activate_policy_approval(
+        self,
+        tenant_id: str,
+        case_id: str,
+        *,
+        fixture_id: str = API_503_POLICY_FIXTURE_ID,
+        fault_profile: FaultProfile | None = None,
+    ) -> JsonObject:
+        """Explicitly continue the named fixture; this is not exposed as a general API action."""
+
+        if fixture_id != API_503_POLICY_FIXTURE_ID:
+            raise WorkflowError("policy_fixture_not_allowlisted")
+        activation = self._activation_for_case_for_tenant(tenant_id, case_id)
+        if activation is None:
+            raise WorkflowNotFound("workflow_not_found")
+        checkpoint = self._latest_checkpoint(tenant_id, str(activation["workflow_id"]))
+        if checkpoint is None:
+            raise WorkflowError("workflow_journal_invalid")
+        self._ensure_policy_approval_activation(activation, checkpoint)
+        return self._recover_policy_approval(activation, checkpoint, fault_profile=fault_profile)
+
+    def _authorization_profile_is_current(
+        self,
+        activation: Mapping[str, Any],
+        binding: Mapping[str, Any],
+        decision: Mapping[str, Any],
+        grant: Mapping[str, Any],
+    ) -> bool:
+        """Fail closed on any changed candidate, evidence, grant state, or expiry."""
+
+        if not self._grant_is_active(str(activation["tenant_id"]), str(grant["grant_id"])):
+            return False
+        try:
+            candidate, evidence_hashes = self._change4_candidate_material(activation)
+            validate_change4_authorization_profile(
+                binding,
+                grant,
+                decision,
+                action="outbound_delivery.execute",
+                current_case_revision_id=str(activation["case_revision_id"]),
+                current_checkpoint_id=str(binding["checkpoint_id"]),
+                current_workflow_version=int(binding["workflow_version"]),
+                current_candidate_hash=str(candidate["candidate_sha256"]),
+                current_evidence_hashes=evidence_hashes,
+                resource_id=API_503_DELIVERY_RESOURCE_ID,
+                data_classification="synthetic",
+                effective_tenant_id=str(activation["tenant_id"]),
+                now=self._clock(),
+            )
+        except (ContractValidationError, WorkflowError, KeyError, TypeError, ValueError):
+            return False
+        return True
+
+    def _persist_approval_decision(
+        self,
+        activation: Mapping[str, Any],
+        request: Mapping[str, Any],
+        decision: Mapping[str, Any],
+    ) -> tuple[JsonObject, bool]:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                """
+                SELECT * FROM approval_decisions
+                WHERE tenant_id = ? AND approval_request_id = ?
+                """,
+                (tenant_id, request["approval_request_id"]),
+            ).fetchone()
+            if existing is not None:
+                payload = self._change4_payload(_row_dict(existing), "approval-decision")
+                same = (
+                    payload.get("decision") == decision.get("decision")
+                    and payload.get("approver_id") == decision.get("approver_id")
+                    and payload.get("approver_role") == decision.get("approver_role")
+                    and payload.get("decision_sha256") == decision.get("decision_sha256")
+                )
+                connection.commit()
+                if not same:
+                    raise WorkflowError("approval_decision_conflict")
+                return payload, False
+            connection.execute(
+                """
+                INSERT INTO approval_decisions (
+                    tenant_id, approval_decision_id, approval_request_id, workflow_id,
+                    authorization_binding_sha256, workflow_version, decision,
+                    decision_sha256, approver_id, approver_role, payload_json, decided_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    decision["approval_decision_id"],
+                    request["approval_request_id"],
+                    workflow_id,
+                    decision["authorization_binding_sha256"],
+                    decision["workflow_version"],
+                    decision["decision"],
+                    decision["decision_sha256"],
+                    decision["approver_id"],
+                    decision["approver_role"],
+                    _canonical_json(decision),
+                    decision["decided_at"],
+                ),
+            )
+            connection.commit()
+            return dict(decision), True
+        except WorkflowError:
+            connection.rollback()
+            raise
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("approval_decision_persist_failed") from error
+        finally:
+            connection.close()
+
+    def _apply_persisted_approval_decision(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+        request: Mapping[str, Any],
+        decision: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None,
+    ) -> JsonObject:
+        state = str(checkpoint["payload"]["current_state"])
+        if state == WAITING_FOR_OPERATOR:
+            projection = self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        if state != AWAITING_APPROVAL:
+            projection = self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        if decision.get("decision") != "approved":
+            checkpoint = self._transition(
+                activation,
+                checkpoint,
+                transition_kind=AUTHORIZATION_DENIED,
+                next_state=WAITING_FOR_OPERATOR,
+                resume_state=WAITING_FOR_OPERATOR,
+                causation_event_id=f"approval:{decision['approval_decision_id']}",
+                fault_profile=fault_profile,
+            )
+            projection = self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        binding = self._authorization_binding_for_workflow(
+            str(activation["tenant_id"]), str(activation["workflow_id"])
+        )
+        grant = self._grant_for_workflow(
+            str(activation["tenant_id"]), str(activation["workflow_id"])
+        )
+        policy = self._policy_decision_for_workflow(
+            str(activation["tenant_id"]), str(activation["workflow_id"])
+        )
+        if binding is None or grant is None or policy is None:
+            raise WorkflowError("policy_journal_invalid")
+        if not self._authorization_profile_is_current(activation, binding, policy, grant):
+            checkpoint = self._transition(
+                activation,
+                checkpoint,
+                transition_kind=AUTHORIZATION_DENIED,
+                next_state=WAITING_FOR_OPERATOR,
+                resume_state=WAITING_FOR_OPERATOR,
+                causation_event_id=f"approval-invalid:{decision['approval_decision_id']}",
+                fault_profile=fault_profile,
+            )
+            projection = self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        try:
+            candidate, evidence_hashes = self._change4_candidate_material(activation)
+            validate_hash_bound_approval(
+                request,
+                decision,
+                binding,
+                current_case_revision_id=str(activation["case_revision_id"]),
+                current_checkpoint_id=str(binding["checkpoint_id"]),
+                current_workflow_version=int(binding["workflow_version"]),
+                current_candidate_hash=str(candidate["candidate_sha256"]),
+                current_evidence_hashes=evidence_hashes,
+                effective_tenant_id=str(activation["tenant_id"]),
+                effective_approver_id=str(decision["approver_id"]),
+                effective_approver_role=FIXTURE_APPROVER_ROLE,
+                now=self._clock(),
+            )
+        except ContractValidationError:
+            checkpoint = self._transition(
+                activation,
+                checkpoint,
+                transition_kind=AUTHORIZATION_DENIED,
+                next_state=WAITING_FOR_OPERATOR,
+                resume_state=WAITING_FOR_OPERATOR,
+                causation_event_id=f"approval-invalid:{decision['approval_decision_id']}",
+                fault_profile=fault_profile,
+            )
+            projection = self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        checkpoint = self._transition(
+            activation,
+            checkpoint,
+            transition_kind=APPROVAL_GRANTED,
+            next_state=DELIVERING,
+            resume_state=DELIVERING,
+            causation_event_id=f"approval:{decision['approval_decision_id']}",
+            fault_profile=fault_profile,
+        )
+        return self._recover_delivery(activation, checkpoint, fault_profile=fault_profile)
+
+    def _recover_policy_approval(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None,
+    ) -> JsonObject:
+        """Resume only an already durable opt-in, never a historical ResponseReady replay."""
+
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        policy_activation = self._policy_activation_for_workflow(tenant_id, workflow_id)
+        if policy_activation is None:
+            projection = self.get_workflow_projection(tenant_id, workflow_id)
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        grant = self._ensure_fixture_grant(activation, policy_activation)
+        decision = self._ensure_policy_decision(activation, policy_activation, grant)
+        self._interrupt(fault_profile, "policy")
+        if decision.get("decision") != "allow":
+            projection = self.get_workflow_projection(tenant_id, workflow_id)
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        binding = self._ensure_authorization_binding(activation, policy_activation, grant, decision)
+        request = self._ensure_approval_request(activation, binding)
+        self._interrupt(fault_profile, "approval-request")
+        checkpoint = self._latest_checkpoint(tenant_id, workflow_id)
+        if checkpoint is None:
+            raise WorkflowError("workflow_journal_invalid")
+        state = str(checkpoint["payload"]["current_state"])
+        if state == RESPONSE_READY:
+            checkpoint = self._transition(
+                activation,
+                checkpoint,
+                transition_kind=POLICY_APPROVAL_ACTIVATED,
+                next_state=AWAITING_APPROVAL,
+                resume_state=AWAITING_APPROVAL,
+                causation_event_id=f"approval-request:{request['approval_request_id']}",
+                fault_profile=fault_profile,
+            )
+            state = AWAITING_APPROVAL
+        if state == AWAITING_APPROVAL:
+            persisted = self._approval_decision_for_request(
+                tenant_id, str(request["approval_request_id"])
+            )
+            if persisted is None:
+                projection = self.get_workflow_projection(tenant_id, workflow_id)
+                if projection is None:
+                    raise WorkflowError("workflow_journal_invalid")
+                return projection
+            return self._apply_persisted_approval_decision(
+                activation, checkpoint, request, persisted, fault_profile=fault_profile
+            )
+        if state == DELIVERING:
+            return self._recover_delivery(activation, checkpoint, fault_profile=fault_profile)
+        projection = self.get_workflow_projection(tenant_id, workflow_id)
+        if projection is None:
+            raise WorkflowError("workflow_journal_invalid")
+        return projection
+
+    def submit_approval_decision(
+        self,
+        tenant_id: str,
+        case_id: str,
+        *,
+        approval_request_id: str,
+        decision: str,
+        expected_workflow_version: int,
+        approver_id: str,
+        approver_role: str,
+        fault_profile: FaultProfile | None = None,
+    ) -> WorkflowCommandResult:
+        """Append one fixture-role-bound decision; payloads cannot select authority."""
+
+        if decision not in {"approved", "rejected"}:
+            raise WorkflowError("approval_decision_invalid")
+        if approver_role != FIXTURE_APPROVER_ROLE:
+            raise WorkflowError("approval_actor_not_authorized")
+        activation = self._activation_for_case_for_tenant(tenant_id, case_id)
+        if activation is None:
+            raise WorkflowNotFound("workflow_not_found")
+        workflow_id = str(activation["workflow_id"])
+        request = self._approval_request_for_workflow(tenant_id, workflow_id)
+        if request is None or request.get("approval_request_id") != approval_request_id:
+            raise WorkflowNotFound("workflow_not_found")
+        checkpoint = self._latest_checkpoint(tenant_id, workflow_id)
+        if checkpoint is None:
+            raise WorkflowError("workflow_journal_invalid")
+        existing = self._approval_decision_for_request(tenant_id, approval_request_id)
+        if existing is not None:
+            if (
+                existing.get("decision") != decision
+                or existing.get("approver_id") != approver_id
+                or existing.get("approver_role") != approver_role
+            ):
+                raise WorkflowError("approval_decision_conflict")
+            projection = self._apply_persisted_approval_decision(
+                activation, checkpoint, request, existing, fault_profile=fault_profile
+            )
+            return WorkflowCommandResult("deduplicated", projection)
+        if int(checkpoint["payload"]["workflow_version"]) != expected_workflow_version:
+            raise WorkflowError("workflow_version_conflict")
+        if checkpoint["payload"]["current_state"] != AWAITING_APPROVAL:
+            raise WorkflowError("approval_decision_not_available")
+        candidate_decision = build_approval_decision(
+            request,
+            approver_id=approver_id,
+            approver_role=approver_role,
+            decision=decision,
+            decided_at=self._clock(),
+        )
+        persisted, created = self._persist_approval_decision(
+            activation, request, candidate_decision
+        )
+        if created:
+            self._interrupt(fault_profile, "approval-decision")
+        projection = self._apply_persisted_approval_decision(
+            activation, checkpoint, request, persisted, fault_profile=fault_profile
+        )
+        return WorkflowCommandResult("accepted" if created else "deduplicated", projection)
+
+    def revoke_fixture_grant(self, tenant_id: str, case_id: str) -> None:
+        """Fixture/control-only revocation used by deterministic safety and recovery tests."""
+
+        activation = self._activation_for_case_for_tenant(tenant_id, case_id)
+        if activation is None:
+            raise WorkflowNotFound("workflow_not_found")
+        grant = self._grant_for_workflow(tenant_id, str(activation["workflow_id"]))
+        if grant is None:
+            raise WorkflowError("capability_grant_not_found")
+        event_id = _stable_identifier(
+            "grant_status", {"grant_id": grant["grant_id"], "status": "revoked"}
+        )
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                """
+                SELECT reason_code FROM capability_grant_status_events
+                WHERE tenant_id = ? AND grant_id = ? AND status = 'revoked'
+                """,
+                (tenant_id, grant["grant_id"]),
+            ).fetchone()
+            if existing is None:
+                connection.execute(
+                    """
+                    INSERT INTO capability_grant_status_events (
+                        tenant_id, grant_status_event_id, grant_id, status,
+                        reason_code, recorded_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        tenant_id,
+                        event_id,
+                        grant["grant_id"],
+                        "revoked",
+                        "fixture_grant_revoked",
+                        self._now(),
+                    ),
+                )
+            connection.commit()
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("capability_grant_revocation_failed") from error
+        finally:
+            connection.close()
+
+    def _delivery_intent_for_workflow(self, tenant_id: str, workflow_id: str) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM outbound_delivery_intents
+                WHERE tenant_id = ? AND workflow_id = ?
+                """,
+                (tenant_id, workflow_id),
+            ).fetchone()
+            return None if row is None else self._change4_payload(_row_dict(row), "delivery-intent")
+        finally:
+            connection.close()
+
+    def _delivery_observations(self, tenant_id: str, intent_id: str) -> list[JsonObject]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT * FROM outbound_delivery_observations
+                WHERE tenant_id = ? AND intent_id = ?
+                ORDER BY recorded_at ASC, observation_id ASC
+                """,
+                (tenant_id, intent_id),
+            ).fetchall()
+            return [self._change4_payload(_row_dict(row), "delivery-observation") for row in rows]
+        finally:
+            connection.close()
+
+    def _delivery_completion_for_intent(self, tenant_id: str, intent_id: str) -> JsonObject | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT * FROM outbound_delivery_completions
+                WHERE tenant_id = ? AND intent_id = ?
+                """,
+                (tenant_id, intent_id),
+            ).fetchone()
+            return (
+                None
+                if row is None
+                else self._change4_payload(_row_dict(row), "delivery-completion")
+            )
+        finally:
+            connection.close()
+
+    def _pending_delivery_intent_ids(self, tenant_id: str, workflow_id: str) -> list[str]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT intent.intent_id
+                FROM outbound_delivery_intents AS intent
+                LEFT JOIN outbound_delivery_completions AS completion
+                  ON completion.tenant_id = intent.tenant_id
+                 AND completion.intent_id = intent.intent_id
+                WHERE intent.tenant_id = ? AND intent.workflow_id = ?
+                  AND completion.completion_id IS NULL
+                ORDER BY intent.intent_id ASC
+                """,
+                (tenant_id, workflow_id),
+            ).fetchall()
+            return [str(row["intent_id"]) for row in rows]
+        finally:
+            connection.close()
+
+    def _completed_delivery_intent_ids(self, tenant_id: str, workflow_id: str) -> list[str]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT intent.intent_id
+                FROM outbound_delivery_intents AS intent
+                JOIN outbound_delivery_completions AS completion
+                  ON completion.tenant_id = intent.tenant_id
+                 AND completion.intent_id = intent.intent_id
+                WHERE intent.tenant_id = ? AND intent.workflow_id = ?
+                ORDER BY intent.intent_id ASC
+                """,
+                (tenant_id, workflow_id),
+            ).fetchall()
+            return [str(row["intent_id"]) for row in rows]
+        finally:
+            connection.close()
+
+    def _all_pending_intent_ids(self, tenant_id: str, workflow_id: str) -> list[str]:
+        return sorted(
+            set(self._unresolved_intent_ids(tenant_id, workflow_id))
+            | set(self._pending_delivery_intent_ids(tenant_id, workflow_id))
+        )
+
+    def _all_completed_intent_ids(self, tenant_id: str, workflow_id: str) -> list[str]:
+        return sorted(
+            set(self._completed_intent_ids(tenant_id, workflow_id))
+            | set(self._completed_delivery_intent_ids(tenant_id, workflow_id))
+        )
+
+    def _ensure_delivery_intent(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+        binding: Mapping[str, Any],
+    ) -> tuple[JsonObject, bool]:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        existing = self._delivery_intent_for_workflow(tenant_id, workflow_id)
+        if existing is not None:
+            return existing, False
+        conversation_id = "conversation-api-503"
+        natural_key = ":".join(
+            (
+                tenant_id,
+                "fixture-local-im",
+                conversation_id,
+                str(activation["case_id"]),
+                str(activation["case_revision_id"]),
+                str(binding["candidate_hash"]),
+                str(binding["authorization_binding_sha256"]),
+            )
+        )
+        intended_state_hash = _sha256(
+            {
+                "candidate_hash": binding["candidate_hash"],
+                "authorization_binding_sha256": binding["authorization_binding_sha256"],
+                "delivery_resource_id": API_503_DELIVERY_RESOURCE_ID,
+            }
+        )
+        payload: JsonObject = {
+            "schema_id": OUTBOUND_DELIVERY_INTENT_SCHEMA_ID,
+            "schema_version": "v1",
+            "tenant_id": tenant_id,
+            "case_id": activation["case_id"],
+            "case_revision_id": activation["case_revision_id"],
+            "workflow_id": workflow_id,
+            "checkpoint_id": checkpoint["payload"]["checkpoint_id"],
+            "intent_id": _stable_identifier(
+                "outbound_delivery_intent", {"workflow_id": workflow_id, "natural_key": natural_key}
+            ),
+            "effect_kind": "fixture-local-outbound-delivery",
+            "operation": "deliver",
+            "channel": "fixture-local-im",
+            "conversation_id": conversation_id,
+            "delivery_resource_id": API_503_DELIVERY_RESOURCE_ID,
+            "candidate_hash": binding["candidate_hash"],
+            "authorization_binding_sha256": binding["authorization_binding_sha256"],
+            "natural_key": natural_key,
+            "intended_state_hash": intended_state_hash,
+            "idempotency_key": stable_idempotency_key(
+                tenant_id=tenant_id,
+                provider_id="fixture-local-im",
+                operation="deliver",
+                natural_key=natural_key,
+                intended_state_hash=intended_state_hash,
+            ),
+            "evidence_hashes": list(binding["evidence_hashes"]),
+            "correlation_id": activation["correlation_id"],
+            "created_at": self._now(),
+        }
+        try:
+            validate_outbound_delivery_intent(payload, self._contract_root)
+        except ContractValidationError as error:
+            raise WorkflowError("outbound_delivery_intent_invalid") from error
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing_row = connection.execute(
+                "SELECT * FROM outbound_delivery_intents WHERE tenant_id = ? AND workflow_id = ?",
+                (tenant_id, workflow_id),
+            ).fetchone()
+            if existing_row is not None:
+                connection.commit()
+                return self._change4_payload(_row_dict(existing_row), "delivery-intent"), False
+            connection.execute(
+                """
+                INSERT INTO outbound_delivery_intents (
+                    tenant_id, intent_id, workflow_id, checkpoint_id, case_id,
+                    case_revision_id, authorization_binding_sha256, candidate_hash,
+                    evidence_hashes_json, channel, conversation_id, delivery_resource_id,
+                    natural_key, intended_state_hash, idempotency_key, correlation_id,
+                    payload_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    payload["intent_id"],
+                    workflow_id,
+                    payload["checkpoint_id"],
+                    payload["case_id"],
+                    payload["case_revision_id"],
+                    payload["authorization_binding_sha256"],
+                    payload["candidate_hash"],
+                    _canonical_json(payload["evidence_hashes"]),
+                    payload["channel"],
+                    payload["conversation_id"],
+                    payload["delivery_resource_id"],
+                    payload["natural_key"],
+                    payload["intended_state_hash"],
+                    payload["idempotency_key"],
+                    payload["correlation_id"],
+                    _canonical_json(payload),
+                    payload["created_at"],
+                ),
+            )
+            connection.commit()
+            return payload, True
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("outbound_delivery_intent_persist_failed") from error
+        finally:
+            connection.close()
+
+    def _reconcile_delivery_intent(self, intent: Mapping[str, Any]) -> DeliveryOutcome:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT * FROM fixture_delivery_records
+                WHERE tenant_id = ? AND natural_key = ?
+                ORDER BY version ASC
+                """,
+                (intent["tenant_id"], intent["natural_key"]),
+            ).fetchall()
+            if not rows:
+                return DeliveryOutcome("absent", None, None, None, "fixture_delivery_absent")
+            if len(rows) != 1 or int(rows[0]["version"]) != 1:
+                return DeliveryOutcome("conflict", None, None, None, "fixture_delivery_conflict")
+            row = rows[0]
+            return DeliveryOutcome(
+                "present",
+                str(row["delivery_id"]),
+                int(row["version"]),
+                str(row["content_sha256"]),
+                "fixture_delivery_present",
+            )
+        finally:
+            connection.close()
+
+    def _execute_delivery_intent(self, intent: Mapping[str, Any]) -> DeliveryOutcome:
+        """The only adapter: local SQLite records, no sockets, credentials, or raw content."""
+
+        tenant_id = str(intent["tenant_id"])
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing_operation = connection.execute(
+                """
+                SELECT delivery_id, observed_version, content_sha256
+                FROM fixture_delivery_operations
+                WHERE tenant_id = ? AND idempotency_key = ?
+                """,
+                (tenant_id, intent["idempotency_key"]),
+            ).fetchone()
+            if existing_operation is not None:
+                connection.commit()
+                return DeliveryOutcome(
+                    "present",
+                    str(existing_operation["delivery_id"]),
+                    int(existing_operation["observed_version"]),
+                    str(existing_operation["content_sha256"]),
+                    "fixture_delivery_idempotent",
+                )
+            existing_record = connection.execute(
+                """
+                SELECT delivery_id, version, content_sha256
+                FROM fixture_delivery_records
+                WHERE tenant_id = ? AND natural_key = ?
+                ORDER BY version ASC
+                """,
+                (tenant_id, intent["natural_key"]),
+            ).fetchone()
+            if existing_record is not None:
+                connection.commit()
+                return DeliveryOutcome(
+                    "present",
+                    str(existing_record["delivery_id"]),
+                    int(existing_record["version"]),
+                    str(existing_record["content_sha256"]),
+                    "fixture_delivery_reconciled",
+                )
+            delivery_id = _stable_identifier(
+                "fixture_delivery", {"tenant_id": tenant_id, "natural_key": intent["natural_key"]}
+            )
+            content_sha256 = str(intent["candidate_hash"])
+            connection.execute(
+                """
+                INSERT INTO fixture_delivery_records (
+                    tenant_id, delivery_id, natural_key, version, content_sha256,
+                    data_classification, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    delivery_id,
+                    intent["natural_key"],
+                    1,
+                    content_sha256,
+                    "synthetic",
+                    self._now(),
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO fixture_delivery_operations (
+                    tenant_id, idempotency_key, natural_key, delivery_id,
+                    observed_version, content_sha256, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    intent["idempotency_key"],
+                    intent["natural_key"],
+                    delivery_id,
+                    1,
+                    content_sha256,
+                    self._now(),
+                ),
+            )
+            connection.commit()
+            return DeliveryOutcome(
+                "present", delivery_id, 1, content_sha256, "fixture_delivery_recorded"
+            )
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("fixture_delivery_execute_failed") from error
+        finally:
+            connection.close()
+
+    def _record_delivery_observation(
+        self,
+        intent: Mapping[str, Any],
+        *,
+        phase: str,
+        outcome: DeliveryOutcome,
+    ) -> JsonObject:
+        payload: JsonObject = {
+            "schema_id": OUTBOUND_DELIVERY_OBSERVATION_SCHEMA_ID,
+            "schema_version": "v1",
+            "tenant_id": intent["tenant_id"],
+            "case_id": intent["case_id"],
+            "case_revision_id": intent["case_revision_id"],
+            "workflow_id": intent["workflow_id"],
+            "checkpoint_id": intent["checkpoint_id"],
+            "observation_id": _stable_identifier(
+                "outbound_delivery_observation",
+                {
+                    "intent_id": intent["intent_id"],
+                    "phase": phase,
+                    "status": outcome.status,
+                    "delivery_id": outcome.delivery_id,
+                },
+            ),
+            "intent_id": intent["intent_id"],
+            "status": outcome.status,
+            "observed_delivery_id": outcome.delivery_id,
+            "observed_version": outcome.version,
+            "content_sha256": outcome.content_sha256,
+            "reason_code": outcome.reason_code,
+            "recorded_at": self._now(),
+        }
+        try:
+            validate_outbound_delivery_observation(payload, self._contract_root)
+        except ContractValidationError as error:
+            raise WorkflowError("outbound_delivery_observation_invalid") from error
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                """
+                SELECT * FROM outbound_delivery_observations
+                WHERE tenant_id = ? AND observation_id = ?
+                """,
+                (intent["tenant_id"], payload["observation_id"]),
+            ).fetchone()
+            if existing is not None:
+                connection.commit()
+                return self._change4_payload(_row_dict(existing), "delivery-observation")
+            connection.execute(
+                """
+                INSERT INTO outbound_delivery_observations (
+                    tenant_id, observation_id, intent_id, workflow_id, checkpoint_id,
+                    status, observed_delivery_id, observed_version, content_sha256,
+                    reason_code, payload_json, recorded_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload["tenant_id"],
+                    payload["observation_id"],
+                    payload["intent_id"],
+                    payload["workflow_id"],
+                    payload["checkpoint_id"],
+                    payload["status"],
+                    payload["observed_delivery_id"],
+                    payload["observed_version"],
+                    payload["content_sha256"],
+                    payload["reason_code"],
+                    _canonical_json(payload),
+                    payload["recorded_at"],
+                ),
+            )
+            connection.commit()
+            return payload
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("outbound_delivery_observation_persist_failed") from error
+        finally:
+            connection.close()
+
+    def _record_delivery_completion(
+        self, intent: Mapping[str, Any], observation: Mapping[str, Any]
+    ) -> JsonObject:
+        if (
+            observation.get("status") != "present"
+            or not isinstance(observation.get("observed_delivery_id"), str)
+            or not isinstance(observation.get("observed_version"), int)
+            or not isinstance(observation.get("content_sha256"), str)
+        ):
+            raise WorkflowError("outbound_delivery_completion_predecessor_invalid")
+        payload: JsonObject = {
+            "schema_id": OUTBOUND_DELIVERY_COMPLETION_SCHEMA_ID,
+            "schema_version": "v1",
+            "tenant_id": intent["tenant_id"],
+            "case_id": intent["case_id"],
+            "case_revision_id": intent["case_revision_id"],
+            "workflow_id": intent["workflow_id"],
+            "checkpoint_id": intent["checkpoint_id"],
+            "completion_id": _stable_identifier(
+                "outbound_delivery_completion", {"intent_id": intent["intent_id"]}
+            ),
+            "intent_id": intent["intent_id"],
+            "observation_id": observation["observation_id"],
+            "observed_delivery_id": observation["observed_delivery_id"],
+            "observed_version": observation["observed_version"],
+            "content_sha256": observation["content_sha256"],
+            "completed_at": self._now(),
+        }
+        try:
+            validate_outbound_delivery_completion(payload, self._contract_root)
+        except ContractValidationError as error:
+            raise WorkflowError("outbound_delivery_completion_invalid") from error
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                """
+                SELECT * FROM outbound_delivery_completions
+                WHERE tenant_id = ? AND intent_id = ?
+                """,
+                (intent["tenant_id"], intent["intent_id"]),
+            ).fetchone()
+            if existing is not None:
+                connection.commit()
+                return self._change4_payload(_row_dict(existing), "delivery-completion")
+            connection.execute(
+                """
+                INSERT INTO outbound_delivery_completions (
+                    tenant_id, completion_id, intent_id, workflow_id, checkpoint_id,
+                    observation_id, observed_delivery_id, observed_version, content_sha256,
+                    payload_json, completed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload["tenant_id"],
+                    payload["completion_id"],
+                    payload["intent_id"],
+                    payload["workflow_id"],
+                    payload["checkpoint_id"],
+                    payload["observation_id"],
+                    payload["observed_delivery_id"],
+                    payload["observed_version"],
+                    payload["content_sha256"],
+                    _canonical_json(payload),
+                    payload["completed_at"],
+                ),
+            )
+            connection.commit()
+        except sqlite3.DatabaseError as error:
+            connection.rollback()
+            raise WorkflowError("outbound_delivery_completion_persist_failed") from error
+        finally:
+            connection.close()
+        binding = self._authorization_binding_for_workflow(
+            str(intent["tenant_id"]), str(intent["workflow_id"])
+        )
+        if binding is None:
+            raise WorkflowError("policy_journal_invalid")
+        try:
+            validate_outbound_delivery_chain(
+                intent,
+                self._delivery_observations(str(intent["tenant_id"]), str(intent["intent_id"])),
+                [payload],
+                binding,
+                self._contract_root,
+            )
+        except ContractValidationError as error:
+            raise WorkflowError("outbound_delivery_chain_invalid") from error
+        return payload
+
+    def _process_delivery_intent(
+        self, intent: Mapping[str, Any], *, fault_profile: FaultProfile | None
+    ) -> tuple[str, JsonObject | None]:
+        existing = self._delivery_completion_for_intent(
+            str(intent["tenant_id"]), str(intent["intent_id"])
+        )
+        if existing is not None:
+            return "complete", existing
+        if fault_profile is not None and fault_profile.reconciliation_timeout:
+            self._record_delivery_observation(
+                intent,
+                phase="reconcile-timeout",
+                outcome=DeliveryOutcome("unknown", None, None, None, "reconciliation_timeout"),
+            )
+            return "blocked", None
+        reconciled = self._reconcile_delivery_intent(intent)
+        observation = self._record_delivery_observation(
+            intent, phase="reconcile", outcome=reconciled
+        )
+        if reconciled.status in {"unknown", "conflict"}:
+            return "blocked", None
+        outcome = reconciled
+        if reconciled.status == "absent":
+            outcome = self._execute_delivery_intent(intent)
+            self._interrupt(fault_profile, "delivery-execute")
+            if outcome.status != "present":
+                self._record_delivery_observation(intent, phase="execute", outcome=outcome)
+                return "blocked", None
+            self._interrupt(fault_profile, "delivery-lost-response")
+            observation = self._record_delivery_observation(
+                intent, phase="execute", outcome=outcome
+            )
+        if outcome.status != "present":
+            return "blocked", None
+        self._interrupt(fault_profile, "delivery-observation")
+        completion = self._record_delivery_completion(intent, observation)
+        self._interrupt(fault_profile, "delivery-completion")
+        return "complete", completion
+
+    def _authorization_denial_projection(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+        *,
+        reason: str,
+        fault_profile: FaultProfile | None,
+    ) -> JsonObject:
+        if checkpoint["payload"]["current_state"] not in {AWAITING_APPROVAL, DELIVERING}:
+            projection = self.get_workflow_projection(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            )
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        self._transition(
+            activation,
+            checkpoint,
+            transition_kind=AUTHORIZATION_DENIED,
+            next_state=WAITING_FOR_OPERATOR,
+            resume_state=WAITING_FOR_OPERATOR,
+            causation_event_id=f"authorization-denied:{reason}",
+            fault_profile=fault_profile,
+            pending_intent_ids=self._all_pending_intent_ids(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            ),
+            completed_intent_ids=self._all_completed_intent_ids(
+                str(activation["tenant_id"]), str(activation["workflow_id"])
+            ),
+        )
+        projection = self.get_workflow_projection(
+            str(activation["tenant_id"]), str(activation["workflow_id"])
+        )
+        if projection is None:
+            raise WorkflowError("workflow_journal_invalid")
+        return projection
+
+    def _recover_delivery(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None,
+    ) -> JsonObject:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        if checkpoint["payload"]["current_state"] != DELIVERING:
+            projection = self.get_workflow_projection(tenant_id, workflow_id)
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        binding = self._authorization_binding_for_workflow(tenant_id, workflow_id)
+        grant = self._grant_for_workflow(tenant_id, workflow_id)
+        policy = self._policy_decision_for_workflow(tenant_id, workflow_id)
+        request = self._approval_request_for_workflow(tenant_id, workflow_id)
+        if binding is None or grant is None or policy is None or request is None:
+            return self._authorization_denial_projection(
+                activation, checkpoint, reason="missing", fault_profile=fault_profile
+            )
+        approval = self._approval_decision_for_request(
+            tenant_id, str(request["approval_request_id"])
+        )
+        if approval is None or not self._authorization_profile_is_current(
+            activation, binding, policy, grant
+        ):
+            return self._authorization_denial_projection(
+                activation, checkpoint, reason="stale", fault_profile=fault_profile
+            )
+        try:
+            candidate, evidence_hashes = self._change4_candidate_material(activation)
+            validate_hash_bound_approval(
+                request,
+                approval,
+                binding,
+                current_case_revision_id=str(activation["case_revision_id"]),
+                current_checkpoint_id=str(binding["checkpoint_id"]),
+                current_workflow_version=int(binding["workflow_version"]),
+                current_candidate_hash=str(candidate["candidate_sha256"]),
+                current_evidence_hashes=evidence_hashes,
+                effective_tenant_id=tenant_id,
+                effective_approver_id=str(approval["approver_id"]),
+                effective_approver_role=FIXTURE_APPROVER_ROLE,
+                now=self._clock(),
+            )
+        except ContractValidationError:
+            return self._authorization_denial_projection(
+                activation, checkpoint, reason="approval", fault_profile=fault_profile
+            )
+        intent, created = self._ensure_delivery_intent(activation, checkpoint, binding)
+        if created:
+            self._interrupt(fault_profile, "delivery-intent")
+        checkpoint = self._ensure_checkpoint(
+            activation,
+            current_state=DELIVERING,
+            resume_state=DELIVERING,
+            pending_intent_ids=self._all_pending_intent_ids(tenant_id, workflow_id),
+            completed_intent_ids=self._all_completed_intent_ids(tenant_id, workflow_id),
+            causation_event_id=f"delivery-intent:{intent['intent_id']}",
+            transition_kind=None,
+        )
+        disposition, completion = self._process_delivery_intent(intent, fault_profile=fault_profile)
+        if disposition != "complete" or completion is None:
+            checkpoint = self._transition(
+                activation,
+                checkpoint,
+                transition_kind=RECONCILIATION_REQUIRED,
+                next_state=NEEDS_RECONCILIATION,
+                resume_state=DELIVERING,
+                causation_event_id=f"delivery-reconciliation:{intent['intent_id']}",
+                fault_profile=fault_profile,
+                pending_intent_ids=self._all_pending_intent_ids(tenant_id, workflow_id),
+                completed_intent_ids=self._all_completed_intent_ids(tenant_id, workflow_id),
+            )
+            projection = self.get_workflow_projection(tenant_id, workflow_id)
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        checkpoint = self._ensure_checkpoint(
+            activation,
+            current_state=DELIVERING,
+            resume_state=DELIVERING,
+            pending_intent_ids=self._all_pending_intent_ids(tenant_id, workflow_id),
+            completed_intent_ids=self._all_completed_intent_ids(tenant_id, workflow_id),
+            causation_event_id=f"delivery-completion:{completion['completion_id']}",
+            transition_kind=None,
+        )
+        self._transition(
+            activation,
+            checkpoint,
+            transition_kind=DELIVERY_COMPLETE,
+            next_state=DELIVERY_RECORDED,
+            resume_state=DELIVERY_RECORDED,
+            causation_event_id=f"delivery-completion:{completion['completion_id']}",
+            fault_profile=fault_profile,
+        )
+        self._interrupt(fault_profile, "delivery-transition")
+        projection = self.get_workflow_projection(tenant_id, workflow_id)
+        if projection is None:
+            raise WorkflowError("workflow_journal_invalid")
+        return projection
+
+    def _recover_delivery_reconciliation(
+        self,
+        activation: Mapping[str, Any],
+        checkpoint: Mapping[str, Any],
+        *,
+        fault_profile: FaultProfile | None,
+    ) -> JsonObject:
+        tenant_id = str(activation["tenant_id"])
+        workflow_id = str(activation["workflow_id"])
+        intent = self._delivery_intent_for_workflow(tenant_id, workflow_id)
+        if intent is None:
+            raise WorkflowError("policy_journal_invalid")
+        disposition, completion = self._process_delivery_intent(intent, fault_profile=fault_profile)
+        if disposition != "complete" or completion is None:
+            projection = self.get_workflow_projection(tenant_id, workflow_id)
+            if projection is None:
+                raise WorkflowError("workflow_journal_invalid")
+            return projection
+        checkpoint = self._transition(
+            activation,
+            checkpoint,
+            transition_kind=RECONCILIATION_COMPLETE,
+            next_state=DELIVERING,
+            resume_state=DELIVERING,
+            causation_event_id=f"delivery-reconciled:{completion['completion_id']}",
+            fault_profile=fault_profile,
+            pending_intent_ids=self._all_pending_intent_ids(tenant_id, workflow_id),
+            completed_intent_ids=self._all_completed_intent_ids(tenant_id, workflow_id),
+        )
+        return self._recover_delivery(activation, checkpoint, fault_profile=fault_profile)
+
+    def policy_approval_facts_for_case(self, tenant_id: str, case_id: str) -> JsonObject | None:
+        """Expose only tenant-scoped safe authorization and local-adapter metadata."""
+
+        activation = self._activation_for_case_for_tenant(tenant_id, case_id)
+        if activation is None:
+            return None
+        workflow_id = str(activation["workflow_id"])
+        policy_activation = self._policy_activation_for_workflow(tenant_id, workflow_id)
+        if policy_activation is None:
+            return None
+        grant = self._grant_for_workflow(tenant_id, workflow_id)
+        policy = self._policy_decision_for_workflow(tenant_id, workflow_id)
+        binding = self._authorization_binding_for_workflow(tenant_id, workflow_id)
+        request = self._approval_request_for_workflow(tenant_id, workflow_id)
+        approval = (
+            None
+            if request is None
+            else self._approval_decision_for_request(tenant_id, str(request["approval_request_id"]))
+        )
+        intent = self._delivery_intent_for_workflow(tenant_id, workflow_id)
+        completion = (
+            None
+            if intent is None
+            else self._delivery_completion_for_intent(tenant_id, str(intent["intent_id"]))
+        )
+        projection = self.get_workflow_projection(tenant_id, workflow_id)
+        if projection is None:
+            raise WorkflowError("workflow_not_found")
+        return {
+            "fixture_id": policy_activation["fixture_id"],
+            "workflow_id": workflow_id,
+            "state": projection["state"],
+            "workflow_version": projection["workflow_version"],
+            "policy_activation": {
+                "source_checkpoint_id": policy_activation["source_checkpoint_id"],
+                "policy_version": policy_activation["policy_version"],
+                "delivery_resource_id": policy_activation["delivery_resource_id"],
+                "data_classification": policy_activation["data_classification"],
+                "delivery_budget": policy_activation["delivery_budget"],
+            },
+            "capability_grant": None
+            if grant is None
+            else {
+                "grant_id": grant["grant_id"],
+                "grant_version": grant.get("grant_version"),
+                "grant_sha256": grant.get("grant_sha256"),
+                "status": "active"
+                if self._grant_is_active(tenant_id, str(grant["grant_id"]))
+                else "revoked",
+                "expires_at": grant["expires_at"],
+            },
+            "policy_decision": None
+            if policy is None
+            else {
+                "policy_decision_id": policy["policy_decision_id"],
+                "policy_decision_sha256": policy.get("policy_decision_sha256"),
+                "decision": policy["decision"],
+                "reason_code": policy["reason_code"],
+                "policy_version": policy.get("policy_version"),
+            },
+            "authorization_binding": None
+            if binding is None
+            else {
+                "authorization_binding_id": binding["authorization_binding_id"],
+                "authorization_binding_sha256": binding["authorization_binding_sha256"],
+                "candidate_hash": binding["candidate_hash"],
+                "evidence_hashes": list(binding["evidence_hashes"]),
+                "expires_at": binding["expires_at"],
+            },
+            "approval_request": None
+            if request is None
+            else {
+                "approval_request_id": request["approval_request_id"],
+                "authorization_binding_sha256": request.get("authorization_binding_sha256"),
+                "expires_at": request["expires_at"],
+            },
+            "approval_decision": None
+            if approval is None
+            else {
+                "approval_decision_id": approval["approval_decision_id"],
+                "decision": approval["decision"],
+                "decision_sha256": approval.get("decision_sha256"),
+                "approver_role": approval.get("approver_role"),
+                "expires_at": approval["expires_at"],
+            },
+            "outbound_delivery": None
+            if intent is None
+            else {
+                "intent_id": intent["intent_id"],
+                "idempotency_key": intent["idempotency_key"],
+                "natural_key": intent["natural_key"],
+                "delivery_recorded": completion is not None,
+                "completion_id": None if completion is None else completion["completion_id"],
+                "content_sha256": None if completion is None else completion["content_sha256"],
+            },
+            "fixture_local": True,
+            "real_external_write": False,
+            "customer_resolution": False,
+        }
+
+    def export_policy_approval_inspection(self, tenant_id: str, case_id: str) -> JsonObject | None:
+        facts = self.policy_approval_facts_for_case(tenant_id, case_id)
+        if facts is None:
+            return None
+        data = {
+            "inspection_schema_version": "weflow-policy-approval-inspection.v1",
+            "tenant_id": tenant_id,
+            "case_id": case_id,
+            "facts": facts,
+            "raw_candidate_content": False,
+            "raw_tool_output": False,
+            "real_external_write": False,
+            "customer_resolution": False,
+        }
+        return {**data, "content_sha256": _sha256(data)}
 
     @staticmethod
     def _interrupt(fault_profile: FaultProfile | None, point: str) -> None:
@@ -2054,8 +5154,8 @@ class SQLiteDurableWorkflow:
             resume_state=str(current["current_state"]),
             causation_event_id=causation_event_id,
             fault_profile=fault_profile,
-            pending_intent_ids=self._unresolved_intent_ids(tenant_id, workflow_id),
-            completed_intent_ids=self._completed_intent_ids(tenant_id, workflow_id),
+            pending_intent_ids=self._all_pending_intent_ids(tenant_id, workflow_id),
+            completed_intent_ids=self._all_completed_intent_ids(tenant_id, workflow_id),
         )
 
     def _drive_effect(
@@ -2212,9 +5312,32 @@ class SQLiteDurableWorkflow:
             return self.get_workflow_projection(
                 str(activation["tenant_id"]), str(activation["workflow_id"])
             )
+        policy_activation = self._policy_activation_for_workflow(
+            str(activation["tenant_id"]), str(activation["workflow_id"])
+        )
         if state == NEEDS_RECONCILIATION:
+            if (
+                policy_activation is not None
+                and checkpoint["payload"]["resume_state"] == DELIVERING
+            ):
+                return self._recover_delivery_reconciliation(
+                    activation, checkpoint, fault_profile=fault_profile
+                )
             return self._recover_reconciliation(activation, checkpoint, fault_profile=fault_profile)
-        if state in {PAUSED, WAITING_FOR_OPERATOR, CANCELLED, TICKET_READY} or is_terminal(state):
+        if state in {RESPONSE_READY, AWAITING_APPROVAL, DELIVERING}:
+            if policy_activation is None:
+                if state == RESPONSE_READY:
+                    # Retained Change 3 response candidates are deliberately inert.
+                    return self.get_workflow_projection(
+                        str(activation["tenant_id"]), str(activation["workflow_id"])
+                    )
+                raise WorkflowError("policy_journal_invalid")
+            return self._recover_policy_approval(
+                activation, checkpoint, fault_profile=fault_profile
+            )
+        if state in {TICKET_READY, INVESTIGATING}:
+            return self._recover_investigation(activation, checkpoint, fault_profile=fault_profile)
+        if state in {PAUSED, WAITING_FOR_OPERATOR, CANCELLED} or is_terminal(state):
             return self.get_workflow_projection(
                 str(activation["tenant_id"]), str(activation["workflow_id"])
             )
@@ -2426,7 +5549,7 @@ class SQLiteDurableWorkflow:
                 fault_profile=None,
             )
         elif command_type == CANCEL:
-            unresolved = self._unresolved_intent_ids(tenant_id, workflow_id)
+            unresolved = self._all_pending_intent_ids(tenant_id, workflow_id)
             if unresolved:
                 disposition = "requires_reconciliation"
                 checkpoint = self._enter_reconciliation(
@@ -2604,7 +5727,7 @@ class SQLiteDurableWorkflow:
                 except ContractValidationError as error:
                     raise WorkflowError("workflow_version_conflict") from error
                 state = str(current["current_state"])
-                unresolved_before = self._unresolved_intent_ids(
+                unresolved_before = self._all_pending_intent_ids(
                     tenant_id, str(activation["workflow_id"])
                 )
                 try:
@@ -2792,6 +5915,83 @@ class SQLiteDurableWorkflow:
                 "result_sha256",
                 "completed_at",
             ),
+            "investigation_activations": (
+                "tenant_id",
+                "investigation_id",
+                "workflow_id",
+                "checkpoint_id",
+                "case_id",
+                "case_revision_id",
+                "context_manifest_id",
+                "context_sha256",
+                "environment_snapshot_sha256",
+                "evidence_references_json",
+                "transcript_id",
+                "action_budget",
+                "tool_budget",
+                "no_progress_limit",
+                "created_at",
+            ),
+            "agent_steps": (
+                "tenant_id",
+                "agent_step_id",
+                "workflow_id",
+                "checkpoint_id",
+                "context_manifest_id",
+                "step_id",
+                "action_type",
+                "action_sha256",
+                "created_at",
+            ),
+            INVESTIGATION_TOOL_REQUESTS_TABLE: (
+                "tenant_id",
+                "tool_request_id",
+                "workflow_id",
+                "checkpoint_id",
+                "context_manifest_id",
+                "step_id",
+                "tool_name",
+                "request_sha256",
+                "created_at",
+            ),
+            "investigation_tool_results": (
+                "tenant_id",
+                "tool_result_id",
+                "workflow_id",
+                "checkpoint_id",
+                "context_manifest_id",
+                "tool_name",
+                "tool_request_id",
+                "evidence_id",
+                "content_sha256",
+                "redaction_classification",
+                "recorded_at",
+            ),
+            "investigation_candidates": (
+                "tenant_id",
+                "candidate_id",
+                "workflow_id",
+                "checkpoint_id",
+                "context_manifest_id",
+                "context_sha256",
+                "evidence_hashes_json",
+                "candidate_sha256",
+                "risk",
+                "next_step",
+                "created_at",
+            ),
+            "investigation_verifier_outcomes": (
+                "tenant_id",
+                "verifier_outcome_id",
+                "workflow_id",
+                "checkpoint_id",
+                "context_manifest_id",
+                "candidate_id",
+                "candidate_sha256",
+                "outcome",
+                "reason_code",
+                "recorded_at",
+            ),
             "fixture_ticket_revisions": (
                 "tenant_id",
                 "ticket_id",
@@ -2810,6 +6010,175 @@ class SQLiteDurableWorkflow:
                 "ticket_id",
                 "observed_version",
                 "outcome_sha256",
+                "created_at",
+            ),
+            "policy_approval_activations": (
+                "tenant_id",
+                "policy_approval_activation_id",
+                "workflow_id",
+                "case_id",
+                "case_revision_id",
+                "source_checkpoint_id",
+                "fixture_id",
+                "policy_version",
+                "delivery_resource_id",
+                "delivery_resource_scope",
+                "data_classification",
+                "delivery_budget",
+                "controller_subject_id",
+                "controller_role",
+                "candidate_hash",
+                "evidence_hashes_json",
+                "activated_at",
+            ),
+            "capability_grants": (
+                "tenant_id",
+                "grant_id",
+                "workflow_id",
+                "grant_sha256",
+                "grant_version",
+                "subject_id",
+                "role",
+                "resource_scope",
+                "data_classifications_json",
+                "issued_at",
+                "expires_at",
+                "payload_json",
+            ),
+            "capability_grant_status_events": (
+                "tenant_id",
+                "grant_status_event_id",
+                "grant_id",
+                "status",
+                "reason_code",
+                "recorded_at",
+            ),
+            "policy_decisions": (
+                "tenant_id",
+                "policy_decision_id",
+                "workflow_id",
+                "checkpoint_id",
+                "action",
+                "policy_decision_sha256",
+                "policy_input_sha256",
+                "decision",
+                "reason_code",
+                "policy_version",
+                "grant_id",
+                "grant_sha256",
+                "candidate_hash",
+                "evidence_hashes_json",
+                "subject_id",
+                "role",
+                "resource_id",
+                "data_classification",
+                "workflow_version",
+                "payload_json",
+                "decided_at",
+            ),
+            "authorization_bindings": (
+                "tenant_id",
+                "authorization_binding_id",
+                "authorization_binding_sha256",
+                "workflow_id",
+                "policy_decision_id",
+                "grant_id",
+                "checkpoint_id",
+                "workflow_version",
+                "candidate_hash",
+                "evidence_hashes_json",
+                "expires_at",
+                "payload_json",
+                "created_at",
+            ),
+            "approval_requests": (
+                "tenant_id",
+                "approval_request_id",
+                "workflow_id",
+                "authorization_binding_sha256",
+                "checkpoint_id",
+                "workflow_version",
+                "payload_json",
+                "created_at",
+                "expires_at",
+            ),
+            "approval_decisions": (
+                "tenant_id",
+                "approval_decision_id",
+                "approval_request_id",
+                "workflow_id",
+                "authorization_binding_sha256",
+                "workflow_version",
+                "decision",
+                "decision_sha256",
+                "approver_id",
+                "approver_role",
+                "payload_json",
+                "decided_at",
+            ),
+            "outbound_delivery_intents": (
+                "tenant_id",
+                "intent_id",
+                "workflow_id",
+                "checkpoint_id",
+                "case_id",
+                "case_revision_id",
+                "authorization_binding_sha256",
+                "candidate_hash",
+                "evidence_hashes_json",
+                "channel",
+                "conversation_id",
+                "delivery_resource_id",
+                "natural_key",
+                "intended_state_hash",
+                "idempotency_key",
+                "correlation_id",
+                "payload_json",
+                "created_at",
+            ),
+            "outbound_delivery_observations": (
+                "tenant_id",
+                "observation_id",
+                "intent_id",
+                "workflow_id",
+                "checkpoint_id",
+                "status",
+                "observed_delivery_id",
+                "observed_version",
+                "content_sha256",
+                "reason_code",
+                "payload_json",
+                "recorded_at",
+            ),
+            "outbound_delivery_completions": (
+                "tenant_id",
+                "completion_id",
+                "intent_id",
+                "workflow_id",
+                "checkpoint_id",
+                "observation_id",
+                "observed_delivery_id",
+                "observed_version",
+                "content_sha256",
+                "payload_json",
+                "completed_at",
+            ),
+            "fixture_delivery_records": (
+                "tenant_id",
+                "delivery_id",
+                "natural_key",
+                "version",
+                "content_sha256",
+                "data_classification",
+                "created_at",
+            ),
+            "fixture_delivery_operations": (
+                "tenant_id",
+                "idempotency_key",
+                "natural_key",
+                "delivery_id",
+                "observed_version",
+                "content_sha256",
                 "created_at",
             ),
         }

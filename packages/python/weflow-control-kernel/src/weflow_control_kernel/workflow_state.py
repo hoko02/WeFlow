@@ -1,4 +1,4 @@
-"""Pure, allowlisted state transitions for Change 2 durable workflows."""
+"""Pure, allowlisted state transitions for durable replay investigations."""
 
 from __future__ import annotations
 
@@ -8,6 +8,11 @@ WORKFLOW_DEFINITION_VERSION = "durable-support-workflow.v1"
 
 RECEIVED = "RECEIVED"
 TICKET_READY = "TICKET_READY"
+INVESTIGATING = "INVESTIGATING"
+RESPONSE_READY = "RESPONSE_READY"
+AWAITING_APPROVAL = "AWAITING_APPROVAL"
+DELIVERING = "DELIVERING"
+DELIVERY_RECORDED = "DELIVERY_RECORDED"
 PAUSED = "PAUSED"
 WAITING_FOR_OPERATOR = "WAITING_FOR_OPERATOR"
 NEEDS_RECONCILIATION = "NEEDS_RECONCILIATION"
@@ -17,16 +22,29 @@ WORKFLOW_STATES = frozenset(
     {
         RECEIVED,
         TICKET_READY,
+        INVESTIGATING,
+        RESPONSE_READY,
+        AWAITING_APPROVAL,
+        DELIVERING,
+        DELIVERY_RECORDED,
         PAUSED,
         WAITING_FOR_OPERATOR,
         NEEDS_RECONCILIATION,
         CANCELLED,
     }
 )
-TERMINAL_STATES = frozenset({TICKET_READY, CANCELLED})
-NORMAL_PROGRESS_STATES = frozenset({RECEIVED})
+# RESPONSE_READY is terminal for retained Change 3 replays.  Change 4 alone has one
+# explicit activation transition; DELIVERY_RECORDED remains a local adapter fact.
+TERMINAL_STATES = frozenset({RESPONSE_READY, DELIVERY_RECORDED, CANCELLED})
+NORMAL_PROGRESS_STATES = frozenset({RECEIVED, INVESTIGATING, AWAITING_APPROVAL, DELIVERING})
 
 TICKET_HANDOFF_COMPLETE = "ticket-handoff-complete"
+INVESTIGATION_STARTED = "investigation-started"
+RESPONSE_CANDIDATE_VERIFIED = "response-candidate-verified"
+POLICY_APPROVAL_ACTIVATED = "policy-approval-activated"
+APPROVAL_GRANTED = "approval-granted"
+AUTHORIZATION_DENIED = "authorization-denied"
+DELIVERY_COMPLETE = "delivery-complete"
 PAUSE = "pause"
 RESUME = "resume"
 CANCEL = "cancel"
@@ -37,6 +55,12 @@ RECONCILIATION_COMPLETE = "reconciliation-complete"
 WORKFLOW_TRANSITION_KINDS = frozenset(
     {
         TICKET_HANDOFF_COMPLETE,
+        INVESTIGATION_STARTED,
+        RESPONSE_CANDIDATE_VERIFIED,
+        POLICY_APPROVAL_ACTIVATED,
+        APPROVAL_GRANTED,
+        AUTHORIZATION_DENIED,
+        DELIVERY_COMPLETE,
         PAUSE,
         RESUME,
         CANCEL,
@@ -60,7 +84,7 @@ def is_terminal(state: str) -> bool:
 
 
 def run_status(state: str) -> str:
-    """Return the derived execution status without making a business-success claim."""
+    """Return a derived execution status without making a business-success claim."""
 
     if state == PAUSED:
         return "paused"
@@ -84,14 +108,43 @@ def allowed_targets(
         return frozenset()
     if transition_kind == TICKET_HANDOFF_COMPLETE:
         return frozenset({TICKET_READY}) if current_state == RECEIVED else frozenset()
+    if transition_kind == INVESTIGATION_STARTED:
+        return frozenset({INVESTIGATING}) if current_state == TICKET_READY else frozenset()
+    if transition_kind == RESPONSE_CANDIDATE_VERIFIED:
+        return frozenset({RESPONSE_READY}) if current_state == INVESTIGATING else frozenset()
+    if transition_kind == POLICY_APPROVAL_ACTIVATED:
+        return frozenset({AWAITING_APPROVAL}) if current_state == RESPONSE_READY else frozenset()
+    if transition_kind == APPROVAL_GRANTED:
+        return frozenset({DELIVERING}) if current_state == AWAITING_APPROVAL else frozenset()
+    if transition_kind == AUTHORIZATION_DENIED:
+        return (
+            frozenset({WAITING_FOR_OPERATOR})
+            if current_state in {AWAITING_APPROVAL, DELIVERING}
+            else frozenset()
+        )
+    if transition_kind == DELIVERY_COMPLETE:
+        return frozenset({DELIVERY_RECORDED}) if current_state == DELIVERING else frozenset()
     if transition_kind == PAUSE:
         return (
             frozenset({PAUSED})
-            if current_state in {RECEIVED, TICKET_READY, WAITING_FOR_OPERATOR}
+            if current_state
+            in {
+                RECEIVED,
+                TICKET_READY,
+                INVESTIGATING,
+                RESPONSE_READY,
+                AWAITING_APPROVAL,
+                DELIVERING,
+                WAITING_FOR_OPERATOR,
+            }
             else frozenset()
         )
     if transition_kind == RESUME:
-        if current_state != PAUSED or resume_state not in WORKFLOW_STATES - {PAUSED, CANCELLED}:
+        if current_state != PAUSED or resume_state not in WORKFLOW_STATES - {
+            PAUSED,
+            DELIVERY_RECORDED,
+            CANCELLED,
+        }:
             return frozenset()
         return frozenset({resume_state})
     if transition_kind == CANCEL:
@@ -114,6 +167,7 @@ def allowed_targets(
         if current_state != NEEDS_RECONCILIATION or resume_state not in WORKFLOW_STATES - {
             PAUSED,
             NEEDS_RECONCILIATION,
+            DELIVERY_RECORDED,
             CANCELLED,
         }:
             return frozenset()
@@ -129,7 +183,7 @@ def validate_transition(
     resume_state: str | None = None,
     unresolved_effect: bool = False,
 ) -> None:
-    """Reject every non-Change-2 transition before an event can be appended."""
+    """Reject every transition not represented by a durable allowlisted fact."""
 
     if current_state not in WORKFLOW_STATES or next_state not in WORKFLOW_STATES:
         raise WorkflowTransitionError("workflow_state_not_allowlisted")

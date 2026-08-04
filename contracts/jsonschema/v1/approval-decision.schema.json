@@ -1,22 +1,103 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://weflow.local/contracts/v1/approval-decision.schema.json",
-  "title": "ApprovalDecision",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schema_id", "schema_version", "tenant_id", "approval_decision_id", "approval_request_id", "case_id", "case_revision_id", "candidate_hash", "evidence_hashes", "decision", "decided_at", "expires_at"],
-  "properties": {
-    "schema_id": {"const": "https://weflow.local/contracts/v1/approval-decision.schema.json"},
-    "schema_version": {"const": "v1"},
-    "tenant_id": {"type": "string", "minLength": 1},
-    "approval_decision_id": {"type": "string", "minLength": 1},
-    "approval_request_id": {"type": "string", "minLength": 1},
-    "case_id": {"type": "string", "minLength": 1},
-    "case_revision_id": {"type": "string", "minLength": 1},
-    "candidate_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
-    "evidence_hashes": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}},
-    "decision": {"enum": ["approved", "rejected"]},
-    "decided_at": {"type": "string", "minLength": 1},
-    "expires_at": {"type": "string", "minLength": 1}
-  }
+    "$schema":  "https://json-schema.org/draft/2020-12/schema",
+    "$id":  "https://weflow.local/contracts/v1/approval-decision.schema.json",
+    "title":  "ApprovalDecision",
+    "type":  "object",
+    "additionalProperties":  false,
+    "required":  [
+                     "schema_id",
+                     "schema_version",
+                     "tenant_id",
+                     "approval_decision_id",
+                     "approval_request_id",
+                     "case_id",
+                     "case_revision_id",
+                     "candidate_hash",
+                     "evidence_hashes",
+                     "decision",
+                     "decided_at",
+                     "expires_at"
+                 ],
+    "properties":  {
+                       "schema_id":  {
+                                         "const":  "https://weflow.local/contracts/v1/approval-decision.schema.json"
+                                     },
+                       "schema_version":  {
+                                              "const":  "v1"
+                                          },
+                       "tenant_id":  {
+                                         "type":  "string",
+                                         "minLength":  1
+                                     },
+                       "approval_decision_id":  {
+                                                    "type":  "string",
+                                                    "minLength":  1
+                                                },
+                       "approval_request_id":  {
+                                                   "type":  "string",
+                                                   "minLength":  1
+                                               },
+                       "case_id":  {
+                                       "type":  "string",
+                                       "minLength":  1
+                                   },
+                       "case_revision_id":  {
+                                                "type":  "string",
+                                                "minLength":  1
+                                            },
+                       "candidate_hash":  {
+                                              "type":  "string",
+                                              "pattern":  "^[A-Fa-f0-9]{64}$"
+                                          },
+                       "evidence_hashes":  {
+                                               "type":  "array",
+                                               "minItems":  1,
+                                               "items":  {
+                                                             "type":  "string",
+                                                             "pattern":  "^[A-Fa-f0-9]{64}$"
+                                                         }
+                                           },
+                       "decision":  {
+                                        "enum":  [
+                                                     "approved",
+                                                     "rejected"
+                                                 ]
+                                    },
+                       "decided_at":  {
+                                          "type":  "string",
+                                          "minLength":  1
+                                      },
+                       "expires_at":  {
+                                          "type":  "string",
+                                          "minLength":  1
+                                      },
+                       "workflow_id":  {
+                                           "minLength":  1,
+                                           "type":  "string"
+                                       },
+                       "checkpoint_id":  {
+                                             "minLength":  1,
+                                             "type":  "string"
+                                         },
+                       "workflow_version":  {
+                                                "type":  "integer",
+                                                "minimum":  0
+                                            },
+                       "authorization_binding_sha256":  {
+                                                            "type":  "string",
+                                                            "pattern":  "^[a-f0-9]{64}$"
+                                                        },
+                       "approver_id":  {
+                                           "minLength":  1,
+                                           "type":  "string"
+                                       },
+                       "approver_role":  {
+                                             "minLength":  1,
+                                             "type":  "string"
+                                         },
+                       "decision_sha256":  {
+                                               "type":  "string",
+                                               "pattern":  "^[a-f0-9]{64}$"
+                                           }
+                   }
 }

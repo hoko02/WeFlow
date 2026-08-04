@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/outbound-delivery-observation.schema.json",
+  "title": "OutboundDeliveryObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id", "observation_id", "intent_id", "status", "observed_delivery_id", "observed_version", "content_sha256", "reason_code", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/outbound-delivery-observation.schema.json"}, "schema_version": {"const": "v1"}, "tenant_id": {"type": "string", "minLength": 1}, "case_id": {"type": "string", "minLength": 1}, "case_revision_id": {"type": "string", "minLength": 1}, "workflow_id": {"type": "string", "minLength": 1}, "checkpoint_id": {"type": "string", "minLength": 1}, "observation_id": {"type": "string", "minLength": 1}, "intent_id": {"type": "string", "minLength": 1}, "status": {"enum": ["absent", "present", "unknown", "conflict"]}, "observed_delivery_id": {"type": ["string", "null"]}, "observed_version": {"type": ["integer", "null"], "minimum": 1}, "content_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}, "reason_code": {"type": ["string", "null"]}, "recorded_at": {"type": "string", "minLength": 1}
+  }
+}

@@ -1,6 +1,6 @@
 # WeFlow 项目长期记忆
 
-> 最近更新：2026-08-01
+> 最近更新：2026-08-03
 > 用途：保存跨 change 的产品定位、已锁定决策、边界和启动门槛。它不是某个 change 的实现规格；进入开发前仍需通过 OpenSpec proposal 固化本次范围。
 
 ## 1. 产品定位
@@ -198,20 +198,141 @@ Change 2 gate:
 - It must retain fixture-only offline replay, actor-derived tenant isolation, append-only source ledger, safe error envelopes, snapshot/recovery tests, and the no-model/no-approval/no-external-write default until a later explicitly approved change enables each capability.
 - It must prove worker interruption and response-loss recovery without duplicate effects, and must not claim customer resolution merely because a workflow or model emits text.
 
-## 12. Active Change 2 implementation status (not yet archive-verified)
+## 12. Verified Change 2 durable support workflow (2026-08-03)
 
-`add-durable-support-workflow` is the active OpenSpec Apply change. Its approved scope
-is strictly the offline fixture-local durable workflow: state machine, checkpoints,
-synthetic SLA, local ticket handoff recovery, and fault injection.
+`add-durable-support-workflow` was archived as `2026-08-03-add-durable-support-workflow`. The main OpenSpec specifications now include durable support workflow and idempotent side-effect recovery, and update the Case ledger, local dependency, and versioned-contract requirements.
 
-The implementation target remains bounded as follows:
+Verified facts:
 
-- `TICKET_READY` is a local handoff fact only; it is not an investigation, reply,
-  customer-resolution, or completion claim.
-- The only effect is a deterministic fixture-local ticket simulator with persisted
-  intent/reconcile/execute/observe/complete evidence. It must not register a real
-  executor, consume credentials, or open a provider connection.
-- Agent/model use, approval, outbound delivery, real Tencent/WeCom or enterprise
-  connector, and all external writes remain disabled until later explicit changes.
-- Change 2 cannot be treated as verified or archived until its contract, recovery,
-  offline acceptance, strict OpenSpec validation, and documentation checks pass.
+- Offline `check`, `lint`, `contracts`, `test`, Change 1 acceptance, and Change 2 acceptance passed without network, Docker, model credentials, or enterprise credentials. The final suite reported 132 passed and 2 explicit service-boundary skips; cross-language contracts accepted 23 valid and rejected 15 invalid payloads.
+- Change 2 adds a driver-neutral, tenant-scoped control path with an append-only workflow journal, immutable checkpoints, allowlisted pause/resume/cancel commands, a fixture-defined SLA clock, and a bounded `RECEIVED` to `TICKET_READY` transition. `TICKET_READY` is a fixture-local handoff fact, not an investigation, reply, resolution, or completion claim.
+- The only effect is a deterministic fixture-local ticket find-or-create plus expected-version handoff. It persists intent, reconciliation, execution, observation, validation, and completion records; eight declared interruption/lost-response boundaries recovered to `TICKET_READY` with exactly two local ticket operations and no duplicate effect.
+- The SLA fixture deterministically entered `WAITING_FOR_OPERATOR` with zero ticket operations. Repeated offline reports and projections compared equal with no intentional nondeterministic fields.
+- Capability evidence reports `durable_support_workflow_implemented=true` while `business_workflow_implemented=false`, `external_writes_enabled=false`, model invocation false, approval false, outbound delivery false, and customer-resolution false.
+- Strict OpenSpec validation passed with zero issues. Evidence is retained in `reports/change-2-acceptance.json`, `reports/change-2-verification.json`, and `reports/change-2-openspec-validation.json`.
+
+Known limitations:
+
+- Node.js 22.21.1 is installed while the workspace declares Node >=24 <25. TypeScript lint, contract checks, tests, and console build passed, but Node 24-specific behavior is not locally verified.
+- Docker is unavailable on the verification workstation, so two service-boundary tests are explicit skips and the Temporal driver was not live-verified. Offline deterministic workflow acceptance is verified; service-boundary readiness remains a future environment verification.
+- Agent/model use, investigation, CRM/monitoring/knowledge reads, approvals, outbound delivery, real providers/connectors, real external writes, and customer-resolution claims remain unimplemented and disabled.
+
+Next-stage gate:
+
+- Create a new OpenSpec proposal before introducing a bounded single-Agent investigation loop. It must preserve deterministic workflow ownership, append-only Case/workflow/effect evidence, actor-derived tenant isolation, fixture-only offline replay, no duplicate effect recovery, and the no-approval/no-outbound/no-real-external-write default.
+- The proposal must define Context Manifest, structured Agent action, Tool Request/Result, Evidence, response-candidate, verifier, replay/fault, budget/no-progress, and safe state-continuation semantics. The Agent may propose `needs_information`, `needs_operator`, or a response candidate only; deterministic workflow and verifier code retain authority over state and completion.
+
+## 13. Verified Change 3 bounded Replay investigation Agent (2026-08-03)
+
+`add-investigation-agent-loop` was archived as
+`2026-08-03-add-investigation-agent-loop`. Its eight delta capabilities are now
+synced into the main OpenSpec specifications before archive.
+
+Verified facts:
+
+- `python scripts/dev.py check`, `lint`, `contracts`, `test`, and
+  `investigation-agent-acceptance` passed in offline mode. The final suite reported
+  151 passed and 2 explicit Docker/service-boundary skips. Python contract tests passed
+  32 cases; the TypeScript corpus accepted 29 valid and rejected 22 invalid payloads.
+- The named synthetic API-503 fixture safely continues from retained Change 2
+  `TICKET_READY` through `INVESTIGATING` to `RESPONSE_READY`. Its accepted baseline
+  contains four ordered Agent steps, three ordered tenant-scoped evidence hashes, one
+  response candidate, and one verified verifier outcome. `RESPONSE_READY` is not an
+  approval, delivery, customer observation, resolution, or completion assertion.
+- The durable journal persists immutable Context Manifest, Agent-step, tool
+  request/result, candidate, and verifier records linked to workflow checkpoints.
+  Interruption after action, tool-result, candidate, or verifier persistence recovers
+  with exactly 4/3/1/1 records and no duplicate tool result or response-ready
+  transition.
+- A single deterministic Replay Agent has a closed action algebra and cannot directly
+  change Case state, approve, deliver, select a live provider, create an external
+  write, or declare success. Action/tool/no-progress budget gates and malformed,
+  authority-claim, foreign-tenant, unallowlisted-tool, live-provider, and unverified-
+  candidate paths fail closed.
+- The only tools are fixture-local CRM, monitoring, and knowledge reads. They produce
+  tenant-scoped synthetic evidence IDs and hashes; no raw prompt, fixture payload,
+  credential, unrestricted tool output, or full ledger snapshot is used for the
+  investigation inspection/report surface.
+- Platform API observation is tenant-derived and read-only. Its investigation route
+  returns redacted journal facts; foreign and absent reads are both
+  `workflow_not_found`. Capability and Web Console diagnostics truthfully expose the
+  Replay investigation and verifier while retaining real provider, multi-Agent,
+  external write, approval, outbound delivery, and customer-resolution flags as false.
+- The strict OpenSpec validation command completed successfully. Evidence is retained
+  in `reports/change-3-acceptance.json`, `reports/change-3-verification.json`, and
+  `reports/change-3-openspec-validation.json`.
+
+Known limitations:
+
+- Node.js `v24.16.0` and pnpm `11.9.0` are available and meet the workspace Node 24
+  range for the current verification. Docker is unavailable, so Temporal/service-
+  boundary behavior remains explicitly skipped and is not live-verified.
+- The implementation supports one checked-in API-503 Replay transcript only. There is
+  no live model, enterprise credential, network provider, real Tencent/WeCom or ticket
+  connector, real customer data, external write, approval, outbound delivery, knowledge
+  publication, or multi-Agent collaboration.
+
+Next-stage gate:
+
+- Create a new OpenSpec proposal before enabling any policy, approval, or delivery
+  capability. It must retain deterministic workflow/state/retry/effect ownership,
+  append-only Case/workflow/evidence facts, actor-derived tenant isolation, safe replay,
+  and recovery baselines.
+- The next increment must add model-external capability and policy decisions, bind any
+  approval to candidate/evidence/policy hashes with invalidation on change, and model
+  outbound delivery as an idempotent intent/reconcile/execute/complete effect. A
+  verified `RESPONSE_READY` candidate alone must never permit an external write.
+## 14. Archived Change 4 fixture policy, approval, and local delivery (2026-08-04)
+
+`add-policy-and-approval-gates` was archived as
+`2026-08-04-add-policy-and-approval-gates`. Its nine delta capabilities are synced into
+the main OpenSpec specifications.
+
+Verified facts:
+
+- All 23 Change 4 tasks completed. Offline `check`, `lint`, `contracts`, `test`, and
+  `policy-approval-acceptance` passed; the final suite reported 169 passed and 2
+  explicit Docker/service-boundary skips. The strict Change and main-spec OpenSpec
+  validations passed. Evidence is retained in `reports/change-4-acceptance.json` and
+  `reports/change-4-openspec-validation.json`.
+
+- The only new vertical slice is the checked-in `api-503-policy-approval-delivery`
+  fixture. It continues an explicitly activated, verified `RESPONSE_READY` candidate
+  through `AWAITING_APPROVAL`, `DELIVERING`, and `DELIVERY_RECORDED`; pre-existing
+  Change 3 `RESPONSE_READY` histories remain inert without that activation.
+- Capability Grants, deterministic default-deny Policy Decisions, authorization
+  bindings, approval requests/decisions, and outbound delivery intent/observation/
+  completion records are append-only, tenant-scoped, versioned, content-addressed, and
+  redacted. The decision API derives tenant and fixture role server-side and accepts
+  only request ID, approve/reject, and expected workflow version.
+- The only delivery adapter is local SQLite. It requires current policy and hash-bound
+  approval, uses stable natural/idempotency keys, and records `DELIVERY_RECORDED`
+  without a customer receipt, resolution, completion, network call, or real external
+  write claim.
+- The offline Change 4 acceptance command compares two equal baselines, covers policy,
+  approval, and all delivery fault boundaries, and proves exactly one local delivery
+  record for every authorized recovered path. The revoked-grant denial creates zero
+  delivery intent/record and reaches a safe operator state.
+- Capability reporting separates fixture approval/delivery from disabled live approval,
+  live outbound delivery, external writes, real providers, customer resolution, and
+  multi-Agent behavior. Reports contain only safe IDs, hashes, counts, flags, and
+  reason codes.
+
+Known limitations:
+
+- Core Change 4 acceptance requires no Docker, network, model credential, enterprise
+  credential, or Node runtime. Node remains necessary for the TypeScript contract and
+  Web Console checks. Docker is unavailable on the verification workstation, so
+  Temporal/service-boundary behavior is explicitly not live-verified.
+- There is one synthetic tenant, one API-503 fixture, one local adapter resource, a
+  fixed one-delivery budget, and no real approval service, enterprise identity,
+  connector, customer-visible delivery, knowledge publication, or customer-success
+  outcome.
+
+Next-stage gate:
+
+- A new OpenSpec change is required before enabling a real provider, credential,
+  approval service, or external write. It must define provider-specific idempotent
+  intent/reconciliation, durable operator authorization lifecycle, auditable evidence
+  retention, rollout/rollback controls, live safety verification, and a strict rule
+  that provider acknowledgement never alone proves customer resolution.

@@ -1,0 +1,106 @@
+{
+  "accepted": true,
+  "capabilities": {
+    "approval": false,
+    "business_workflow_implemented": false,
+    "customer_resolution": false,
+    "external_writes_enabled": false,
+    "model_invocation": false,
+    "multi_agent_enabled": false,
+    "outbound_delivery": false,
+    "real_provider_enabled": false,
+    "replay_investigation_agent_implemented": true,
+    "response_candidate_verification_implemented": true
+  },
+  "determinism": {
+    "intentional_nondeterministic_fields": [],
+    "repeated_baseline_equal": true
+  },
+  "docker_required": false,
+  "environment_limits": {
+    "docker_available": false,
+    "docker_required": false,
+    "node_available": true,
+    "node_required_for_core_acceptance": false,
+    "node_required_for_typescript_and_console_checks": true
+  },
+  "fixture_outcomes": {
+    "api_503_investigation": {
+      "agent_step_count": 4,
+      "evidence_hashes": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "source_counts": {
+        "agent_steps": 4,
+        "investigation_candidates": 1,
+        "investigation_tool_requests": 3,
+        "investigation_tool_results": 3,
+        "investigation_verifier_outcomes": 1
+      },
+      "state": "RESPONSE_READY",
+      "terminal_outcome": "response_candidate",
+      "tool_evidence_count": 3,
+      "verifier_outcome": "verified"
+    },
+    "fault_recovery": [
+      {
+        "duplicate_response_ready_transition": false,
+        "duplicate_tool_result": false,
+        "fault_point": "agent-action",
+        "source_counts": {
+          "agent_steps": 4,
+          "investigation_candidates": 1,
+          "investigation_tool_requests": 3,
+          "investigation_tool_results": 3,
+          "investigation_verifier_outcomes": 1
+        },
+        "state": "RESPONSE_READY"
+      },
+      {
+        "duplicate_response_ready_transition": false,
+        "duplicate_tool_result": false,
+        "fault_point": "tool-result",
+        "source_counts": {
+          "agent_steps": 4,
+          "investigation_candidates": 1,
+          "investigation_tool_requests": 3,
+          "investigation_tool_results": 3,
+          "investigation_verifier_outcomes": 1
+        },
+        "state": "RESPONSE_READY"
+      },
+      {
+        "duplicate_response_ready_transition": false,
+        "duplicate_tool_result": false,
+        "fault_point": "candidate",
+        "source_counts": {
+          "agent_steps": 4,
+          "investigation_candidates": 1,
+          "investigation_tool_requests": 3,
+          "investigation_tool_results": 3,
+          "investigation_verifier_outcomes": 1
+        },
+        "state": "RESPONSE_READY"
+      },
+      {
+        "duplicate_response_ready_transition": false,
+        "duplicate_tool_result": false,
+        "fault_point": "verifier",
+        "source_counts": {
+          "agent_steps": 4,
+          "investigation_candidates": 1,
+          "investigation_tool_requests": 3,
+          "investigation_tool_results": 3,
+          "investigation_verifier_outcomes": 1
+        },
+        "state": "RESPONSE_READY"
+      }
+    ]
+  },
+  "model_credentials_required": false,
+  "network_required": false,
+  "offline": true,
+  "report_type": "weflow-change-3-investigation-agent-acceptance.v1"
+}

@@ -3,6 +3,10 @@ import { resolve } from "node:path";
 
 import {
   JsonObject,
+  validateAgentActionForContext,
+  validateChange4AuthorizationProfile,
+  validateHashBoundApproval,
+  validateOutboundDeliveryChain,
   validateCheckpointSequence,
   validateSideEffectChain,
   validateSideEffectIntents,
@@ -38,6 +42,16 @@ const invalidIntakePayloads = JSON.parse(
 const invalidWorkflowPayloads = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/workflow-invalid-payloads.json"), "utf8"),
 ) as Record<string, JsonObject>;
+const invalidAgentPayloads = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/invalid/agent-invalid-payloads.json"), "utf8"),
+) as Record<string, JsonObject>;
+const agentBoundary = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/agent-boundary.json"), "utf8"),
+) as {
+  context_manifest: JsonObject;
+  agent_action: JsonObject;
+  foreign_agent_action: JsonObject;
+};
 const missingGeneratedMetadata = JSON.parse(
   readFileSync(
     resolve(root, "fixtures/contracts/v1/semantic/missing-generated-ledger-metadata.json"),
@@ -61,7 +75,18 @@ const workflowRecovery = JSON.parse(
   observations: JsonObject[];
   completions: JsonObject[];
 };
-const missingIdentity = JSON.parse(
+const authorizationDelivery = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/authorization-delivery.json"), "utf8"),
+) as {
+  grant: JsonObject;
+  policy_decision: JsonObject;
+  authorization_binding: JsonObject;
+  approval_request: JsonObject;
+  approval_decision: JsonObject;
+  outbound_delivery_intent: JsonObject;
+  outbound_delivery_observation: JsonObject;
+  outbound_delivery_completion: JsonObject;
+};const missingIdentity = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/missing-schema-identity.json"), "utf8"),
 ) as JsonObject;
 
@@ -81,7 +106,71 @@ for (const [name, payload] of Object.entries(invalidWorkflowPayloads)) {
     failedSchemas.push(`invalid-workflow-${name}`);
   }
 }
-if (validatePayload(missingIdentity, root).valid) {
+for (const [name, payload] of Object.entries(invalidAgentPayloads)) {
+  if (validatePayload(payload, root).valid) {
+    failedSchemas.push(`invalid-agent-${name}`);
+  }
+}
+if (!validateAgentActionForContext(agentBoundary.agent_action, agentBoundary.context_manifest, root).valid) {
+  failedSchemas.push("agent-context-link");
+}
+if (validateAgentActionForContext(agentBoundary.foreign_agent_action, agentBoundary.context_manifest, root).valid) {
+  failedSchemas.push("foreign-agent-action");
+}
+if (
+  !validateChange4AuthorizationProfile(
+    authorizationDelivery.authorization_binding,
+    authorizationDelivery.grant,
+    authorizationDelivery.policy_decision,
+    {
+      action: "outbound_delivery.execute",
+      currentCaseRevisionId: "revision-api-503",
+      currentCheckpointId: "checkpoint-api-503",
+      currentWorkflowVersion: 7,
+      currentCandidateHash: "d".repeat(64),
+      currentEvidenceHashes: ["a".repeat(64), "b".repeat(64), "c".repeat(64)],
+      resourceId: "fixture-local-im:api-503",
+      dataClassification: "synthetic",
+      effectiveTenantId: "tenant-alpha",
+      now: "2026-07-29T00:00:03Z",
+    },
+    root,
+  ).valid
+) {
+  failedSchemas.push("change4-authorization-profile");
+}
+if (
+  !validateHashBoundApproval(
+    authorizationDelivery.approval_request,
+    authorizationDelivery.approval_decision,
+    authorizationDelivery.authorization_binding,
+    {
+      currentCaseRevisionId: "revision-api-503",
+      currentCheckpointId: "checkpoint-api-503",
+      currentWorkflowVersion: 7,
+      currentCandidateHash: "d".repeat(64),
+      currentEvidenceHashes: ["a".repeat(64), "b".repeat(64), "c".repeat(64)],
+      effectiveTenantId: "tenant-alpha",
+      effectiveApproverId: "fixture-approver-alpha",
+      effectiveApproverRole: "fixture-approver",
+      now: "2026-07-29T00:00:03Z",
+    },
+    root,
+  ).valid
+) {
+  failedSchemas.push("change4-hash-bound-approval");
+}
+if (
+  !validateOutboundDeliveryChain(
+    authorizationDelivery.outbound_delivery_intent,
+    [authorizationDelivery.outbound_delivery_observation],
+    [authorizationDelivery.outbound_delivery_completion],
+    authorizationDelivery.authorization_binding,
+    root,
+  ).valid
+) {
+  failedSchemas.push("change4-outbound-delivery-chain");
+}if (validatePayload(missingIdentity, root).valid) {
   failedSchemas.push("missing-schema-identity");
 }
 if (validateGeneratedLedgerEvent(missingGeneratedMetadata, root).valid) {
@@ -129,6 +218,7 @@ console.log(
     invalid_payloads:
       Object.keys(invalidIntakePayloads).length +
       Object.keys(invalidWorkflowPayloads).length +
+      Object.keys(invalidAgentPayloads).length +
       2,
   }),
 );

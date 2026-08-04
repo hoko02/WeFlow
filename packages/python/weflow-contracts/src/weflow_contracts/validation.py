@@ -123,6 +123,15 @@ def approval_is_authorized(
     current_case_revision_id: str,
     current_evidence_hashes: Sequence[str],
     now: datetime | None = None,
+    authorization_binding: Mapping[str, Any] | None = None,
+    capability_grant: Mapping[str, Any] | None = None,
+    policy_decision: Mapping[str, Any] | None = None,
+    current_checkpoint_id: str | None = None,
+    current_workflow_version: int | None = None,
+    current_candidate_hash: str | None = None,
+    effective_tenant_id: str | None = None,
+    effective_approver_id: str | None = None,
+    effective_approver_role: str | None = None,
 ) -> bool:
     """Return false for stale, expired, mismatched, or non-approved decisions."""
 
@@ -150,4 +159,59 @@ def approval_is_authorized(
         return False
     expiry = _parse_time(decision.get("expires_at"))
     current_time = now or datetime.now(UTC)
-    return expiry is not None and expiry > current_time
+    if expiry is None or expiry <= current_time:
+        return False
+
+    change4_records = (authorization_binding, capability_grant, policy_decision)
+    if not any(record is not None for record in change4_records):
+        return True
+    if (
+        any(record is None for record in change4_records)
+        or current_checkpoint_id is None
+        or current_workflow_version is None
+        or current_candidate_hash is None
+        or effective_tenant_id is None
+        or effective_approver_id is None
+        or effective_approver_role is None
+    ):
+        return False
+    try:
+        # Import locally: authorization helpers build on the base schema validator in
+        # this module, while this retained helper remains import-compatible.
+        from .authorization import (
+            validate_change4_authorization_profile,
+            validate_hash_bound_approval,
+        )
+
+        validate_change4_authorization_profile(
+            authorization_binding,
+            capability_grant,
+            policy_decision,
+            action="outbound_delivery.execute",
+            current_case_revision_id=current_case_revision_id,
+            current_checkpoint_id=current_checkpoint_id,
+            current_workflow_version=current_workflow_version,
+            current_candidate_hash=current_candidate_hash,
+            current_evidence_hashes=current_evidence_hashes,
+            resource_id=str(authorization_binding.get("delivery_resource_id", "")),
+            data_classification=str(authorization_binding.get("data_classification", "")),
+            effective_tenant_id=effective_tenant_id,
+            now=current_time,
+        )
+        validate_hash_bound_approval(
+            request,
+            decision,
+            authorization_binding,
+            current_case_revision_id=current_case_revision_id,
+            current_checkpoint_id=current_checkpoint_id,
+            current_workflow_version=current_workflow_version,
+            current_candidate_hash=current_candidate_hash,
+            current_evidence_hashes=current_evidence_hashes,
+            effective_tenant_id=effective_tenant_id,
+            effective_approver_id=effective_approver_id,
+            effective_approver_role=effective_approver_role,
+            now=current_time,
+        )
+    except ContractValidationError:
+        return False
+    return True

@@ -1,3 +1,4 @@
+import ast
 import json
 import sqlite3
 from datetime import UTC, datetime
@@ -54,6 +55,14 @@ def test_durable_workflow_module_has_no_network_model_or_external_executor_depen
     source = (
         ROOT / "packages/python/weflow-control-kernel/src/weflow_control_kernel/durable_workflow.py"
     ).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported_modules: set[str] = set()
+    for statement in ast.walk(tree):
+        if isinstance(statement, ast.Import):
+            imported_modules.update(alias.name for alias in statement.names)
+        elif isinstance(statement, ast.ImportFrom) and statement.module is not None:
+            imported_modules.add(statement.module)
+            imported_modules.update(f"{statement.module}.{alias.name}" for alias in statement.names)
 
     for forbidden_dependency in (
         "requests",
@@ -62,4 +71,7 @@ def test_durable_workflow_module_has_no_network_model_or_external_executor_depen
         "openai",
         "weflow_extension_sdk",
     ):
-        assert forbidden_dependency not in source
+        assert not any(
+            module == forbidden_dependency or module.startswith(f"{forbidden_dependency}.")
+            for module in imported_modules
+        )

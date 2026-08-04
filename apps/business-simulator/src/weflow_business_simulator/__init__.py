@@ -6,12 +6,18 @@ from .intake import (
     load_intake_fixture,
     normalize_intake_fixture,
 )
+from .investigation import SyntheticInvestigationSimulator, load_investigation_fixture
+from .policy_approval import SyntheticPolicyApprovalSimulator, load_policy_approval_fixture
 from .workflow import SyntheticWorkflowSimulator, load_workflow_fixture
 
 __all__ = [
     "SyntheticIntakeSimulator",
+    "SyntheticInvestigationSimulator",
+    "SyntheticPolicyApprovalSimulator",
     "SyntheticWorkflowSimulator",
     "load_intake_fixture",
+    "load_investigation_fixture",
+    "load_policy_approval_fixture",
     "load_replay_fixture",
     "load_workflow_fixture",
     "normalize_intake_fixture",

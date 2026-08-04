@@ -1,0 +1,18 @@
+{
+  "fixture_id": "api-503-policy-approval-delivery",
+  "synthetic": true,
+  "investigation_fixture_id": "api-503-investigation",
+  "tenant_id": "tenant-alpha",
+  "controller_subject_id": "fixture-controller-alpha",
+  "controller_role": "fixture-controller",
+  "approver_actor_id": "fixture-approver-alpha",
+  "approver_role": "fixture-approver",
+  "policy_version": "fixture-policy.v1",
+  "delivery_resource_id": "fixture-local-im:api-503",
+  "data_classification": "synthetic",
+  "delivery_budget": 1,
+  "fixed_at": "2026-07-29T00:00:02Z",
+  "network_required": false,
+  "credentials_required": false,
+  "customer_resolution": false
+}

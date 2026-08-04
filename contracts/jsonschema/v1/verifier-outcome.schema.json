@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/verifier-outcome.schema.json",
+  "title": "VerifierOutcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "workflow_id", "checkpoint_id", "context_manifest_id", "verifier_outcome_id", "candidate_id", "candidate_sha256", "outcome", "reason_code", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/verifier-outcome.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "workflow_id": {"type": "string", "minLength": 1},
+    "checkpoint_id": {"type": "string", "minLength": 1},
+    "context_manifest_id": {"type": "string", "minLength": 1},
+    "verifier_outcome_id": {"type": "string", "minLength": 1},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "candidate_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "outcome": {"enum": ["verified", "rejected"]},
+    "reason_code": {"type": "string", "minLength": 1},
+    "recorded_at": {"type": "string", "minLength": 1}
+  }
+}

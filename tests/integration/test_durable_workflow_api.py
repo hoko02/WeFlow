@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -121,11 +122,10 @@ def test_workflow_command_surface_is_allowlisted_versioned_and_non_mutating(tmp_
 
     route_paths = {route.path for route in client.app.routes}
     assert "/v1/cases/{case_id}/workflow/commands" in route_paths
-    assert not any(
-        forbidden in path
-        for path in route_paths
-        for forbidden in ("approval", "outbound", "delivery", "ticket")
-    )
+    assert "/v1/cases/{case_id}/workflow/approval" in route_paths
+    assert "/v1/cases/{case_id}/workflow/approval/decisions" in route_paths
+    assert "/v1/cases/{case_id}/workflow/delivery" in route_paths
+    assert not any(path.endswith("/activate-policy-approval") for path in route_paths)
 
 
 def test_capability_boundary_advertises_only_fixture_local_durable_workflow(tmp_path: Path) -> None:
@@ -137,4 +137,65 @@ def test_capability_boundary_advertises_only_fixture_local_durable_workflow(tmp_
     assert capabilities.json()["synthetic_case_intake_implemented"] is True
     assert capabilities.json()["durable_support_workflow_implemented"] is True
     assert capabilities.json()["business_workflow_implemented"] is False
+    assert capabilities.json()["replay_investigation_agent_implemented"] is True
+    assert capabilities.json()["response_candidate_verification_implemented"] is True
+    assert capabilities.json()["real_provider_enabled"] is False
+    assert capabilities.json()["multi_agent_enabled"] is False
     assert capabilities.json()["external_writes_enabled"] is False
+    assert capabilities.json()["fixture_policy_approval_delivery_implemented"] is True
+    assert capabilities.json()["fixture_approval_enabled"] is True
+    assert capabilities.json()["fixture_outbound_delivery_enabled"] is True
+    assert capabilities.json()["live_approval_enabled"] is False
+    assert capabilities.json()["live_outbound_delivery_enabled"] is False
+    assert capabilities.json()["approval_enabled"] is False
+    assert capabilities.json()["outbound_delivery_enabled"] is False
+    assert capabilities.json()["customer_resolution_enabled"] is False
+
+
+def test_investigation_observation_is_tenant_scoped_redacted_and_read_only(tmp_path: Path) -> None:
+    from weflow_agent_runtime import run_investigation_replay
+
+    client, workflow = make_client(tmp_path)
+    accepted = accept_case(client)
+    projection = workflow.run_case(
+        "tenant-alpha",
+        str(accepted["case_id"]),
+        str(accepted["case_revision_id"]),
+    )
+    assert projection is not None and projection["state"] == "TICKET_READY"
+    replay = run_investigation_replay(
+        workflow,
+        "tenant-alpha",
+        str(accepted["case_id"]),
+        root=ROOT,
+    )
+
+    path = f"/v1/cases/{accepted['case_id']}/workflow/investigation"
+    observed = client.get(path, headers=ACTOR_A)
+    foreign = client.get(path, headers=ACTOR_B)
+    absent = client.get("/v1/cases/case-never-existed/workflow/investigation", headers=ACTOR_B)
+
+    assert replay["state"] == "RESPONSE_READY"
+    assert observed.status_code == 200
+    facts = observed.json()["investigation"]
+    assert [step["action_type"] for step in facts["agent_steps"]] == [
+        "read_crm",
+        "read_monitoring",
+        "read_knowledge",
+        "response_candidate",
+    ]
+    assert [item["tool_name"] for item in facts["tool_evidence"]] == [
+        "crm",
+        "monitoring",
+        "knowledge",
+    ]
+    assert facts["verifier_outcome"]["outcome"] == "verified"
+    rendered = json.dumps(facts, sort_keys=True)
+    for forbidden in ("customer-api-503-alpha", "provider_token", "private prompt", "raw_message"):
+        assert forbidden not in rendered
+    assert foreign.status_code == absent.status_code == 404
+    assert foreign.json() == absent.json() == {"reason_code": "workflow_not_found"}
+    route = next(
+        route for route in client.app.routes if route.path.endswith("/workflow/investigation")
+    )
+    assert route.methods == {"GET"}

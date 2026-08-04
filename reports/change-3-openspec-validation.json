@@ -1,0 +1,8 @@
+{
+  "report_type": "weflow-openspec-validation.v1",
+  "change": "add-investigation-agent-loop",
+  "command": "openspec validate add-investigation-agent-loop --type change --strict",
+  "strict": true,
+  "valid": true,
+  "issues": []
+}

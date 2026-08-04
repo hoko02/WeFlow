@@ -1,0 +1,19 @@
+{
+  "fixture_id": "api-503-investigation",
+  "synthetic": true,
+  "tenant_id": "tenant-alpha",
+  "resources": {
+    "crm": {
+      "resource_key": "crm-api503-demo",
+      "redacted_summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "monitoring": {
+      "resource_key": "monitoring-api503-demo",
+      "redacted_summary_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "knowledge": {
+      "resource_key": "knowledge-api503-demo",
+      "redacted_summary_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  }
+}

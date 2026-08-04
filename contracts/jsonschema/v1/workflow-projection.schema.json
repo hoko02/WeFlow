@@ -1,26 +1,104 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://weflow.local/contracts/v1/workflow-projection.schema.json",
-  "title": "WorkflowProjection",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id", "workflow_id", "workflow_definition_version", "state", "run_status", "workflow_version", "latest_checkpoint_id", "latest_checkpoint_sequence", "sla_deadline_at", "correlation_id", "created_at", "updated_at"],
-  "properties": {
-    "schema_id": {"const": "https://weflow.local/contracts/v1/workflow-projection.schema.json"},
-    "schema_version": {"const": "v1"},
-    "tenant_id": {"type": "string", "minLength": 1},
-    "case_id": {"type": "string", "minLength": 1},
-    "case_revision_id": {"type": "string", "minLength": 1},
-    "workflow_id": {"type": "string", "minLength": 1},
-    "workflow_definition_version": {"type": "string", "minLength": 1},
-    "state": {"enum": ["RECEIVED", "TICKET_READY", "PAUSED", "WAITING_FOR_OPERATOR", "NEEDS_RECONCILIATION", "CANCELLED"]},
-    "run_status": {"enum": ["active", "paused", "blocked", "cancelled"]},
-    "workflow_version": {"type": "integer", "minimum": 0},
-    "latest_checkpoint_id": {"type": "string", "minLength": 1},
-    "latest_checkpoint_sequence": {"type": "integer", "minimum": 1},
-    "sla_deadline_at": {"type": "string", "minLength": 1},
-    "correlation_id": {"type": "string", "minLength": 1},
-    "created_at": {"type": "string", "minLength": 1},
-    "updated_at": {"type": "string", "minLength": 1}
-  }
+    "$schema":  "https://json-schema.org/draft/2020-12/schema",
+    "$id":  "https://weflow.local/contracts/v1/workflow-projection.schema.json",
+    "title":  "WorkflowProjection",
+    "type":  "object",
+    "additionalProperties":  false,
+    "required":  [
+                     "schema_id",
+                     "schema_version",
+                     "tenant_id",
+                     "case_id",
+                     "case_revision_id",
+                     "workflow_id",
+                     "workflow_definition_version",
+                     "state",
+                     "run_status",
+                     "workflow_version",
+                     "latest_checkpoint_id",
+                     "latest_checkpoint_sequence",
+                     "sla_deadline_at",
+                     "correlation_id",
+                     "created_at",
+                     "updated_at"
+                 ],
+    "properties":  {
+                       "schema_id":  {
+                                         "const":  "https://weflow.local/contracts/v1/workflow-projection.schema.json"
+                                     },
+                       "schema_version":  {
+                                              "const":  "v1"
+                                          },
+                       "tenant_id":  {
+                                         "type":  "string",
+                                         "minLength":  1
+                                     },
+                       "case_id":  {
+                                       "type":  "string",
+                                       "minLength":  1
+                                   },
+                       "case_revision_id":  {
+                                                "type":  "string",
+                                                "minLength":  1
+                                            },
+                       "workflow_id":  {
+                                           "type":  "string",
+                                           "minLength":  1
+                                       },
+                       "workflow_definition_version":  {
+                                                           "type":  "string",
+                                                           "minLength":  1
+                                                       },
+                       "state":  {
+                                     "enum":  [
+                                                  "RECEIVED",
+                                                  "TICKET_READY",
+                                                  "INVESTIGATING",
+                                                  "RESPONSE_READY",
+                                                  "PAUSED",
+                                                  "WAITING_FOR_OPERATOR",
+                                                  "NEEDS_RECONCILIATION",
+                                                  "CANCELLED",
+                                                  "AWAITING_APPROVAL",
+                                                  "DELIVERING",
+                                                  "DELIVERY_RECORDED"
+                                              ]
+                                 },
+                       "run_status":  {
+                                          "enum":  [
+                                                       "active",
+                                                       "paused",
+                                                       "blocked",
+                                                       "cancelled"
+                                                   ]
+                                      },
+                       "workflow_version":  {
+                                                "type":  "integer",
+                                                "minimum":  0
+                                            },
+                       "latest_checkpoint_id":  {
+                                                    "type":  "string",
+                                                    "minLength":  1
+                                                },
+                       "latest_checkpoint_sequence":  {
+                                                          "type":  "integer",
+                                                          "minimum":  1
+                                                      },
+                       "sla_deadline_at":  {
+                                               "type":  "string",
+                                               "minLength":  1
+                                           },
+                       "correlation_id":  {
+                                              "type":  "string",
+                                              "minLength":  1
+                                          },
+                       "created_at":  {
+                                          "type":  "string",
+                                          "minLength":  1
+                                      },
+                       "updated_at":  {
+                                          "type":  "string",
+                                          "minLength":  1
+                                      }
+                   }
 }

@@ -8,7 +8,7 @@ import os
 import sqlite3
 import uuid
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -78,10 +78,20 @@ class FixedClock:
 
 
 @dataclass(frozen=True)
+class SyntheticPrincipal:
+    """A fixture-owned identity/role pair; requests can only supply the actor ID."""
+
+    actor_id: str
+    tenant_id: str
+    role: str
+
+
+@dataclass(frozen=True)
 class SyntheticActorRegistry:
-    """Maps a local test actor identity to exactly one synthetic tenant."""
+    """Maps a local test actor identity to server-owned tenant and role facts."""
 
     actor_tenants: Mapping[str, str]
+    actor_roles: Mapping[str, str] = field(default_factory=dict)
 
     def resolve(self, actor_id: str | None) -> str:
         if not isinstance(actor_id, str) or not actor_id:
@@ -91,13 +101,33 @@ class SyntheticActorRegistry:
             raise IntakeRejected("tenant_identity_mismatch")
         return tenant_id
 
+    def resolve_principal(self, actor_id: str | None) -> SyntheticPrincipal:
+        """Derive tenant and role from the server-owned fixture registry only."""
+
+        tenant_id = self.resolve(actor_id)
+        assert actor_id is not None  # resolve above proves a non-empty string.
+        role = self.actor_roles.get(actor_id)
+        if not isinstance(role, str) or not role:
+            raise IntakeRejected("principal_identity_mismatch")
+        return SyntheticPrincipal(actor_id=actor_id, tenant_id=tenant_id, role=role)
+
     @classmethod
     def default(cls) -> SyntheticActorRegistry:
         return cls(
-            {
+            actor_tenants={
                 "simulator-tenant-a": "tenant-alpha",
                 "simulator-tenant-b": "tenant-bravo",
-            }
+                "fixture-approver-alpha": "tenant-alpha",
+                "fixture-observer-alpha": "tenant-alpha",
+                "fixture-approver-bravo": "tenant-bravo",
+            },
+            actor_roles={
+                "simulator-tenant-a": "fixture-operator",
+                "simulator-tenant-b": "fixture-operator",
+                "fixture-approver-alpha": "fixture-approver",
+                "fixture-observer-alpha": "fixture-observer",
+                "fixture-approver-bravo": "fixture-approver",
+            },
         )
 
 

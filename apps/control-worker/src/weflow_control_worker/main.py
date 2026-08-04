@@ -1,4 +1,4 @@
-"""Deterministic Change 2 control worker with an offline recovery driver."""
+"""Deterministic Change 3 control worker with offline workflow and investigation recovery."""
 
 from __future__ import annotations
 
@@ -27,7 +27,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--serve", action="store_true", help="serve local health endpoints only")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument(
-        "--run-once", action="store_true", help="scan and recover local workflows once"
+        "--run-once",
+        action="store_true",
+        help="scan and recover local workflows, including bounded replay investigations, once",
+    )
+    parser.add_argument(
+        "--report-investigations",
+        action="store_true",
+        help="include only safe investigation recovery counts in the offline report",
     )
     parser.add_argument(
         "--temporal-worker",
@@ -119,14 +126,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             workflow = SQLiteDurableWorkflow(ledger, contract_root=root)
             recovered = workflow.recover_all()
+            recovered_investigations = sum(
+                projection is not None
+                and workflow.investigation_facts_for_case(
+                    str(projection["tenant_id"]), str(projection["case_id"])
+                )
+                is not None
+                for projection in recovered
+            )
             print(
                 json.dumps(
                     {
                         "report_type": "weflow-control-worker-run.v1",
                         "workflow_ready": True,
                         "recovered_workflows": len(recovered),
+                        "recovered_investigations": (
+                            recovered_investigations if arguments.report_investigations else None
+                        ),
+                        "replay_investigation_recovery": True,
+                        "response_candidate_verification_implemented": True,
+                        "real_provider_enabled": False,
                         "external_write": False,
                         "model_invocation": False,
+                        "approval": False,
+                        "outbound_delivery": False,
                         "customer_resolution": False,
                     },
                     ensure_ascii=False,

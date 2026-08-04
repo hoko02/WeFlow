@@ -1,0 +1,36 @@
+{
+  "report_type": "weflow-change-3-verification.v1",
+  "change": "add-investigation-agent-loop",
+  "verified_on": "2026-08-03",
+  "mode": "offline",
+  "checks": {
+    "environment_check": true,
+    "lint": true,
+    "contracts": true,
+    "full_python_and_typescript_test": true,
+    "investigation_agent_acceptance": true,
+    "openspec_strict_validation": true
+  },
+  "results": {
+    "python_tests_passed": 151,
+    "python_tests_skipped": 2,
+    "python_contract_tests_passed": 32,
+    "typescript_valid_payloads": 29,
+    "typescript_invalid_payloads": 22
+  },
+  "environment": {
+    "node_version": "v24.16.0",
+    "pnpm_version": "11.9.0",
+    "docker_available": false,
+    "network_required": false,
+    "model_credentials_required": false
+  },
+  "safety": {
+    "real_provider_enabled": false,
+    "multi_agent_enabled": false,
+    "external_writes_enabled": false,
+    "approval_enabled": false,
+    "outbound_delivery_enabled": false,
+    "customer_resolution_enabled": false
+  }
+}

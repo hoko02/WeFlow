@@ -19,8 +19,11 @@ SERVICE_NAMES = (
 _LIMITATIONS = [
     "fixture-local-durable-workflow-only",
     "no-business-workflow",
-    "no-agent-or-provider",
-    "no-approval-or-outbound-delivery",
+    "fixture-local-replay-agent-only",
+    "live_provider_disabled",
+    "fixture-local-policy-approval-delivery-only",
+    "no-live-approval-service",
+    "no-real-outbound-delivery",
     "no-customer-resolution",
     "no-external-writes",
 ]
@@ -52,12 +55,26 @@ def _component(name: str, ready: bool, reason_code: str | None = None) -> dict[s
 def _offline_components(root: Path) -> list[dict[str, object]]:
     contracts_ready = (root / "contracts" / "jsonschema" / "v1").is_dir()
     fixtures_ready = (root / "fixtures" / "replay").is_dir()
+    investigation_fixtures_ready = (root / "fixtures" / "investigation").is_dir()
+    policy_fixture_ready = (
+        root / "fixtures" / "policy" / "api-503-policy-approval-delivery.json"
+    ).is_file()
     return [
         _component(
             "contract-assets", contracts_ready, None if contracts_ready else "assets_missing"
         ),
         _component(
             "replay-fixtures", fixtures_ready, None if fixtures_ready else "fixtures_missing"
+        ),
+        _component(
+            "investigation-fixtures",
+            investigation_fixtures_ready,
+            None if investigation_fixtures_ready else "fixtures_missing",
+        ),
+        _component(
+            "policy-approval-delivery-fixture",
+            policy_fixture_ready,
+            None if policy_fixture_ready else "fixtures_missing",
         ),
     ]
 
@@ -135,14 +152,13 @@ def build_foundation_report(
     environment: Mapping[str, str] | None = None,
     root: Path | None = None,
 ) -> dict[str, object]:
-    """Return machine-readable operational evidence for the bounded Change 2 harness."""
+    """Return machine-readable operational evidence for the bounded Change 4 harness."""
 
     repository_root = root or find_repository_root()
     statuses = [
         build_service_status(name, environment=environment, root=repository_root)
         for name in SERVICE_NAMES
     ]
-    # Keep the complete business-workflow claim false while exposing the narrower local slice.
     durable_workflow_assets = all(
         (repository_root / "contracts" / "jsonschema" / "v1" / filename).is_file()
         for filename in (
@@ -152,11 +168,54 @@ def build_foundation_report(
             "side-effect-intent.schema.json",
         )
     )
+    replay_investigation_assets = all(
+        (repository_root / "contracts" / "jsonschema" / "v1" / filename).is_file()
+        for filename in (
+            "context-manifest.schema.json",
+            "agent-action.schema.json",
+            "tool-request.schema.json",
+            "tool-result.schema.json",
+            "response-candidate.schema.json",
+            "verifier-outcome.schema.json",
+        )
+    ) and all(
+        (repository_root / "fixtures" / "investigation" / filename).is_file()
+        for filename in (
+            "api-503-investigation.transcript.json",
+            "api-503-investigation.tools.json",
+        )
+    )
+    fixture_policy_approval_delivery_assets = (
+        all(
+            (repository_root / "contracts" / "jsonschema" / "v1" / filename).is_file()
+            for filename in (
+                "authorization-binding.schema.json",
+                "outbound-delivery-intent.schema.json",
+                "outbound-delivery-observation.schema.json",
+                "outbound-delivery-completion.schema.json",
+            )
+        )
+        and (
+            repository_root / "fixtures" / "policy" / "api-503-policy-approval-delivery.json"
+        ).is_file()
+    )
     return {
         "report_type": "weflow-foundation-health.v1",
         "operational_ready": all(bool(status["ready"]) for status in statuses),
         "business_workflow_implemented": False,
         "durable_support_workflow_implemented": durable_workflow_assets,
+        "replay_investigation_agent_implemented": replay_investigation_assets,
+        "response_candidate_verification_implemented": replay_investigation_assets,
+        "fixture_policy_approval_delivery_implemented": fixture_policy_approval_delivery_assets,
+        "fixture_approval_enabled": fixture_policy_approval_delivery_assets,
+        "fixture_outbound_delivery_enabled": fixture_policy_approval_delivery_assets,
+        "live_approval_enabled": False,
+        "live_outbound_delivery_enabled": False,
+        "real_provider_enabled": False,
+        "multi_agent_enabled": False,
         "external_writes_enabled": False,
+        "approval_enabled": False,
+        "outbound_delivery_enabled": False,
+        "customer_resolution_enabled": False,
         "services": statuses,
     }

@@ -837,6 +837,7 @@ name = "weflow-business-simulator"
 version = "0.1.0"
 source = { editable = "apps/business-simulator" }
 dependencies = [
+    { name = "weflow-agent-runtime" },
     { name = "weflow-contracts" },
     { name = "weflow-control-kernel" },
     { name = "weflow-telemetry" },
@@ -845,6 +846,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "weflow-agent-runtime", editable = "apps/agent-runtime" },
     { name = "weflow-contracts", editable = "packages/python/weflow-contracts" },
     { name = "weflow-control-kernel", editable = "packages/python/weflow-control-kernel" },
     { name = "weflow-telemetry", editable = "packages/python/weflow-telemetry" },
