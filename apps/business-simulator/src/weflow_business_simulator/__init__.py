@@ -8,6 +8,12 @@ from .intake import (
     normalize_intake_fixture,
 )
 from .investigation import SyntheticInvestigationSimulator, load_investigation_fixture
+from .operator_case import (
+    OperatorCaseSourceBundle,
+    OperatorCaseSourceError,
+    build_operator_case_snapshot,
+    run_operator_case_source,
+)
 from .policy_approval import SyntheticPolicyApprovalSimulator, load_policy_approval_fixture
 from .workflow import SyntheticWorkflowSimulator, load_workflow_fixture
 
@@ -15,6 +21,8 @@ __all__ = [
     "SyntheticEvidenceTrajectorySimulator",
     "SyntheticIntakeSimulator",
     "SyntheticInvestigationSimulator",
+    "OperatorCaseSourceBundle",
+    "OperatorCaseSourceError",
     "SyntheticPolicyApprovalSimulator",
     "SyntheticWorkflowSimulator",
     "load_intake_fixture",
@@ -23,4 +31,6 @@ __all__ = [
     "load_replay_fixture",
     "load_workflow_fixture",
     "normalize_intake_fixture",
+    "build_operator_case_snapshot",
+    "run_operator_case_source",
 ]

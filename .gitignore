@@ -47,6 +47,7 @@ reports/*
 !reports/change-6-evaluation-benchmark-core-acceptance.json
 !reports/repair-evaluation-benchmark-evidence-integrity-verification.json
 !reports/add-offline-evaluation-report-console-acceptance.json
+!reports/add-offline-operator-case-timeline-acceptance.json
 artifacts/*
 !artifacts/.gitkeep
 

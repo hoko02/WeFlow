@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/operator-case-snapshot.schema.json",
+  "title": "OperatorCaseSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "operator_case_snapshot_id",
+    "tenant_id",
+    "fixture_id",
+    "fixture_source_path",
+    "fixture_sha256",
+    "case",
+    "source_report",
+    "evidence",
+    "replay",
+    "current_state",
+    "current_state_label",
+    "counts",
+    "capabilities",
+    "timeline",
+    "snapshot_sha256"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://weflow.local/contracts/v1/operator-case-snapshot.schema.json"
+    },
+    "schema_version": {"const": "v1"},
+    "operator_case_snapshot_id": {"$ref": "#/$defs/safe_id"},
+    "tenant_id": {"const": "tenant-alpha"},
+    "fixture_id": {"const": "api-503-policy-approval-delivery"},
+    "fixture_source_path": {
+      "const": "fixtures/policy/api-503-policy-approval-delivery.json"
+    },
+    "fixture_sha256": {"$ref": "#/$defs/sha256"},
+    "case": {"$ref": "#/$defs/case_identity"},
+    "source_report": {"$ref": "#/$defs/source_report"},
+    "evidence": {"$ref": "#/$defs/evidence_identity"},
+    "replay": {"$ref": "#/$defs/replay_identity"},
+    "current_state": {"const": "DELIVERY_RECORDED"},
+    "current_state_label": {"const": "DELIVERY_RECORDED (fixture-local)"},
+    "counts": {"$ref": "#/$defs/counts"},
+    "capabilities": {"$ref": "#/$defs/capabilities"},
+    "timeline": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 128,
+      "items": {"$ref": "#/$defs/timeline_entry"}
+    },
+    "snapshot_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "safe_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "safe_reason": {
+      "enum": [
+        "accepted_intake",
+        "revision_created",
+        "case_event_recorded",
+        "workflow_activated",
+        "workflow_checkpoint_recorded",
+        "context_compiled",
+        "agent_action_recorded",
+        "tool_request_recorded",
+        "tool_result_recorded",
+        "evidence_linked",
+        "candidate_proposed",
+        "evidence_complete",
+        "policy_activated",
+        "capability_active",
+        "fixture_policy_allowed",
+        "authorization_bound",
+        "approval_requested",
+        "fixture_approval_approved",
+        "delivery_intent_recorded",
+        "fixture_delivery_recorded",
+        "verification_replay_verified",
+        "policy_denied",
+        "stale_approval",
+        "reconciliation_required",
+        "recovered_after_interruption",
+        "timeout_without_duplicate_completion"
+      ]
+    },
+    "case_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_revision_id",
+        "revision",
+        "workflow_id",
+        "workflow_version",
+        "latest_checkpoint_id"
+      ],
+      "properties": {
+        "case_id": {"$ref": "#/$defs/safe_id"},
+        "case_revision_id": {"$ref": "#/$defs/safe_id"},
+        "revision": {"const": 1},
+        "workflow_id": {"$ref": "#/$defs/safe_id"},
+        "workflow_version": {"type": "integer", "minimum": 1},
+        "latest_checkpoint_id": {"$ref": "#/$defs/safe_id"}
+      }
+    },
+    "source_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_id",
+        "report_sha256",
+        "report_profile_id",
+        "retained_report_path"
+      ],
+      "properties": {
+        "report_id": {"$ref": "#/$defs/safe_id"},
+        "report_sha256": {"$ref": "#/$defs/sha256"},
+        "report_profile_id": {"const": "fixture-local-evidence.v1"},
+        "retained_report_path": {
+          "const": "reports/add-offline-operator-case-timeline-acceptance.json"
+        }
+      }
+    },
+    "evidence_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trajectory_id",
+        "root_sha256",
+        "timeline_source_sha256",
+        "node_count"
+      ],
+      "properties": {
+        "trajectory_id": {"$ref": "#/$defs/safe_id"},
+        "root_sha256": {"$ref": "#/$defs/sha256"},
+        "timeline_source_sha256": {"$ref": "#/$defs/sha256"},
+        "node_count": {"type": "integer", "minimum": 1, "maximum": 127}
+      }
+    },
+    "replay_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replay_result_id",
+        "result_sha256",
+        "report_sha256",
+        "recorded_root_sha256",
+        "replayed_root_sha256",
+        "mode",
+        "verification_outcome"
+      ],
+      "properties": {
+        "replay_result_id": {"$ref": "#/$defs/safe_id"},
+        "result_sha256": {"$ref": "#/$defs/sha256"},
+        "report_sha256": {"$ref": "#/$defs/sha256"},
+        "recorded_root_sha256": {"$ref": "#/$defs/sha256"},
+        "replayed_root_sha256": {"$ref": "#/$defs/sha256"},
+        "mode": {"const": "verification_replay"},
+        "verification_outcome": {"const": "verified"}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeline_entry_count",
+        "case_event_count",
+        "case_revision_count",
+        "workflow_checkpoint_count",
+        "agent_step_count",
+        "tool_result_count",
+        "local_ticket_effect_count",
+        "fixture_delivery_effect_count",
+        "evidence_node_count",
+        "replay_result_count"
+      ],
+      "properties": {
+        "timeline_entry_count": {"type": "integer", "minimum": 2, "maximum": 128},
+        "case_event_count": {"type": "integer", "minimum": 1},
+        "case_revision_count": {"const": 1},
+        "workflow_checkpoint_count": {"type": "integer", "minimum": 1},
+        "agent_step_count": {"type": "integer", "minimum": 1},
+        "tool_result_count": {"type": "integer", "minimum": 1},
+        "local_ticket_effect_count": {"const": 2},
+        "fixture_delivery_effect_count": {"const": 1},
+        "evidence_node_count": {"type": "integer", "minimum": 1, "maximum": 127},
+        "replay_result_count": {"const": 1}
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offline",
+        "synthetic",
+        "replay_verification_only",
+        "fixture_local_delivery",
+        "network",
+        "model",
+        "live_provider",
+        "external_write",
+        "customer_receipt",
+        "customer_resolution",
+        "case_completion",
+        "approval_authority",
+        "workflow_authority",
+        "retry_authority"
+      ],
+      "properties": {
+        "offline": {"const": true},
+        "synthetic": {"const": true},
+        "replay_verification_only": {"const": true},
+        "fixture_local_delivery": {"const": true},
+        "network": {"const": false},
+        "model": {"const": false},
+        "live_provider": {"const": false},
+        "external_write": {"const": false},
+        "customer_receipt": {"const": false},
+        "customer_resolution": {"const": false},
+        "case_completion": {"const": false},
+        "approval_authority": {"const": false},
+        "workflow_authority": {"const": false},
+        "retry_authority": {"const": false}
+      }
+    },
+    "timeline_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "entry_id",
+        "predecessor_entry_id",
+        "phase",
+        "source_kind",
+        "source_id",
+        "source_sha256",
+        "classification",
+        "from_state",
+        "to_state",
+        "observation",
+        "result",
+        "gate_status",
+        "recovery_status",
+        "reason_code"
+      ],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 128},
+        "entry_id": {"$ref": "#/$defs/safe_id"},
+        "predecessor_entry_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/safe_id"}
+          ]
+        },
+        "phase": {
+          "enum": [
+            "intake",
+            "case",
+            "workflow",
+            "investigation",
+            "tools",
+            "verification",
+            "policy",
+            "approval",
+            "delivery",
+            "replay"
+          ]
+        },
+        "source_kind": {
+          "enum": [
+            "accepted_intake",
+            "case_revision",
+            "case_event",
+            "workflow_activation",
+            "workflow_checkpoint",
+            "context_manifest",
+            "agent_step",
+            "tool_request",
+            "tool_result",
+            "evidence",
+            "response_candidate",
+            "verifier_outcome",
+            "policy_activation",
+            "capability_grant",
+            "policy_decision",
+            "authorization_binding",
+            "approval_request",
+            "approval_decision",
+            "delivery_intent",
+            "delivery_completion",
+            "replay_result"
+          ]
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 240,
+          "pattern": "^[a-z_]+:[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "source_sha256": {"$ref": "#/$defs/sha256"},
+        "classification": {"enum": ["synthetic", "redacted"]},
+        "from_state": {
+          "type": ["string", "null"],
+          "enum": [
+            null,
+            "RECEIVED",
+            "TICKET_READY",
+            "INVESTIGATING",
+            "RESPONSE_READY",
+            "AWAITING_APPROVAL",
+            "DELIVERING",
+            "DELIVERY_RECORDED",
+            "WAITING_FOR_OPERATOR",
+            "NEEDS_RECONCILIATION"
+          ]
+        },
+        "to_state": {
+          "type": ["string", "null"],
+          "enum": [
+            null,
+            "RECEIVED",
+            "TICKET_READY",
+            "INVESTIGATING",
+            "RESPONSE_READY",
+            "AWAITING_APPROVAL",
+            "DELIVERING",
+            "DELIVERY_RECORDED",
+            "WAITING_FOR_OPERATOR",
+            "NEEDS_RECONCILIATION"
+          ]
+        },
+        "observation": {
+          "enum": [
+            "accepted",
+            "recorded",
+            "proposed",
+            "verified",
+            "allowed",
+            "approved",
+            "fixture_local_recorded",
+            "denied",
+            "stale",
+            "timeout",
+            "recovered"
+          ]
+        },
+        "result": {
+          "enum": [
+            "recorded",
+            "passed",
+            "allowed",
+            "approved",
+            "fixture_local_recorded",
+            "verified",
+            "blocked"
+          ]
+        },
+        "gate_status": {"enum": ["not_applicable", "passed", "failed"]},
+        "recovery_status": {
+          "enum": ["not_required", "reconciled", "recovered", "blocked"]
+        },
+        "reason_code": {"$ref": "#/$defs/safe_reason"}
+      }
+    }
+  }
+}

@@ -26,13 +26,18 @@ from weflow_control_kernel.status import (
     build_service_status,
     find_repository_root,
 )
-from weflow_testkit import read_evaluation_suite_snapshot
+from weflow_testkit import read_evaluation_suite_snapshot, read_operator_case_snapshot
 
 from .case_intake import CaseIntakeBoundary, install_case_intake_routes
 from .evaluation_report import (
     EvaluationReportBoundary,
     EvaluationSnapshotReader,
     install_evaluation_report_routes,
+)
+from .operator_case import (
+    OperatorCaseBoundary,
+    OperatorCaseSnapshotReader,
+    install_operator_case_routes,
 )
 from .workflow import WorkflowBoundary, install_workflow_routes
 
@@ -89,7 +94,11 @@ WORKFLOW_COMMAND_SCHEMA_ID = "https://weflow.local/contracts/v1/workflow-command
 EVALUATION_SUITE_SNAPSHOT_SCHEMA_ID = (
     "https://weflow.local/contracts/v1/evaluation-suite-snapshot.schema.json"
 )
+OPERATOR_CASE_SNAPSHOT_SCHEMA_ID = (
+    "https://weflow.local/contracts/v1/operator-case-snapshot.schema.json"
+)
 _DEFAULT_EVALUATION_READER = object()
+_DEFAULT_OPERATOR_CASE_READER = object()
 
 
 def _install_canonical_openapi(app: FastAPI, root: Path) -> None:
@@ -119,6 +128,9 @@ def _install_canonical_openapi(app: FastAPI, root: Path) -> None:
         components["WeFlowWorkflowCommandV1"] = deepcopy(contracts[WORKFLOW_COMMAND_SCHEMA_ID])
         components["WeFlowEvaluationSuiteSnapshotV1"] = deepcopy(
             contracts[EVALUATION_SUITE_SNAPSHOT_SCHEMA_ID]
+        )
+        components["WeFlowOperatorCaseSnapshotV1"] = deepcopy(
+            contracts[OPERATOR_CASE_SNAPSHOT_SCHEMA_ID]
         )
         health_reference = {"$ref": "#/components/schemas/WeFlowHealthStatusV1"}
         for path in ("/health/live", "/health/ready"):
@@ -174,6 +186,17 @@ def _install_canonical_openapi(app: FastAPI, root: Path) -> None:
                 }
             },
         }
+        operator_responses = document["paths"]["/v1/operator/cases/api-503.v1"][
+            "get"
+        ].setdefault("responses", {})
+        operator_responses["200"] = {
+            "description": "Tenant-scoped validated offline Operator Case snapshot",
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/WeFlowOperatorCaseSnapshotV1"}
+                }
+            },
+        }
         app.openapi_schema = document
         return app.openapi_schema
 
@@ -225,6 +248,9 @@ def create_app(
     workflow: SQLiteDurableWorkflow | None = None,
     actor_registry: SyntheticActorRegistry | None = None,
     evaluation_reader: EvaluationSnapshotReader | None | object = _DEFAULT_EVALUATION_READER,
+    operator_case_reader: OperatorCaseSnapshotReader | None | object = (
+        _DEFAULT_OPERATOR_CASE_READER
+    ),
 ) -> FastAPI:
     repository_root = root or find_repository_root()
     resolved_actor_registry = actor_registry or SyntheticActorRegistry.default()
@@ -238,6 +264,20 @@ def create_app(
         resolved_evaluation_reader = None
     else:
         resolved_evaluation_reader = cast(EvaluationSnapshotReader, evaluation_reader)
+    if operator_case_reader is _DEFAULT_OPERATOR_CASE_READER:
+
+        def default_operator_case_reader() -> Mapping[str, object]:
+            return read_operator_case_snapshot(repository_root)
+
+        resolved_operator_case_reader: OperatorCaseSnapshotReader | None = (
+            default_operator_case_reader
+        )
+    elif operator_case_reader is None:
+        resolved_operator_case_reader = None
+    else:
+        resolved_operator_case_reader = cast(
+            OperatorCaseSnapshotReader, operator_case_reader
+        )
     try:
         resolved_ledger = ledger or SQLiteCaseLedger(
             default_case_store_path(repository_root),
@@ -276,6 +316,11 @@ def create_app(
         registry=resolved_actor_registry,
         contract_root=repository_root,
     )
+    operator_case_boundary = OperatorCaseBoundary(
+        reader=resolved_operator_case_reader,
+        registry=resolved_actor_registry,
+        contract_root=repository_root,
+    )
     app = FastAPI(
         title="WeFlow Platform API",
         version="0.3.0",
@@ -289,6 +334,7 @@ def create_app(
     app.state.case_intake_boundary = boundary
     app.state.workflow_boundary = workflow_boundary
     app.state.evaluation_report_boundary = evaluation_boundary
+    app.state.operator_case_boundary = operator_case_boundary
 
     app.add_middleware(
         CORSMiddleware,
@@ -353,4 +399,5 @@ def create_app(
     install_case_intake_routes(app, boundary)
     install_workflow_routes(app, workflow_boundary)
     install_evaluation_report_routes(app, evaluation_boundary)
+    install_operator_case_routes(app, operator_case_boundary)
     return app

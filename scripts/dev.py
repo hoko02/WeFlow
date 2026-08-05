@@ -297,6 +297,28 @@ def command_evaluation_console_acceptance(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_operator_case_timeline_acceptance(_: argparse.Namespace) -> int:
+    from operator_case_timeline_acceptance import (
+        publish_operator_case_timeline_acceptance,
+        run_operator_case_timeline_acceptance,
+    )
+
+    try:
+        report = run_operator_case_timeline_acceptance(ROOT)
+        publish_operator_case_timeline_acceptance(ROOT, report)
+    except (OSError, RuntimeError, ValueError):
+        _print(
+            {
+                "report_type": "weflow-offline-operator-case-timeline-acceptance.v1",
+                "accepted": False,
+                "reason_code": "operator_case_timeline_acceptance_failed",
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
+
 def command_archive_evidence_check(_: argparse.Namespace) -> int:
     from reconcile_archive_evidence import EvidenceValidationError, validate_repository_evidence
 
@@ -449,6 +471,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="repository-relative evidence path under reports/",
     )
     evaluation_console.set_defaults(handler=command_evaluation_console_acceptance)
+    subcommands.add_parser(
+        "operator-case-timeline-acceptance",
+        help="build and validate the fixed offline Operator Case timeline",
+    ).set_defaults(handler=command_operator_case_timeline_acceptance)
     subcommands.add_parser(
         "archive-evidence-check",
         help="validate redacted reconciliation evidence for archived Changes 4 and 5",

@@ -9,6 +9,12 @@ import {
   type EvaluationSurfaceState,
 } from "./evaluation-report.js";
 import { renderFoundationStatus, type RenderedFoundationStatus } from "./foundation-status.js";
+import {
+  loadOperatorCaseSurface,
+  renderOperatorCaseSurface,
+  type OperatorCaseRenderModel,
+  type OperatorCaseSurfaceState,
+} from "./operator-case.js";
 
 type FoundationCapabilities = JsonObject & {
   business_workflow_implemented: boolean;
@@ -37,14 +43,25 @@ const renderedStatus = ref<RenderedFoundationStatus | null>(null);
 const evaluationState = ref<EvaluationSurfaceState>({ status: "loading" });
 const evaluation = ref<EvaluationRenderModel>(renderEvaluationSurface(evaluationState.value));
 const selectedEvaluationTaskId = ref<string | undefined>(undefined);
+const operatorState = ref<OperatorCaseSurfaceState>({ status: "loading" });
+const operatorCase = ref<OperatorCaseRenderModel>(
+  renderOperatorCaseSurface(operatorState.value),
+);
+const selectedOperatorEntryId = ref<string | undefined>(undefined);
 
 function selectEvaluationTask(evaluationTaskId: string): void {
   selectedEvaluationTaskId.value = evaluationTaskId;
   evaluation.value = renderEvaluationSurface(evaluationState.value, evaluationTaskId);
 }
 
+function selectOperatorEntry(entryId: string): void {
+  selectedOperatorEntryId.value = entryId;
+  operatorCase.value = renderOperatorCaseSurface(operatorState.value, entryId);
+}
+
 onMounted(async () => {
   const evaluationRequest = loadEvaluationSurface();
+  const operatorRequest = loadOperatorCaseSurface();
   try {
     const healthResponse = await fetch("http://127.0.0.1:8000/health/ready");
     const healthPayload = (await healthResponse.json()) as JsonObject;
@@ -68,15 +85,23 @@ onMounted(async () => {
     evaluationState.value,
     selectedEvaluationTaskId.value,
   );
+  operatorState.value = await operatorRequest;
+  if (operatorState.value.status === "ready") {
+    selectedOperatorEntryId.value = operatorState.value.snapshot.timeline[0]?.entry_id;
+  }
+  operatorCase.value = renderOperatorCaseSurface(
+    operatorState.value,
+    selectedOperatorEntryId.value,
+  );
 });
 </script>
 
 <template>
   <main class="shell">
     <section class="hero">
-      <p class="eyebrow">WeFlow / Offline Evaluation</p>
-      <h1>Evaluation Evidence Console</h1>
-      <p>This local console presents a revalidated 12-task Replay benchmark beside foundation readiness. It never treats fixture delivery as a provider send, customer receipt, incident resolution, or authorization.</p>
+      <p class="eyebrow">WeFlow / Offline Operator Evidence</p>
+      <h1>Operator Case &amp; Evaluation Console</h1>
+      <p>This local console presents one source-linked API-503 Case timeline and a revalidated 12-task Replay benchmark beside foundation readiness. It never treats fixture delivery as a provider send, customer receipt, incident resolution, completion, or authorization.</p>
     </section>
 
     <section class="status" :data-status="status">
@@ -128,6 +153,114 @@ onMounted(async () => {
           <dd>{{ (capabilities.live_approval_enabled || capabilities.live_outbound_delivery_enabled || capabilities.customer_resolution_enabled) ? "yes" : "no" }}</dd>
         </div>
       </dl>
+    </section>
+
+    <section class="operator-case" :data-status="operatorCase.status">
+      <p class="eyebrow">Operator Case / Offline synthetic evidence</p>
+      <h2>{{ operatorCase.headline }}</h2>
+      <p>{{ operatorCase.detail }}</p>
+
+      <template v-if="operatorCase.status === 'ready'">
+        <dl class="operator-meta">
+          <div>
+            <dt>Fixture</dt>
+            <dd>{{ operatorCase.fixtureId }}</dd>
+          </div>
+          <div>
+            <dt>Current fixture state</dt>
+            <dd>{{ operatorCase.currentStateLabel }}</dd>
+          </div>
+          <div class="hash-row">
+            <dt>Case / revision</dt>
+            <dd><code>{{ operatorCase.caseId }} / {{ operatorCase.revisionId }} (r{{ operatorCase.revision }})</code></dd>
+          </div>
+          <div class="hash-row">
+            <dt>Workflow</dt>
+            <dd><code>{{ operatorCase.workflowId }} (v{{ operatorCase.workflowVersion }})</code></dd>
+          </div>
+          <div class="hash-row">
+            <dt>Snapshot / source report hash</dt>
+            <dd><code>{{ operatorCase.snapshotHash }} / {{ operatorCase.reportHash }}</code></dd>
+          </div>
+          <div class="hash-row">
+            <dt>Evidence root / Replay result</dt>
+            <dd><code>{{ operatorCase.evidenceRoot }} / {{ operatorCase.replayHash }}</code></dd>
+          </div>
+        </dl>
+
+        <div class="capability-badges" aria-label="Operator Case capability boundaries">
+          <span v-for="label in operatorCase.capabilityLabels" :key="label">{{ label }}</span>
+        </div>
+
+        <div class="operator-grid">
+          <nav class="timeline-list" aria-label="API-503 source-linked Case timeline">
+            <button
+              v-for="entry in operatorCase.timeline"
+              :key="entry.entryId"
+              type="button"
+              :class="{ selected: entry.entryId === selectedOperatorEntryId }"
+              @click="selectOperatorEntry(entry.entryId)"
+            >
+              <span><strong>{{ entry.sequence }}</strong> · {{ entry.phase }} / {{ entry.sourceKind }}</span>
+              <small>{{ entry.transitionLabel }} · gate {{ entry.gateLabel }} · recovery {{ entry.recoveryLabel }}</small>
+            </button>
+          </nav>
+
+          <article class="operator-detail">
+            <p class="eyebrow">Selected source-linked entry</p>
+            <h3>{{ operatorCase.selectedEntry.phase }} / {{ operatorCase.selectedEntry.sourceKind }}</h3>
+            <p>{{ operatorCase.selectedEntry.transitionLabel }} · {{ operatorCase.selectedEntry.result }}</p>
+            <dl>
+              <div>
+                <dt>Sequence</dt>
+                <dd>{{ operatorCase.selectedEntry.sequence }}</dd>
+              </div>
+              <div class="hash-row">
+                <dt>Entry identity</dt>
+                <dd><code>{{ operatorCase.selectedEntry.entryId }}</code></dd>
+              </div>
+              <div class="hash-row">
+                <dt>Source identity</dt>
+                <dd><code>{{ operatorCase.selectedEntry.sourceId }}</code></dd>
+              </div>
+              <div class="hash-row">
+                <dt>Source hash</dt>
+                <dd><code>{{ operatorCase.selectedEntry.sourceHash }}</code></dd>
+              </div>
+              <div>
+                <dt>Classification</dt>
+                <dd>{{ operatorCase.selectedEntry.classification }}</dd>
+              </div>
+              <div>
+                <dt>Observation / result</dt>
+                <dd>{{ operatorCase.selectedEntry.observation }} / {{ operatorCase.selectedEntry.result }}</dd>
+              </div>
+              <div>
+                <dt>Gate / recovery</dt>
+                <dd>{{ operatorCase.selectedEntry.gateLabel }} / {{ operatorCase.selectedEntry.recoveryLabel }}</dd>
+              </div>
+              <div>
+                <dt>Reason code</dt>
+                <dd>{{ operatorCase.selectedEntry.reasonCode }}</dd>
+              </div>
+            </dl>
+
+            <h4>Bounded source counts</h4>
+            <ul class="evidence-list">
+              <li v-for="count in operatorCase.countLabels" :key="count.label">
+                <strong>{{ count.label }}</strong>: {{ count.value }}
+              </li>
+            </ul>
+          </article>
+        </div>
+
+        <aside class="unsupported operator-limits">
+          <h3>Explicit capability limits</h3>
+          <ul>
+            <li v-for="limit in operatorCase.limitations" :key="limit">{{ limit }}</li>
+          </ul>
+        </aside>
+      </template>
     </section>
 
     <section class="evaluation" :data-status="evaluation.status">
@@ -290,7 +423,7 @@ body {
   padding: 72px 24px;
 }
 
-.hero, .status, .evaluation, .limits {
+.hero, .status, .operator-case, .evaluation, .limits {
   border: 1px solid #2d3c56;
   border-radius: 16px;
   background: #152238;
@@ -321,6 +454,13 @@ h1, h2, p {
   border-color: #49b392;
 }
 
+.operator-case[data-status="ready"] {
+  border-color: #49b392;
+}
+
+.operator-case[data-status="not-found"],
+.operator-case[data-status="identity-denied"],
+.operator-case[data-status="integrity-not-ready"],
 .evaluation[data-status="not-found"],
 .evaluation[data-status="identity-denied"],
 .evaluation[data-status="integrity-not-ready"] {
@@ -328,6 +468,10 @@ h1, h2, p {
 }
 
 .suite-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.operator-meta {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -363,13 +507,25 @@ code {
   grid-template-columns: minmax(250px, 0.85fr) minmax(0, 2fr);
 }
 
-.task-list {
+.operator-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr);
+}
+
+.task-list, .timeline-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.task-list button {
+.timeline-list {
+  max-height: 760px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.task-list button, .timeline-list button {
   background: #101827;
   border: 1px solid #2d3c56;
   border-radius: 10px;
@@ -382,23 +538,24 @@ code {
   text-align: left;
 }
 
-.task-list button.selected {
+.task-list button.selected, .timeline-list button.selected {
   border-color: #49b392;
   box-shadow: inset 3px 0 #49b392;
 }
 
-.task-list small {
+.task-list small, .timeline-list small {
   color: #9fb4d1;
 }
 
-.task-detail, .unsupported {
+.task-detail, .operator-detail, .unsupported {
   background: #101827;
   border: 1px solid #2d3c56;
   border-radius: 12px;
   padding: 20px;
 }
 
-.task-detail h3, .task-detail h4 {
+.task-detail h3, .task-detail h4,
+.operator-detail h3, .operator-detail h4 {
   margin-bottom: 10px;
 }
 
@@ -409,6 +566,10 @@ code {
 
 .unsupported {
   margin-top: 20px;
+}
+
+.operator-limits {
+  border-color: #6a5334;
 }
 
 .unsupported li {
@@ -444,7 +605,7 @@ li + li {
     padding: 32px 16px;
   }
 
-  .suite-meta, .evaluation-grid {
+  .suite-meta, .operator-meta, .evaluation-grid, .operator-grid {
     grid-template-columns: 1fr;
   }
 }

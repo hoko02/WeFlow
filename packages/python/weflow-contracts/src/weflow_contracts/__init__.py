@@ -76,6 +76,15 @@ from .intake import (
     validate_inbound_message_event,
     validate_inbound_tenant_claim,
 )
+from .operator_case import (
+    OPERATOR_CASE_SNAPSHOT_SCHEMA_ID,
+    PHASE_ORDER,
+    SOURCE_PHASE,
+    finalize_operator_case_snapshot,
+    operator_case_entry_id,
+    operator_case_snapshot_sha256,
+    validate_operator_case_snapshot,
+)
 from .schemas import contract_schema_paths, load_contract_schemas, schema_fingerprints
 from .validation import (
     ContractValidationError,
@@ -108,6 +117,13 @@ from .workflow import (
 )
 
 __all__ = [
+    "OPERATOR_CASE_SNAPSHOT_SCHEMA_ID",
+    "PHASE_ORDER",
+    "SOURCE_PHASE",
+    "finalize_operator_case_snapshot",
+    "operator_case_entry_id",
+    "operator_case_snapshot_sha256",
+    "validate_operator_case_snapshot",
     "EVALUATION_ORACLE_SCHEMA_ID",
     "EVALUATION_SUITE_REPORT_SCHEMA_ID",
     "EVALUATION_SUITE_SNAPSHOT_SCHEMA_ID",

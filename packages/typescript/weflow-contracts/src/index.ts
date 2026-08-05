@@ -1604,3 +1604,267 @@ export function validateBenchmarkCoreResult(
   }
   return { valid: true };
 }
+
+export const OPERATOR_CASE_SNAPSHOT_SCHEMA_ID =
+  "https://weflow.local/contracts/v1/operator-case-snapshot.schema.json";
+
+export type OperatorCasePhase =
+  | "intake" | "case" | "workflow" | "investigation" | "tools"
+  | "verification" | "policy" | "approval" | "delivery" | "replay";
+
+export interface OperatorCaseTimelineEntry extends JsonObject {
+  sequence: number;
+  entry_id: string;
+  predecessor_entry_id: string | null;
+  phase: OperatorCasePhase;
+  source_kind: string;
+  source_id: string;
+  source_sha256: string;
+  classification: "synthetic" | "redacted";
+  from_state: string | null;
+  to_state: string | null;
+  observation: string;
+  result: string;
+  gate_status: "not_applicable" | "passed" | "failed";
+  recovery_status: "not_required" | "reconciled" | "recovered" | "blocked";
+  reason_code: string;
+}
+
+export interface OperatorCaseSnapshot extends JsonObject {
+  schema_id: typeof OPERATOR_CASE_SNAPSHOT_SCHEMA_ID;
+  schema_version: "v1";
+  operator_case_snapshot_id: string;
+  tenant_id: "tenant-alpha";
+  fixture_id: "api-503-policy-approval-delivery";
+  fixture_source_path: "fixtures/policy/api-503-policy-approval-delivery.json";
+  fixture_sha256: string;
+  case: JsonObject;
+  source_report: JsonObject;
+  evidence: JsonObject;
+  replay: JsonObject;
+  current_state: "DELIVERY_RECORDED";
+  current_state_label: "DELIVERY_RECORDED (fixture-local)";
+  counts: JsonObject;
+  capabilities: JsonObject;
+  timeline: OperatorCaseTimelineEntry[];
+  snapshot_sha256: string;
+}
+
+export const OPERATOR_CASE_PHASE_ORDER: OperatorCasePhase[] = [
+  "intake", "case", "workflow", "investigation", "tools",
+  "verification", "policy", "approval", "delivery", "replay",
+];
+
+export const OPERATOR_CASE_SOURCE_PHASE: Record<string, OperatorCasePhase> = {
+  accepted_intake: "intake",
+  case_revision: "case",
+  case_event: "case",
+  workflow_activation: "workflow",
+  workflow_checkpoint: "workflow",
+  context_manifest: "investigation",
+  agent_step: "investigation",
+  tool_request: "tools",
+  tool_result: "tools",
+  evidence: "tools",
+  response_candidate: "verification",
+  verifier_outcome: "verification",
+  policy_activation: "policy",
+  capability_grant: "policy",
+  policy_decision: "policy",
+  authorization_binding: "policy",
+  approval_request: "approval",
+  approval_decision: "approval",
+  delivery_intent: "delivery",
+  delivery_completion: "delivery",
+  replay_result: "replay",
+};
+
+const OPERATOR_HARD_GATE_SOURCES = new Set([
+  "verifier_outcome", "capability_grant", "policy_decision",
+  "authorization_binding", "approval_decision",
+]);
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function operatorCaseEntryId(input: {
+  sequence: number;
+  sourceKind: string;
+  sourceId: string;
+  sourceSha256: string;
+}): string {
+  const digest = createHash("sha256").update(canonicalJson({
+    sequence: input.sequence,
+    source_id: input.sourceId,
+    source_kind: input.sourceKind,
+    source_sha256: input.sourceSha256,
+  }), "utf8").digest("hex");
+  return "operator_entry_" + digest.slice(0, 32);
+}
+
+export function operatorCaseSnapshotSha256(snapshot: JsonObject): string {
+  const material = { ...snapshot };
+  delete material.operator_case_snapshot_id;
+  delete material.snapshot_sha256;
+  return createHash("sha256").update(canonicalJson(material), "utf8").digest("hex");
+}
+
+export function finalizeOperatorCaseSnapshot(snapshot: JsonObject): OperatorCaseSnapshot {
+  const finalized = { ...snapshot };
+  const digest = operatorCaseSnapshotSha256(finalized);
+  finalized.operator_case_snapshot_id = "operator_case_snapshot_" + digest;
+  finalized.snapshot_sha256 = digest;
+  return finalized as OperatorCaseSnapshot;
+}
+
+export function validateOperatorCaseSnapshot(
+  payload: JsonObject,
+  root?: string,
+): ValidationResult {
+  const schema = validateExpectedSchema(payload, OPERATOR_CASE_SNAPSHOT_SCHEMA_ID, root);
+  if (!schema.valid) return schema;
+  const digest = operatorCaseSnapshotSha256(payload);
+  if (payload.snapshot_sha256 !== digest) {
+    return { valid: false, reasonCode: "operator-snapshot-hash-mismatch" };
+  }
+  if (payload.operator_case_snapshot_id !== "operator_case_snapshot_" + digest) {
+    return { valid: false, reasonCode: "operator-snapshot-identity-mismatch" };
+  }
+
+  const caseIdentity = payload.case;
+  const sourceReport = payload.source_report;
+  const evidence = payload.evidence;
+  const replay = payload.replay;
+  const counts = payload.counts;
+  const timeline = payload.timeline;
+  if (
+    !isJsonObject(caseIdentity) || !isJsonObject(sourceReport) ||
+    !isJsonObject(evidence) || !isJsonObject(replay) ||
+    !isJsonObject(counts) || !Array.isArray(timeline)
+  ) return { valid: false, reasonCode: "operator-snapshot-sections-invalid" };
+  if (
+    sourceReport.report_sha256 !== replay.report_sha256 ||
+    evidence.root_sha256 !== replay.recorded_root_sha256 ||
+    evidence.root_sha256 !== replay.replayed_root_sha256
+  ) return { valid: false, reasonCode: "operator-source-root-mismatch" };
+
+  const entryIds: unknown[] = [];
+  const sourceIds: string[] = [];
+  const sourceKinds: string[] = [];
+  let priorEntryId: string | null = null;
+  let priorPhase = -1;
+  for (let index = 0; index < timeline.length; index += 1) {
+    const value = timeline[index];
+    if (!isJsonObject(value)) {
+      return { valid: false, reasonCode: "operator-timeline-entry-invalid" };
+    }
+    const sequence = index + 1;
+    const sourceKind = value.source_kind;
+    const sourceId = value.source_id;
+    const sourceSha256 = value.source_sha256;
+    if (
+      typeof sourceKind !== "string" ||
+      OPERATOR_CASE_SOURCE_PHASE[sourceKind] === undefined ||
+      typeof sourceId !== "string" ||
+      typeof sourceSha256 !== "string"
+    ) return { valid: false, reasonCode: "operator-timeline-source-invalid" };
+    if (value.sequence !== sequence || value.predecessor_entry_id !== priorEntryId) {
+      return { valid: false, reasonCode: "operator-timeline-order-invalid" };
+    }
+    const expectedPhase = OPERATOR_CASE_SOURCE_PHASE[sourceKind];
+    const phase = OPERATOR_CASE_PHASE_ORDER.indexOf(expectedPhase);
+    if (value.phase !== expectedPhase || phase < priorPhase) {
+      return { valid: false, reasonCode: "operator-timeline-phase-invalid" };
+    }
+    priorPhase = phase;
+    if (sourceId.split(":", 1)[0] !== sourceKind) {
+      return { valid: false, reasonCode: "operator-source-identity-invalid" };
+    }
+    const expectedEntryId = operatorCaseEntryId({
+      sequence,
+      sourceKind,
+      sourceId,
+      sourceSha256,
+    });
+    if (value.entry_id !== expectedEntryId) {
+      return { valid: false, reasonCode: "operator-entry-identity-invalid" };
+    }
+    if (
+      (OPERATOR_HARD_GATE_SOURCES.has(sourceKind) && value.gate_status !== "passed") ||
+      value.gate_status === "failed" || value.result === "blocked" ||
+      ["denied", "stale", "timeout"].includes(String(value.observation))
+    ) return { valid: false, reasonCode: "operator-hard-gate-precedence-invalid" };
+    if (value.recovery_status !== "not_required") {
+      return { valid: false, reasonCode: "operator-canonical-recovery-invalid" };
+    }
+    entryIds.push(value.entry_id);
+    sourceIds.push(sourceId);
+    sourceKinds.push(sourceKind);
+    priorEntryId = String(value.entry_id);
+  }
+
+  if (new Set(entryIds).size !== entryIds.length) {
+    return { valid: false, reasonCode: "operator-entry-duplicate" };
+  }
+  if (new Set(sourceIds).size !== sourceIds.length) {
+    return { valid: false, reasonCode: "operator-source-duplicate" };
+  }
+  if (
+    !Object.keys(OPERATOR_CASE_SOURCE_PHASE).every((kind) => sourceKinds.includes(kind)) ||
+    sourceKinds.at(-1) !== "replay_result"
+  ) return { valid: false, reasonCode: "operator-required-source-missing" };
+  const sourceMaterial = timeline.slice(0, -1).map((item) => {
+    const entry = item as JsonObject;
+    return {
+      source_id: entry.source_id,
+      source_kind: entry.source_kind,
+      source_sha256: entry.source_sha256,
+    };
+  });
+  const sourceMaterialHash = createHash("sha256")
+    .update(canonicalJson(sourceMaterial), "utf8")
+    .digest("hex");
+  if (evidence.timeline_source_sha256 !== sourceMaterialHash) {
+    return { valid: false, reasonCode: "operator-timeline-source-hash-mismatch" };
+  }
+
+  const expectedCounts: Record<string, number> = {
+    timeline_entry_count: timeline.length,
+    case_event_count:
+      sourceKinds.filter((kind) => kind === "accepted_intake" || kind === "case_event").length,
+    case_revision_count: sourceKinds.filter((kind) => kind === "case_revision").length,
+    workflow_checkpoint_count: sourceKinds.filter((kind) => kind === "workflow_checkpoint").length,
+    agent_step_count: sourceKinds.filter((kind) => kind === "agent_step").length,
+    tool_result_count: sourceKinds.filter((kind) => kind === "tool_result").length,
+    fixture_delivery_effect_count: sourceKinds.filter((kind) => kind === "delivery_completion").length,
+    evidence_node_count: timeline.length - 1,
+    replay_result_count: sourceKinds.filter((kind) => kind === "replay_result").length,
+  };
+  for (const [field, expected] of Object.entries(expectedCounts)) {
+    if (counts[field] !== expected) {
+      return { valid: false, reasonCode: "operator-" + field + "-mismatch" };
+    }
+  }
+
+  if (
+    !sourceIds.includes("case_revision:" + String(caseIdentity.case_revision_id)) ||
+    !sourceIds.includes("workflow_checkpoint:" + String(caseIdentity.latest_checkpoint_id)) ||
+    sourceIds.at(-1) !== "replay_result:" + String(replay.replay_result_id) ||
+    (timeline.at(-1) as JsonObject).source_sha256 !== replay.result_sha256
+  ) return { valid: false, reasonCode: "operator-link-mismatch" };
+
+  const one = (kind: string, observation: string) => {
+    const entries = timeline.filter(
+      (item) => isJsonObject(item) && item.source_kind === kind && item.observation === observation,
+    );
+    return entries.length === 1;
+  };
+  if (
+    !one("verifier_outcome", "verified") ||
+    !one("policy_decision", "allowed") ||
+    !one("approval_decision", "approved") ||
+    !one("delivery_completion", "fixture_local_recorded")
+  ) return { valid: false, reasonCode: "operator-gate-summary-invalid" };
+  return { valid: true };
+}

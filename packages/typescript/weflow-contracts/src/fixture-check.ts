@@ -8,6 +8,9 @@ import {
   validateAgentActionForContext,
   validateBenchmarkCoreResult,
   validateEvaluationSuiteSnapshot,
+  finalizeOperatorCaseSnapshot,
+  operatorCaseEntryId,
+  validateOperatorCaseSnapshot,
   validateEvidenceChain,
   validateChange4AuthorizationProfile,
   validateHashBoundApproval,
@@ -104,6 +107,12 @@ const invalidBenchmarkPayloads = JSON.parse(
 const evaluationSuiteSnapshot = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/semantic/evaluation-suite-snapshot.json"), "utf8"),
 ) as JsonObject;
+const operatorCaseSnapshot = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/operator-case-snapshot.json"), "utf8"),
+) as JsonObject;
+const invalidOperatorCaseSnapshotCases = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/invalid/operator-case-snapshot-invalid-cases.json"), "utf8"),
+) as Record<string, string>;
 const invalidEvaluationSuiteSnapshotCases = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/evaluation-suite-snapshot-invalid-cases.json"), "utf8"),
 ) as Record<string, string>;
@@ -167,6 +176,92 @@ function invalidEvaluationSuiteSnapshot(kind: string): JsonObject {
   } else {
     throw new Error("unknown-invalid-evaluation-suite-snapshot-kind");
   }
+  return snapshot;
+}
+
+function operatorEntry(snapshot: JsonObject, kind: string): JsonObject {
+  return (snapshot.timeline as JsonObject[]).find((item) => item.source_kind === kind) as JsonObject;
+}
+
+function relinkOperatorSnapshot(snapshot: JsonObject): void {
+  let prior: string | null = null;
+  (snapshot.timeline as JsonObject[]).forEach((entry, index) => {
+    const sequence = index + 1;
+    entry.sequence = sequence;
+    entry.entry_id = operatorCaseEntryId({
+      sequence,
+      sourceKind: String(entry.source_kind),
+      sourceId: String(entry.source_id),
+      sourceSha256: String(entry.source_sha256),
+    });
+    entry.predecessor_entry_id = prior;
+    prior = String(entry.entry_id);
+  });
+}
+
+function refinalizeOperatorSnapshot(snapshot: JsonObject): JsonObject {
+  return finalizeOperatorCaseSnapshot(snapshot) as JsonObject;
+}
+
+function invalidOperatorCaseSnapshot(kind: string): JsonObject {
+  let snapshot = structuredClone(operatorCaseSnapshot) as JsonObject;
+  const timeline = snapshot.timeline as JsonObject[];
+  if (kind === "foreign_identity") snapshot.tenant_id = "tenant-foreign";
+  else if (kind === "detached_source_hash") {
+    operatorEntry(snapshot, "tool_result").source_sha256 = "f".repeat(64);
+    relinkOperatorSnapshot(snapshot); snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "detached_evidence_root") {
+    (snapshot.evidence as JsonObject).root_sha256 = "e".repeat(64);
+    snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "detached_replay_root") {
+    (snapshot.replay as JsonObject).replayed_root_sha256 = "d".repeat(64);
+    snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "snapshot_hash") snapshot.snapshot_sha256 = "c".repeat(64);
+  else if (kind === "missing_entry") {
+    snapshot.timeline = timeline.filter((item) => item.source_kind !== "capability_grant");
+    relinkOperatorSnapshot(snapshot); snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "duplicate_entry") {
+    timeline.splice(2, 0, structuredClone(timeline[1]));
+    relinkOperatorSnapshot(snapshot); snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "duplicate_source") {
+    timeline[2].source_id = timeline[1].source_id;
+    timeline[2].source_kind = timeline[1].source_kind;
+    timeline[2].phase = timeline[1].phase;
+    relinkOperatorSnapshot(snapshot); snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "out_of_order_entry") {
+    [timeline[0], timeline[timeline.length - 2]] = [timeline[timeline.length - 2], timeline[0]];
+    relinkOperatorSnapshot(snapshot); snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "predecessor_mismatch") {
+    timeline[1].predecessor_entry_id = null;
+    snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "count_mismatch") {
+    const counts = snapshot.counts as JsonObject;
+    counts.timeline_entry_count = Number(counts.timeline_entry_count) + 1;
+    snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "stale_approval_as_success") {
+    const entry = operatorEntry(snapshot, "approval_decision");
+    entry.observation = "stale"; entry.reason_code = "stale_approval";
+    snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "policy_denial_as_success") {
+    const entry = operatorEntry(snapshot, "policy_decision");
+    entry.observation = "denied"; entry.reason_code = "policy_denied";
+    snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else if (kind === "raw_field") snapshot.raw_payload = "blocked";
+  else if (kind === "secret_like_field") snapshot.provider_token = "blocked";
+  else if (kind === "executable_field") {
+    operatorEntry(snapshot, "agent_step").reason_code = "<script>alert(1)</script>";
+  } else if (kind === "absolute_path") snapshot.fixture_source_path = "C:/private/fixture.json";
+  else if (kind === "escaping_path") snapshot.fixture_source_path = "../fixtures/policy/fixture.json";
+  else if (kind === "caller_authority") snapshot.caller_role = "operator";
+  else if (kind === "live_provider") (snapshot.capabilities as JsonObject).live_provider = true;
+  else if (kind === "customer_success") (snapshot.capabilities as JsonObject).customer_resolution = true;
+  else if (kind === "mutation_capability") (snapshot.capabilities as JsonObject).workflow_authority = true;
+  else if (kind === "effect_capability") (snapshot.capabilities as JsonObject).retry_authority = true;
+  else if (kind === "unsupported_recovery") {
+    const entry = operatorEntry(snapshot, "delivery_completion");
+    entry.recovery_status = "recovered"; entry.reason_code = "recovered_after_interruption";
+    snapshot = refinalizeOperatorSnapshot(snapshot);
+  } else throw new Error("unknown-invalid-operator-case-snapshot-kind");
   return snapshot;
 }
 
@@ -417,6 +512,14 @@ for (const [name, kind] of Object.entries(invalidEvaluationSuiteSnapshotCases)) 
     failedSchemas.push("invalid-evaluation-suite-snapshot-" + name);
   }
 }
+if (!validateOperatorCaseSnapshot(operatorCaseSnapshot, root).valid) {
+  failedSchemas.push("operator-case-snapshot");
+}
+for (const [name, kind] of Object.entries(invalidOperatorCaseSnapshotCases)) {
+  if (validateOperatorCaseSnapshot(invalidOperatorCaseSnapshot(kind), root).valid) {
+    failedSchemas.push("invalid-operator-case-snapshot-" + name);
+  }
+}
 if (failedSchemas.length > 0) {
   throw new Error(`contract-fixture-check-failed:${failedSchemas.join(",")}`);
 }
@@ -431,6 +534,7 @@ console.log(
       Object.keys(invalidAgentPayloads).length +
       Object.keys(evidenceInvalid).length +
       Object.keys(invalidBenchmarkPayloads).length +
+      Object.keys(invalidOperatorCaseSnapshotCases).length +
       2,
   }),
 );

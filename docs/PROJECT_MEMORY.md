@@ -621,3 +621,74 @@ Next-stage gate:
 - A report, snapshot, offline score, fixture-local record, or provider acknowledgement
   MUST NOT alone establish customer receipt, incident resolution, Case completion, or
   permission for another side effect.
+
+## 20. Archived offline Operator Case timeline (2026-08-05)
+
+`add-offline-operator-case-timeline` was archived as
+`2026-08-05-add-offline-operator-case-timeline`. Its four Operator Case timeline
+requirements and the additive `OperatorCaseSnapshot` contract requirement were synced
+to the main OpenSpec specifications before archive. The slice adds a fixed, read-only
+Operator Case projection over the existing synthetic API-503 evidence; it does not add
+a mutable Case source, Replay control, provider, or external effect.
+
+Verified facts:
+
+- `OperatorCaseSnapshot` is a closed v1 JSON Schema with matching Python and
+  TypeScript contracts. It binds the tenant, fixture, Case revision, workflow,
+  evidence/report/Replay roots, counts, capabilities, and a contiguous source-linked
+  timeline with canonical hashes and hard-gate precedence.
+- Two fresh public simulator runs in separate temporary SQLite stores produced the
+  same snapshot byte-for-byte. The snapshot has 49 ordered entries: 48 actual evidence
+  trajectory nodes and one terminal verification-Replay result. Its snapshot hash is
+  `35d65b4ad7180fd2594a8531fc63851049a1779fe3028e36937aceb6e1c4afe1`.
+- The timeline records 9 Case events, 1 revision, 13 workflow checkpoints, 4 Agent
+  steps, 3 tool results, 2 fixture-local ticket effects, 1 fixture-local delivery
+  effect, and 1 Replay result. Every entry maps to exactly one public source record;
+  duplicate natural identities and idempotency keys are zero.
+- The canonical reader accepts only
+  `reports/add-offline-operator-case-timeline-acceptance.json`, rejects duplicate JSON
+  keys, unsafe paths/fields, stale or detached evidence, and partial reports, and never
+  creates or repairs a store or report.
+- `GET /v1/operator/cases/api-503.v1` derives tenant identity from the allowlisted
+  synthetic actor and accepts no caller-selected Case, report, path, tenant, or
+  version. Missing and foreign evidence share `404 operator_case_not_found`; integrity
+  failures are `503 operator_case_not_ready`, selectors are `422`, unknown actors are
+  `403`, and unsupported methods are `405`.
+- The Vue workspace validates all structure and content hashes before rendering. It
+  shows all 49 entries, one source-linked detail, bounded counts/roots/capabilities,
+  and five safe surface states. `DELIVERY_RECORDED (fixture-local)` is not presented as
+  customer delivery, resolution, Case completion, or approval/workflow authority.
+- The canonical acceptance report hash is
+  `aeb098b415acd54c68bc61f1287e096d69fe1ab6440affc6b092c69364b44d71`.
+  Its 18 negative scenarios emit only the four allowlisted safe classifications. Two
+  baselines were equal, and default-store/source-report mutations, duplicate natural
+  or idempotency identities, network/model/provider calls, external-write attempts,
+  and unauthorized effects were all zero. Invalid pending publication preserves the
+  prior report.
+- The 2026-08-05 verification passed `python scripts/dev.py check`, `lint`,
+  `typecheck`, and `contracts` (Python 98 passed; TypeScript 37 valid / 53 invalid);
+  57 focused Operator Case tests; and `python scripts/dev.py test` (Python 336 passed,
+  2 skipped in 674.60 seconds, plus TypeScript contracts and all Web Console checks).
+  The production Vite build transformed 14 modules and emitted 96.79 kB JavaScript
+  (34.03 kB gzip). Final Operator Case acceptance and strict OpenSpec validation passed.
+  After spec sync, strict validation passed 20/20 active-change and main-spec items,
+  and the active change list was empty after archive.
+
+Known limitations:
+
+- This view is fixed to one synthetic API-503 fixture and one retained report. It is
+  offline, report-backed, read-only, and verification-Replay-only; it cannot list or
+  select Cases, rerun a workflow, inject a fault, approve, retry, execute a tool,
+  perform an external write, or declare customer success.
+- Network, models, live providers, real credentials, customer data, customer
+  receipt/resolution, Case completion, and multi-Agent coordination remain disabled,
+  unsupported, or unverified. Fixture-local delivery is only a durable local record.
+
+Next-stage gate:
+
+- Interactive Replay or fault controls require a separate approved OpenSpec change.
+  It must define a closed command contract, tenant/role authorization, immutable run
+  identity, bounded fixture/fault selection, deterministic state ownership, budgets,
+  idempotency and audit evidence, cancellation/recovery, and negative proof that an
+  observer cannot mutate the source Case or grant approval, workflow, retry, provider,
+  or external-write authority.
