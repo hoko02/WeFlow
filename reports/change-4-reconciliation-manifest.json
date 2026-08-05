@@ -1,0 +1,63 @@
+{
+  "archive_path": "openspec/changes/archive/2026-08-04-add-policy-and-approval-gates",
+  "artifacts": [
+    {
+      "kind": "acceptance",
+      "outcome": "passed",
+      "path": "reports/change-4-acceptance.json",
+      "sha256": "deabb4084ebed784608781ee1d0546cc51a62f729cbabce9c54ba582917f2e1b"
+    },
+    {
+      "kind": "strict_validation",
+      "outcome": "failed",
+      "path": "reports/change-4-openspec-validation.json",
+      "sha256": "1bc910b633e6fd3853a63fa170862a4322989262c49c7b215a717ab21924da32"
+    },
+    {
+      "kind": "aggregate_verification",
+      "outcome": "passed",
+      "path": "reports/change-4-5-reconciliation-verification.json",
+      "sha256": "e4859eb0647a4b86e990347f2c771f3fe1a8b48b713b07ba224a15ead26c29f6"
+    }
+  ],
+  "change": "add-policy-and-approval-gates",
+  "commands": [
+    {
+      "command": "uv run python scripts/dev.py policy-approval-acceptance --output reports/change-4-acceptance.json",
+      "elapsed_seconds": 38.6140431,
+      "exit_code": 0,
+      "kind": "acceptance",
+      "outcome": "passed"
+    },
+    {
+      "command": "npx.cmd openspec validate add-policy-and-approval-gates --type change --strict",
+      "elapsed_seconds": 2.3423669,
+      "exit_code": 1,
+      "kind": "strict_validation",
+      "outcome": "failed"
+    },
+    {
+      "command": "uv run python scripts/dev.py test",
+      "elapsed_seconds": 168.027967,
+      "exit_code": 0,
+      "kind": "aggregate_verification",
+      "outcome": "passed"
+    }
+  ],
+  "environment": {
+    "docker_available": false,
+    "node_available": true,
+    "node_version": "v22.21.1"
+  },
+  "limitations": [
+    "offline_only",
+    "network_not_required",
+    "model_credentials_not_required",
+    "docker_unavailable",
+    "node_version_v22_21_1_observed",
+    "archived_change_has_no_delta"
+  ],
+  "reconciled_on": "2026-08-05",
+  "report_type": "weflow-archive-evidence-manifest.v1",
+  "source_commit": "e8cc119a2944e9ef8f353ae56073295a45e36263"
+}

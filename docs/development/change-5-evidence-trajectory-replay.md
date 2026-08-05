@@ -2,8 +2,17 @@
 
 `add-evidence-and-trajectory-replay` is a fixture-local, offline verification slice
 over the retained API-503 investigation, policy, approval, and local-delivery facts.
-It is applied and locally verified; OpenSpec sync/archive is a separate finalization
-action.
+It is synced into the main specifications and archived as
+`2026-08-04-add-evidence-and-trajectory-replay`.
+
+The 2026-08-05 reconciliation reran the offline acceptance command and the bounded
+aggregate local suite successfully. Their redacted records are
+`reports/change-5-evidence-trajectory-acceptance.json`,
+`reports/change-4-5-reconciliation-verification.json`, and
+`reports/change-5-reconciliation-manifest.json`. The current OpenSpec CLI cannot
+strict-validate the archived directory because it no longer exposes a delta; that
+truthful `failed` result is retained in `reports/change-5-openspec-validation.json`
+with `archived_change_has_no_delta`. It is not a passing strict-validation claim.
 
 ## Supported contract
 
@@ -62,6 +71,8 @@ reconciliation, adapters, network clients, Docker services, or external executor
 python scripts/dev.py contracts
 python scripts/dev.py evidence-trajectory-acceptance --output reports/change-5-evidence-trajectory-acceptance.json
 uv run pytest tests/contracts/test_evidence_contracts.py tests/unit/test_evidence_trajectory.py tests/security/test_evidence_trajectory_security.py tests/integration/test_evidence_trajectory_api.py tests/e2e/test_evidence_trajectory_acceptance.py
+python scripts/dev.py reconciliation-verification --output reports/change-4-5-reconciliation-verification.json
+python scripts/dev.py archive-evidence-check
 ```
 
 The acceptance command uses checked-in fixtures and temporary local SQLite only. It
@@ -70,9 +81,10 @@ and tampered-lineage paths. It emits redacted machine-readable evidence and reje
 non-offline, raw-export, or provider configuration before initializing a store.
 
 Node is required for the TypeScript contract check but not the core evidence acceptance.
-Docker is diagnostic-only and is not required; Docker was unavailable on the current
-verification workstation. No network, model key, enterprise credential, or real provider
-is used.
+The reconciliation observed Node `v22.21.1`; this environment fact is retained in the
+manifest and is not a Node 24 verification claim. Docker is diagnostic-only and is not
+required; Docker was unavailable on the verification workstation. No network, model key,
+enterprise credential, or real provider is used.
 
 ## Explicit exclusions and next gate
 

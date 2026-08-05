@@ -1,0 +1,169 @@
+{
+  "accepted": true,
+  "capabilities": {
+    "business_workflow_implemented": false,
+    "customer_resolution_enabled": false,
+    "external_writes_enabled": false,
+    "fixture_approval_enabled": true,
+    "fixture_outbound_delivery_enabled": true,
+    "fixture_policy_approval_delivery_implemented": true,
+    "live_approval_enabled": false,
+    "live_outbound_delivery_enabled": false,
+    "model_invocation": false,
+    "real_provider_enabled": false
+  },
+  "determinism": {
+    "intentional_nondeterministic_fields": [],
+    "repeated_baseline_equal": true
+  },
+  "docker_required": false,
+  "environment_limits": {
+    "docker_available": false,
+    "docker_required": false,
+    "docker_service_boundary_verified": false,
+    "node_available": true,
+    "node_required_for_core_acceptance": false,
+    "node_required_for_typescript_and_console_checks": true
+  },
+  "fixture_outcomes": {
+    "api_503_policy_approval_delivery": {
+      "credentials_required": false,
+      "customer_resolution": false,
+      "fixture_id": "api-503-policy-approval-delivery",
+      "fixture_local": true,
+      "network_required": false,
+      "real_external_write": false,
+      "source_counts": {
+        "approval_decisions": 1,
+        "approval_requests": 1,
+        "authorization_bindings": 1,
+        "capability_grant_status_events": 0,
+        "capability_grants": 1,
+        "fixture_delivery_operations": 1,
+        "fixture_delivery_records": 1,
+        "outbound_delivery_completions": 1,
+        "outbound_delivery_intents": 1,
+        "outbound_delivery_observations": 2,
+        "policy_approval_activations": 1,
+        "policy_decisions": 1
+      },
+      "state": "DELIVERY_RECORDED",
+      "workflow_version": 12
+    },
+    "authorization_denial": {
+      "approval_decision_count": 1,
+      "customer_resolution": false,
+      "delivery_intent_count": 0,
+      "delivery_record_count": 0,
+      "real_external_write": false,
+      "reason_code": "authorization_denied_grant_revoked",
+      "state": "WAITING_FOR_OPERATOR"
+    },
+    "fault_recovery": [
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "policy",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "approval-request",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "approval-decision",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "delivery-intent",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "delivery-execute",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "delivery-lost-response",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "delivery-observation",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "delivery-completion",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "delivery-transition",
+        "reconciliation_timeout": false,
+        "state": "DELIVERY_RECORDED"
+      },
+      {
+        "delivery_completion_count": 1,
+        "delivery_intent_count": 1,
+        "delivery_operation_count": 1,
+        "delivery_record_count": 1,
+        "duplicate_delivery": false,
+        "fault_point": "reconciliation-timeout",
+        "reconciliation_timeout": true,
+        "state": "DELIVERY_RECORDED"
+      }
+    ]
+  },
+  "model_credentials_required": false,
+  "network_required": false,
+  "offline": true,
+  "report_type": "weflow-change-4-policy-approval-acceptance.v1"
+}

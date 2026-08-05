@@ -1,0 +1,63 @@
+{
+  "archive_path": "openspec/changes/archive/2026-08-04-add-evidence-and-trajectory-replay",
+  "artifacts": [
+    {
+      "kind": "acceptance",
+      "outcome": "passed",
+      "path": "reports/change-5-evidence-trajectory-acceptance.json",
+      "sha256": "6b18313c7cb6b0222e6c4bca004bb593ebe46b0edbd116e8f2edbfa8117173ee"
+    },
+    {
+      "kind": "strict_validation",
+      "outcome": "failed",
+      "path": "reports/change-5-openspec-validation.json",
+      "sha256": "ef5548a353e4ee793b28eb2bc43a1e45c64a4e36d73b9fd83af69622ea5e7701"
+    },
+    {
+      "kind": "aggregate_verification",
+      "outcome": "passed",
+      "path": "reports/change-4-5-reconciliation-verification.json",
+      "sha256": "e4859eb0647a4b86e990347f2c771f3fe1a8b48b713b07ba224a15ead26c29f6"
+    }
+  ],
+  "change": "add-evidence-and-trajectory-replay",
+  "commands": [
+    {
+      "command": "uv run python scripts/dev.py evidence-trajectory-acceptance --output reports/change-5-evidence-trajectory-acceptance.json",
+      "elapsed_seconds": 12.3589956,
+      "exit_code": 0,
+      "kind": "acceptance",
+      "outcome": "passed"
+    },
+    {
+      "command": "npx.cmd openspec validate add-evidence-and-trajectory-replay --type change --strict",
+      "elapsed_seconds": 2.3072715,
+      "exit_code": 1,
+      "kind": "strict_validation",
+      "outcome": "failed"
+    },
+    {
+      "command": "uv run python scripts/dev.py test",
+      "elapsed_seconds": 168.027967,
+      "exit_code": 0,
+      "kind": "aggregate_verification",
+      "outcome": "passed"
+    }
+  ],
+  "environment": {
+    "docker_available": false,
+    "node_available": true,
+    "node_version": "v22.21.1"
+  },
+  "limitations": [
+    "offline_only",
+    "network_not_required",
+    "model_credentials_not_required",
+    "docker_unavailable",
+    "node_version_v22_21_1_observed",
+    "archived_change_has_no_delta"
+  ],
+  "reconciled_on": "2026-08-05",
+  "report_type": "weflow-archive-evidence-manifest.v1",
+  "source_commit": "e8cc119a2944e9ef8f353ae56073295a45e36263"
+}

@@ -119,6 +119,10 @@ verified candidate 和 `RESPONSE_READY`；两次 baseline 完全一致；四个�
 不是审批、发送或客户问题已解决。
 ## 6. Change 4：`add-policy-and-approval-gates`
 
+> Status: synced and archived as `2026-08-04-add-policy-and-approval-gates`. The
+> 2026-08-05 evidence reconciliation is repository-maintenance only: it retains offline
+> fixture evidence and does not enable a provider, real approval, or external write.
+
 **目的**：把租户、数据、预算和外发权限固化为模型外硬边界。
 
 **范围**：
@@ -133,6 +137,10 @@ verified candidate 和 `RESPONSE_READY`；两次 baseline 完全一致；四个�
 **验收**：越租户/越权/未批准外发均为 0；候选变化使旧批准失效；外发确认丢失不重复发送。
 
 ## 7. Change 5：`add-evidence-and-trajectory-replay`
+
+> Status: synced and archived as `2026-08-04-add-evidence-and-trajectory-replay`. The
+> 2026-08-05 evidence reconciliation retains redacted offline evidence only; it does not
+> enable raw export, a live trace service, a provider, or an external operation.
 
 **目的**：让每次成功、失败和恢复都可以解释和重现。
 

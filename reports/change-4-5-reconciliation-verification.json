@@ -1,0 +1,24 @@
+{
+  "cleanup": {
+    "completed": true,
+    "required": false
+  },
+  "command": "uv run python scripts/dev.py test",
+  "elapsed_seconds": 168.027967,
+  "environment": {
+    "docker_available": false,
+    "node_available": true,
+    "node_version": "v22.21.1"
+  },
+  "exit_code": 0,
+  "limitations": [
+    "offline_only",
+    "network_not_required",
+    "model_credentials_not_required",
+    "docker_unavailable",
+    "node_version_v22_21_1_observed"
+  ],
+  "outcome": "passed",
+  "outer_timeout_seconds": 900,
+  "report_type": "weflow-change-4-5-reconciliation-verification.v1"
+}

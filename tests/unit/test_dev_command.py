@@ -25,6 +25,11 @@ def test_parser_accepts_required_command_surface() -> None:
     assert (
         parser.parse_args(["durable-workflow-acceptance"]).command == "durable-workflow-acceptance"
     )
+    assert parser.parse_args(["archive-evidence-check"]).command == "archive-evidence-check"
+    assert (
+        parser.parse_args(["reconciliation-verification"]).command
+        == "reconciliation-verification"
+    )
 
 
 def test_environment_check_rejects_forbidden_provider_without_echoing_value(monkeypatch) -> None:

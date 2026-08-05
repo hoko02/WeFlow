@@ -251,6 +251,34 @@ def command_evidence_trajectory_acceptance(arguments: argparse.Namespace) -> int
     _print(report)
     return 0
 
+
+def command_archive_evidence_check(_: argparse.Namespace) -> int:
+    from reconcile_archive_evidence import EvidenceValidationError, validate_repository_evidence
+
+    try:
+        report = validate_repository_evidence(ROOT)
+    except EvidenceValidationError as error:
+        _print(
+            {
+                "report_type": "weflow-archive-evidence-check.v1",
+                "passed": False,
+                "reason_code": str(error),
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
+
+def command_reconciliation_verification(arguments: argparse.Namespace) -> int:
+    from reconciliation_verification import run_aggregate_verification
+
+    report = run_aggregate_verification(ROOT)
+    if arguments.output:
+        _write_acceptance_report(arguments.output, report)
+    _print(report)
+    return 0 if report["outcome"] == "passed" else 2
+
 def command_up(arguments: argparse.Namespace) -> int:
     report = start_services(arguments.mode)
     _print(report)
@@ -356,6 +384,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional repository-relative evidence path under reports/",
     )
     evidence_trajectory.set_defaults(handler=command_evidence_trajectory_acceptance)
+    subcommands.add_parser(
+        "archive-evidence-check",
+        help="validate redacted reconciliation evidence for archived Changes 4 and 5",
+    ).set_defaults(handler=command_archive_evidence_check)
+    reconciliation_verification = subcommands.add_parser(
+        "reconciliation-verification",
+        help="run the 900-second bounded offline aggregate verification suite",
+    )
+    reconciliation_verification.add_argument(
+        "--output",
+        help="optional repository-relative evidence path under reports/",
+    )
+    reconciliation_verification.set_defaults(handler=command_reconciliation_verification)
     up = subcommands.add_parser("up", help="accept a local startup request")
     up.add_argument("--mode", choices=("offline", "service-boundary"), default="offline")
     up.set_defaults(handler=command_up)

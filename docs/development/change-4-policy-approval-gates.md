@@ -1,8 +1,17 @@
 # Change 4 Policy and Approval Gates Development Guide
 
 `add-policy-and-approval-gates` is the narrow, fixture-only continuation after the
-archived Replay investigation change. It is applied and locally verified; OpenSpec
-sync/archive remains a separate finalization action.
+archived Replay investigation change. It is synced into the main specifications and
+archived as `2026-08-04-add-policy-and-approval-gates`.
+
+The 2026-08-05 reconciliation reran the offline acceptance command and the bounded
+aggregate local suite successfully. Their redacted records are
+`reports/change-4-acceptance.json`,
+`reports/change-4-5-reconciliation-verification.json`, and
+`reports/change-4-reconciliation-manifest.json`. The current OpenSpec CLI cannot
+strict-validate the archived directory because it no longer exposes a delta; that
+truthful `failed` result is retained in `reports/change-4-openspec-validation.json`
+with `archived_change_has_no_delta`. It is not a passing strict-validation claim.
 
 ## Supported vertical slice
 
@@ -79,6 +88,8 @@ python scripts/dev.py check
 python scripts/dev.py contracts
 python scripts/dev.py policy-approval-acceptance --output reports/change-4-acceptance.json
 python scripts/dev.py test
+python scripts/dev.py reconciliation-verification --output reports/change-4-5-reconciliation-verification.json
+python scripts/dev.py archive-evidence-check
 ```
 
 The acceptance report runs two equal baselines, all nine declared interruption points,
@@ -108,11 +119,14 @@ uv run --package weflow-business-simulator python -m weflow_business_simulator.m
 
 ## Environment limits and next gate
 
-Core Change 4 acceptance needs neither Node nor Docker. Node is still required for the
-TypeScript contract and Web Console checks. Docker is optional and unavailable on the
-current verification workstation, so Temporal/service-boundary behavior is not
-live-verified. No network, model credential, enterprise credential, or live connector
-is used by this change.
+Core Change 4 acceptance needs neither Node nor Docker. The 2026-08-05 reconciliation
+observed Node `v22.21.1`; Node is still required for TypeScript contract and Web Console
+checks, and the version fact is retained in the manifest rather than treated as a Node
+24 verification claim. Docker is unavailable, so Temporal/service-boundary behavior is
+not live-verified. No network, model credential, enterprise credential, or live
+connector is used by this change.
+
+This fixture-only harness performs no real external write and initializes no live connector.
 
 A future OpenSpec change is required before any real approval provider or external
 write. It must define real identity and credential ownership, provider-specific intent

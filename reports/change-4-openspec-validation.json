@@ -1,0 +1,13 @@
+{
+  "change": "add-policy-and-approval-gates",
+  "command": "npx.cmd openspec validate add-policy-and-approval-gates --type change --strict",
+  "elapsed_seconds": 2.3423669,
+  "exit_code": 1,
+  "issues": [
+    "archived_change_has_no_delta"
+  ],
+  "outcome": "failed",
+  "report_type": "weflow-openspec-validation.v1",
+  "strict": true,
+  "valid": false
+}

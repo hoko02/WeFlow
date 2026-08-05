@@ -1,6 +1,6 @@
 # WeFlow 项目长期记忆
 
-> 最近更新：2026-08-04
+> 最近更新：2026-08-05
 > 用途：保存跨 change 的产品定位、已锁定决策、边界和启动门槛。它不是某个 change 的实现规格；进入开发前仍需通过 OpenSpec proposal 固化本次范围。
 
 ## 1. 产品定位
@@ -290,11 +290,17 @@ the main OpenSpec specifications.
 
 Verified facts:
 
-- All 23 Change 4 tasks completed. Offline `check`, `lint`, `contracts`, `test`, and
-  `policy-approval-acceptance` passed; the final suite reported 169 passed and 2
-  explicit Docker/service-boundary skips. The strict Change and main-spec OpenSpec
-  validations passed. Evidence is retained in `reports/change-4-acceptance.json` and
-  `reports/change-4-openspec-validation.json`.
+- Historical archive metadata records all 23 Change 4 tasks as completed, with its
+  then-current offline `check`, `lint`, `contracts`, `test`, and acceptance counts. That
+  historical task/count record is not substituted for current reconciliation evidence.
+- On 2026-08-05, the offline Change 4 acceptance rerun and the 900-second-bounded
+  aggregate suite both passed. The current CLI strict validation of the archived
+  directory failed with `archived_change_has_no_delta`, because archive input no longer
+  exposes a delta. It is retained as a `failed` limitation, not a pass. Canonical
+  evidence is `reports/change-4-acceptance.json`,
+  `reports/change-4-openspec-validation.json`,
+  `reports/change-4-5-reconciliation-verification.json`, and
+  `reports/change-4-reconciliation-manifest.json`.
 
 - The only new vertical slice is the checked-in `api-503-policy-approval-delivery`
   fixture. It continues an explicitly activated, verified `RESPONSE_READY` candidate
@@ -321,9 +327,10 @@ Verified facts:
 Known limitations:
 
 - Core Change 4 acceptance requires no Docker, network, model credential, enterprise
-  credential, or Node runtime. Node remains necessary for the TypeScript contract and
-  Web Console checks. Docker is unavailable on the verification workstation, so
-  Temporal/service-boundary behavior is explicitly not live-verified.
+  credential, or Node runtime. The reconciliation observed Node `v22.21.1`; Node remains
+  necessary for TypeScript contract and Web Console checks, but this is not a Node 24
+  verification claim. Docker is unavailable, so Temporal/service-boundary behavior is
+  explicitly not live-verified.
 - There is one synthetic tenant, one API-503 fixture, one local adapter resource, a
   fixed one-delivery budget, and no real approval service, enterprise identity,
   connector, customer-visible delivery, knowledge publication, or customer-success
@@ -344,11 +351,17 @@ synced into the main OpenSpec specifications.
 
 Verified facts:
 
-- All 16 Change 5 tasks completed. Main-spec strict validation passed for 15
-  capabilities, and strict validation of the archived Change passed. The focused
-  Change 5 Python suite passed 28 tests; Python contract tests passed 47 cases; the
-  TypeScript contract corpus accepted 37 valid and rejected 28 invalid payloads.
-  Secret hygiene and repository lint passed.
+- Historical archive metadata records all 16 Change 5 tasks as completed, with its
+  then-current focused Python, contract, TypeScript, secret-hygiene, and lint results.
+  Those archived counts are not substituted for current reconciliation evidence.
+- On 2026-08-05, the offline Change 5 acceptance rerun and the 900-second-bounded
+  aggregate suite both passed. The current CLI strict validation of the archived
+  directory failed with `archived_change_has_no_delta`, because archive input no longer
+  exposes a delta. It is retained as a `failed` limitation, not a pass. Canonical
+  evidence is `reports/change-5-evidence-trajectory-acceptance.json`,
+  `reports/change-5-openspec-validation.json`,
+  `reports/change-4-5-reconciliation-verification.json`, and
+  `reports/change-5-reconciliation-manifest.json`.
 - The named API-503 fixture now derives one append-only, tenant-scoped,
   content-addressed EvidenceTrajectory from retained Case, workflow, investigation,
   policy, approval, and one fixture-local delivery record. Artifact, EvidenceReport,
@@ -364,21 +377,21 @@ Verified facts:
   revoked-grant denial, and lost-response recovery paths reproduce the recorded root;
   tampered lineage returns `lineage_invalid` without a workflow transition, model,
   network request, Docker initialization, or external-write attempt.
-- Evidence is retained in `reports/change-5-evidence-trajectory-acceptance.json` and
-  `reports/change-5-verification.json`. The acceptance command is
-  `python scripts/dev.py evidence-trajectory-acceptance` and uses checked-in fixtures
-  plus temporary local SQLite only.
+- The acceptance command is `python scripts/dev.py evidence-trajectory-acceptance` and
+  uses checked-in fixtures plus temporary local SQLite only. The current reconciliation
+  paths above replace the absent historical `change-5-verification` path.
 
 Known limitations:
 
-- Docker is unavailable on the verification workstation. Node is available and is
-  required for the TypeScript contract check, but not for core evidence acceptance.
-  No network, model credential, enterprise credential, live provider, or external
-  service was used.
-- The aggregate `python scripts/dev.py test` command did not finish within the
-  120-second tool limit; its orphaned pytest process was stopped. The required focused
-  Change 5 regression suite completed successfully. This is a verification-runtime
-  limit, not evidence of a full-suite failure.
+- Docker is unavailable on the verification workstation. The reconciliation observed
+  Node `v22.21.1`, which is required for the TypeScript contract check but not core
+  evidence acceptance; it is an observed environment fact, not a Node 24 claim. No
+  network, model credential, enterprise credential, live provider, or external service
+  was used.
+- The historical 120-second tool limit is superseded by the current bounded run: the
+  aggregate `uv run python scripts/dev.py test` completed with exit code 0 in
+  168.028 seconds, well within the 900-second outer limit, with no child-process cleanup
+  required.
 - The scope remains one synthetic tenant and checked-in API-503 fixture. Raw artifact
   export, real provider/credential use, network access, customer receipt/resolution,
   knowledge publication, live trace export, real external delivery, and multi-Agent
@@ -394,3 +407,42 @@ Next-stage gate:
 - A provider acknowledgement, local adapter record, report, or replay result MUST NOT
   alone establish customer receipt, incident resolution, Case completion, or permission
   for another effect.
+
+## 16. Archived Change 4/5 evidence reconciliation (2026-08-05)
+
+`reconcile-change-4-5-archive-evidence` was archived as
+`2026-08-05-reconcile-change-4-5-archive-evidence`. Its evidence-integrity requirement
+is now a main OpenSpec specification, and its repository-hygiene requirement is synced
+into `workspace-operability`.
+
+Verified facts:
+
+- Canonical, redacted Change 4/5 acceptance, validation, verification, and manifest
+  reports are version controlled. The repository evidence check passed with two
+  manifests and 17 documented reports.
+- The Change 4 and Change 5 offline acceptances passed, and the bounded aggregate local
+  suite completed successfully within its 900-second limit. Docker was unavailable and
+  Node `v22.21.1` was recorded as an observed environment fact, not a Node 24 claim.
+- Strict validation of this active reconciliation change completed with zero issues
+  before archive. Direct strict validation of each already archived Change 4/5 directory
+  returned `failed` with `archived_change_has_no_delta`; the reports retain that exact
+  CLI limitation and do not present it as a product failure or a passing result.
+- This reconciliation changed repository evidence, documentation, and OpenSpec
+  specifications only. It did not add or enable a workflow state, API, provider,
+  connector, approval, external write, customer delivery, or live service.
+
+Known limitations:
+
+- Current OpenSpec validation covers active changes and main specifications. The CLI
+  cannot strictly validate an archived change directory after its delta is moved, so the
+  archived Change 4/5 limitation must remain visible in canonical evidence.
+- All acceptance remains fixture-only and offline. Docker, live providers, credentials,
+  enterprise connectors, real external writes, customer receipt/resolution, and
+  multi-Agent execution remain disabled or unverified.
+
+Next-stage gate:
+
+- No product capability is authorized by this maintenance archive. Start the next
+  independently verifiable product increment only with a new OpenSpec proposal; the
+  roadmap's evaluation benchmark remains a candidate next change and must preserve the
+  deterministic, fixture-first, no-real-external-write boundaries.

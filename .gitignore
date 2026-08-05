@@ -37,6 +37,13 @@ reports/*
 !reports/change-3-acceptance.json
 !reports/change-3-openspec-validation.json
 !reports/change-3-verification.json
+!reports/change-4-acceptance.json
+!reports/change-4-openspec-validation.json
+!reports/change-4-reconciliation-manifest.json
+!reports/change-5-evidence-trajectory-acceptance.json
+!reports/change-5-openspec-validation.json
+!reports/change-5-reconciliation-manifest.json
+!reports/change-4-5-reconciliation-verification.json
 artifacts/*
 !artifacts/.gitkeep
 

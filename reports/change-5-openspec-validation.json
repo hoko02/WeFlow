@@ -1,0 +1,13 @@
+{
+  "change": "add-evidence-and-trajectory-replay",
+  "command": "npx.cmd openspec validate add-evidence-and-trajectory-replay --type change --strict",
+  "elapsed_seconds": 2.3072715,
+  "exit_code": 1,
+  "issues": [
+    "archived_change_has_no_delta"
+  ],
+  "outcome": "failed",
+  "report_type": "weflow-openspec-validation.v1",
+  "strict": true,
+  "valid": false
+}

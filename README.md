@@ -17,6 +17,13 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 >
 > Change 5 (`add-evidence-and-trajectory-replay`) is archived as `2026-08-04-add-evidence-and-trajectory-replay`: its four delta capabilities are synced into the main specs. It creates append-only, redacted Evidence Reports and deterministic verification replay over retained API-503 fixture facts while remaining offline and unable to export raw data, invoke a model, perform external writes, or claim customer success.
 
+> The 2026-08-05 reconciliation retained redacted Change 4 and Change 5 evidence in
+> `reports/change-4-reconciliation-manifest.json` and
+> `reports/change-5-reconciliation-manifest.json`. Both offline acceptances and the
+> 900-second-bounded local suite passed; Docker remained unavailable and Node was
+> `v22.21.1`. Strict validation of the already archived directories currently fails with
+> `archived_change_has_no_delta`, so neither manifest treats it as a pass.
+
 ## 当前状态
 
 ### Verified Changes 0–5, including fixture evidence/replay
@@ -57,6 +64,8 @@ python scripts/dev.py durable-workflow-acceptance --output reports/change-2-acce
 python scripts/dev.py investigation-agent-acceptance --output reports/change-3-acceptance.json
 python scripts/dev.py policy-approval-acceptance --output reports/change-4-acceptance.json
 python scripts/dev.py evidence-trajectory-acceptance --output reports/change-5-evidence-trajectory-acceptance.json
+python scripts/dev.py reconciliation-verification --output reports/change-4-5-reconciliation-verification.json
+python scripts/dev.py archive-evidence-check
 
 python scripts/dev.py up --mode offline
 python scripts/dev.py health

@@ -1,0 +1,74 @@
+{
+  "accepted": true,
+  "capabilities": {
+    "customer_resolution_enabled": false,
+    "external_writes_enabled": false,
+    "fixture_evidence_trajectory_replay_implemented": true,
+    "live_trace_exporter_enabled": false,
+    "model_invocation": false,
+    "multi_agent_enabled": false,
+    "real_provider_enabled": false
+  },
+  "determinism": {
+    "intentional_nondeterministic_fields": [],
+    "repeated_baseline_equal": true
+  },
+  "docker_required": false,
+  "environment_limits": {
+    "docker_available": false,
+    "docker_required": false,
+    "network_allowed": false,
+    "node_available": true,
+    "node_required_for_core_acceptance": false
+  },
+  "fixture_outcomes": {
+    "authorization_denial": {
+      "customer_resolution": false,
+      "external_write": false,
+      "failure_code": "authorization_denied_grant_revoked",
+      "model_invocation": false,
+      "network_required": false,
+      "node_count": 42,
+      "outcome": "authorization_denied",
+      "replayed_root_sha256": "d1cf6de1deead4bf077c2574f9d77c871c0b88db0e235b15b22bc956f6e63102",
+      "trajectory_root_sha256": "d1cf6de1deead4bf077c2574f9d77c871c0b88db0e235b15b22bc956f6e63102",
+      "verification_outcome": "verified"
+    },
+    "authorized": {
+      "customer_resolution": false,
+      "external_write": false,
+      "failure_code": null,
+      "model_invocation": false,
+      "network_required": false,
+      "node_count": 48,
+      "outcome": "fixture_delivery_recorded",
+      "replayed_root_sha256": "bb1ac5250562383e75abfe7a275b282612e053dcf58531be56ed7c2e7d04a5d7",
+      "trajectory_root_sha256": "bb1ac5250562383e75abfe7a275b282612e053dcf58531be56ed7c2e7d04a5d7",
+      "verification_outcome": "verified"
+    },
+    "interrupted_recovery": {
+      "customer_resolution": false,
+      "external_write": false,
+      "failure_code": null,
+      "model_invocation": false,
+      "network_required": false,
+      "node_count": 48,
+      "outcome": "recovered_after_interruption",
+      "replayed_root_sha256": "bb1ac5250562383e75abfe7a275b282612e053dcf58531be56ed7c2e7d04a5d7",
+      "trajectory_root_sha256": "bb1ac5250562383e75abfe7a275b282612e053dcf58531be56ed7c2e7d04a5d7",
+      "verification_outcome": "verified"
+    },
+    "tampered_lineage": {
+      "docker_required": false,
+      "external_write": false,
+      "failure_code": "lineage_invalid",
+      "model_invocation": false,
+      "network_required": false,
+      "outcome": "lineage_invalid"
+    }
+  },
+  "model_credentials_required": false,
+  "network_required": false,
+  "offline": true,
+  "report_type": "weflow-change-5-evidence-trajectory-acceptance.v1"
+}
