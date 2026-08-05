@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/evaluation-task.schema.json",
+  "title": "EvaluationTask",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "suite_id", "evaluation_task_id", "fixture_id", "fixture_sha256", "policy_sha256", "execution_adapter", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/evaluation-task.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "suite_id": {"type": "string", "minLength": 1},
+    "evaluation_task_id": {"type": "string", "minLength": 1},
+    "fixture_id": {"type": "string", "minLength": 1},
+    "fixture_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "policy_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "execution_adapter": {"enum": ["case-intake", "durable-workflow", "investigation-agent", "policy-approval", "evidence-trajectory"]},
+    "fault_profile_id": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

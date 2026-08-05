@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json",
+  "title": "EvaluationSuiteReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "suite_report_id", "suite_id", "suite_sha256", "profile", "task_count", "passed_task_count", "failed_task_count", "unscored_task_count", "task_result_ids", "capability_flags", "report_sha256"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json"}, "schema_version": {"const": "v1"}, "suite_report_id": {"type": "string", "minLength": 1}, "suite_id": {"type": "string", "minLength": 1}, "suite_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}, "profile": {"const": "benchmark-core.v1"}, "task_count": {"type": "integer", "minimum": 1}, "passed_task_count": {"type": "integer", "minimum": 0}, "failed_task_count": {"type": "integer", "minimum": 0}, "unscored_task_count": {"type": "integer", "minimum": 0}, "task_result_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "capability_flags": {"type": "object", "additionalProperties": false, "required": ["offline", "replay", "network", "model", "external_write"], "properties": {"offline": {"const": true}, "replay": {"const": true}, "network": {"const": false}, "model": {"const": false}, "external_write": {"const": false}}}, "report_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+  }
+}

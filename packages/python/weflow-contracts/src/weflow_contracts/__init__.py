@@ -37,6 +37,22 @@ from .authorization import (
     validate_outbound_delivery_observation,
     validate_policy_decision,
 )
+from .evaluation import (
+    EVALUATION_ORACLE_SCHEMA_ID,
+    EVALUATION_SUITE_REPORT_SCHEMA_ID,
+    EVALUATION_TASK_SCHEMA_ID,
+    GRADER_RESULT_SCHEMA_ID,
+    RUN_METRICS_SCHEMA_ID,
+    validate_benchmark_result,
+    validate_evaluation_oracle,
+    validate_evaluation_suite_report,
+    validate_evaluation_task,
+    validate_grader_result,
+    validate_run_metrics,
+)
+from .evaluation import (
+    canonical_sha256 as evaluation_canonical_sha256,
+)
 from .evidence import (
     ARTIFACT_SCHEMA_ID,
     EVIDENCE_REPORT_SCHEMA_ID,
@@ -90,6 +106,18 @@ from .workflow import (
 )
 
 __all__ = [
+    "EVALUATION_ORACLE_SCHEMA_ID",
+    "EVALUATION_SUITE_REPORT_SCHEMA_ID",
+    "EVALUATION_TASK_SCHEMA_ID",
+    "GRADER_RESULT_SCHEMA_ID",
+    "RUN_METRICS_SCHEMA_ID",
+    "evaluation_canonical_sha256",
+    "validate_benchmark_result",
+    "validate_evaluation_oracle",
+    "validate_evaluation_suite_report",
+    "validate_evaluation_task",
+    "validate_grader_result",
+    "validate_run_metrics",
     "ARTIFACT_SCHEMA_ID",
     "EVIDENCE_REPORT_SCHEMA_ID",
     "EVIDENCE_TRAJECTORY_SCHEMA_ID",

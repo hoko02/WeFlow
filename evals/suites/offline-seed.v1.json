@@ -1,0 +1,19 @@
+{
+  "suite_id": "offline-seed.v1",
+  "profile": "benchmark-core.v1",
+  "tenant_id": "tenant-alpha",
+  "tasks": [
+    {"evaluation_task_id": "intake-accepted"},
+    {"evaluation_task_id": "intake-deduplicated"},
+    {"evaluation_task_id": "intake-out-of-order"},
+    {"evaluation_task_id": "workflow-ticket-handoff"},
+    {"evaluation_task_id": "workflow-sla-expiry"},
+    {"evaluation_task_id": "investigation-response-ready"},
+    {"evaluation_task_id": "investigation-candidate-recovery"},
+    {"evaluation_task_id": "policy-delivery-recorded"},
+    {"evaluation_task_id": "policy-delivery-recovery"},
+    {"evaluation_task_id": "policy-revoked-grant"},
+    {"evaluation_task_id": "policy-stale-approval"},
+    {"evaluation_task_id": "evidence-tampered-lineage"}
+  ]
+}

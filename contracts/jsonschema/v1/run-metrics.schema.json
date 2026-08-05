@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+  "title": "RunMetrics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "run_metrics_id", "suite_id", "run_id", "evaluation_task_id", "tool_call_count", "local_effect_count", "network_request_count", "model_invocation_count", "external_write_attempt_count"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/run-metrics.schema.json"}, "schema_version": {"const": "v1"}, "tenant_id": {"type": "string", "minLength": 1}, "run_metrics_id": {"type": "string", "minLength": 1}, "suite_id": {"type": "string", "minLength": 1}, "run_id": {"type": "string", "minLength": 1}, "evaluation_task_id": {"type": "string", "minLength": 1}, "tool_call_count": {"type": "integer", "minimum": 0}, "local_effect_count": {"type": "integer", "minimum": 0, "maximum": 2}, "network_request_count": {"const": 0}, "model_invocation_count": {"const": 0}, "external_write_attempt_count": {"const": 0}
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "suite_id": "offline-seed.v1",
+  "profile": "benchmark-core.v1",
+  "expected_task_count": 12,
+  "task_ids": [
+    "intake-accepted",
+    "intake-deduplicated",
+    "intake-out-of-order",
+    "workflow-ticket-handoff",
+    "workflow-sla-expiry",
+    "investigation-response-ready",
+    "investigation-candidate-recovery",
+    "policy-delivery-recorded",
+    "policy-delivery-recovery",
+    "policy-revoked-grant",
+    "policy-stale-approval",
+    "evidence-tampered-lineage"
+  ],
+  "expected_safe_outcomes": {
+    "policy-delivery-recovery": "recovered_after_interruption",
+    "policy-revoked-grant": "authorization_denied",
+    "policy-stale-approval": "authorization_denied",
+    "evidence-tampered-lineage": "lineage_invalid"
+  }
+}

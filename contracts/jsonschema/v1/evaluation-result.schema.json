@@ -13,6 +13,22 @@
     "evaluation_case_id": {"type": "string", "minLength": 1},
     "result": {"enum": ["passed", "failed", "not-run"]},
     "recorded_at": {"type": "string", "minLength": 1},
-    "failure_classification": {"type": ["string", "null"]}
-  }
+    "failure_classification": {"type": ["string", "null"]},
+    "benchmark_profile": {"const": "benchmark-core.v1"},
+    "suite_id": {"type": "string", "minLength": 1},
+    "evaluation_task_id": {"type": "string", "minLength": 1},
+    "task_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "oracle_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "hard_gate_passed": {"type": "boolean"},
+    "grader_result_id": {"type": "string", "minLength": 1},
+    "run_metrics_id": {"type": "string", "minLength": 1},
+    "suite_report_id": {"type": "string", "minLength": 1},
+    "report_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "quality_score": {"oneOf": [{"type": "number", "minimum": 0, "maximum": 100}, {"const": "not_scored"}]},
+    "capability_flags": {"type": "object", "additionalProperties": false, "required": ["offline", "replay", "network", "model", "external_write"], "properties": {"offline": {"const": true}, "replay": {"const": true}, "network": {"const": false}, "model": {"const": false}, "external_write": {"const": false}}}
+  },
+  "allOf": [{
+    "if": {"properties": {"benchmark_profile": {"const": "benchmark-core.v1"}}, "required": ["benchmark_profile"]},
+    "then": {"properties": {"suite_id": {}, "evaluation_task_id": {}, "task_sha256": {}, "oracle_sha256": {}, "hard_gate_passed": {}, "grader_result_id": {}, "run_metrics_id": {}, "suite_report_id": {}, "report_sha256": {}, "quality_score": {}, "capability_flags": {}}, "required": ["suite_id", "evaluation_task_id", "task_sha256", "oracle_sha256", "hard_gate_passed", "grader_result_id", "run_metrics_id", "suite_report_id", "report_sha256", "quality_score", "capability_flags"]}
+  }]
 }

@@ -13,6 +13,15 @@
     "fixture_id": {"type": "string", "minLength": 1},
     "input_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
     "created_at": {"type": "string", "minLength": 1},
-    "oracle_id": {"type": "string", "minLength": 1}
-  }
+    "oracle_id": {"type": "string", "minLength": 1},
+    "benchmark_profile": {"const": "benchmark-core.v1"},
+    "suite_id": {"type": "string", "minLength": 1},
+    "evaluation_task_id": {"type": "string", "minLength": 1},
+    "task_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "oracle_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+  },
+  "allOf": [{
+    "if": {"properties": {"benchmark_profile": {"const": "benchmark-core.v1"}}, "required": ["benchmark_profile"]},
+    "then": {"properties": {"suite_id": {}, "evaluation_task_id": {}, "task_sha256": {}, "oracle_id": {}, "oracle_sha256": {}}, "required": ["suite_id", "evaluation_task_id", "task_sha256", "oracle_id", "oracle_sha256"]}
+  }]
 }

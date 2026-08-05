@@ -446,3 +446,54 @@ Next-stage gate:
   independently verifiable product increment only with a new OpenSpec proposal; the
   roadmap's evaluation benchmark remains a candidate next change and must preserve the
   deterministic, fixture-first, no-real-external-write boundaries.
+
+## 17. Archived Change 6 offline evaluation benchmark core (2026-08-05)
+
+`add-evaluation-benchmark-core` was archived as
+`2026-08-05-add-evaluation-benchmark-core`. Its offline-evaluation-benchmark
+requirements and two benchmark-contract requirements were synced to the main OpenSpec
+specifications before archive.
+
+Verified facts:
+
+- The `benchmark-core.v1` profile provides five new versioned JSON Schemas plus
+  additive `EvaluationCase` and `EvaluationResult` fields. Python and TypeScript
+  validate safe identities, tenant links, task/oracle/report hashes, hard gates,
+  capability flags, and the `not_scored` requirement after an applicable hard-gate
+  failure.
+- The checked-in JSON-only `offline-seed.v1` suite has exactly 12 unique API-503
+  tasks across intake, durable workflow/SLA, investigation, policy/approval, and
+  evidence-lineage paths. Each run uses a temporary local SQLite store and invokes
+  only existing deterministic fixture controls.
+- The canonical report at
+  `reports/change-6-evaluation-benchmark-core-acceptance.json` passed 12/12 tasks,
+  with 0 failures and 0 unscored tasks. Its report hash is
+  `5ca0c7a5b9eed0d9eed7cb178b8f6084aaff23acd044911b72d030afae250631`; two
+  fixed-baseline runs were equal.
+- The 2026-08-05 checks passed: `python scripts/dev.py check`, `lint`, and
+  `contracts` (Python 51 passed; TypeScript contract fixture check 37 valid / 29
+  invalid); `uv run python scripts/dev.py evaluation-benchmark-acceptance --output
+  reports/change-6-evaluation-benchmark-core-acceptance.json`; and
+  `python scripts/dev.py test` (Python 224 passed, 2 skipped in 525.95 seconds,
+  plus TypeScript and web-console checks). Strict OpenSpec validation passed.
+
+Known limitations:
+
+- This is a Replay-only, fixture-only core: all 12 task inputs are synthetic and
+  redacted. Network, model invocation, provider and enterprise credentials, Docker,
+  public APIs, external executors/writes, customer resolution/success, and multi-Agent
+  execution are disabled and tested as unavailable. The command bootstraps the local
+  `weflow-testkit` source path, so the documented bare `python` invocation is supported.
+- Quality scores are deterministic oracle scores only. The profile is not a live-model
+  quality claim, a customer outcome claim, or authorization for any external effect.
+- The suite deliberately remains at 12 tasks. The roadmap target of 60 tasks and any
+  live-run capability are planned only; `planned_live_runs` remains zero.
+
+Next-stage gate:
+
+- Create and approve a new OpenSpec change before adding the 60-task corpus, model
+  evaluation, providers, credentials, network access, customer data, or any external
+  side effect. It must define task sampling, privacy/redaction and retention controls,
+  tenant isolation, independent grading/evidence, cost and safety budgets,
+  intent/reconcile/execute/complete behavior for every write, rollback, and live
+  safety acceptance evidence.

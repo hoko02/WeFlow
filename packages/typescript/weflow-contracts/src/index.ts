@@ -1241,7 +1241,7 @@ export function classifyEventDelivery(events: JsonObject[], root?: string): { du
   return { duplicate, outOfOrder };
 }
 
-function canonicalJson(value: unknown): string {
+export function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(canonicalJson).join(",")}]`;
   }
@@ -1258,4 +1258,57 @@ export function schemaFingerprints(root?: string): Record<string, string> {
     fingerprints[schemaId] = createHash("sha256").update(canonicalJson(schema), "utf8").digest("hex");
   }
   return Object.fromEntries(Object.entries(fingerprints).sort(([left], [right]) => left.localeCompare(right)));
+}
+
+export const EVALUATION_TASK_SCHEMA_ID = "https://weflow.local/contracts/v1/evaluation-task.schema.json";
+export const EVALUATION_ORACLE_SCHEMA_ID = "https://weflow.local/contracts/v1/evaluation-oracle.schema.json";
+export const GRADER_RESULT_SCHEMA_ID = "https://weflow.local/contracts/v1/grader-result.schema.json";
+export const RUN_METRICS_SCHEMA_ID = "https://weflow.local/contracts/v1/run-metrics.schema.json";
+export const EVALUATION_SUITE_REPORT_SCHEMA_ID = "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json";
+
+export function validateBenchmarkCoreResult(
+  evaluationResult: JsonObject,
+  task: JsonObject,
+  oracle: JsonObject,
+  graderResult: JsonObject,
+  metrics: JsonObject,
+  suiteReport: JsonObject,
+  root?: string,
+): ValidationResult {
+  for (const payload of [evaluationResult, task, oracle, graderResult, metrics, suiteReport]) {
+    const result = validatePayload(payload, root);
+    if (!result.valid) return result;
+  }
+  if (evaluationResult.benchmark_profile !== "benchmark-core.v1") return { valid: false, reasonCode: "benchmark-profile-invalid" };
+  const taskHash = createHash("sha256").update(canonicalJson(task)).digest("hex");
+  const oracleHash = createHash("sha256").update(canonicalJson(oracle)).digest("hex");
+  for (const [field, expected] of Object.entries({
+    suite_id: task.suite_id,
+    evaluation_task_id: task.evaluation_task_id,
+    task_sha256: taskHash,
+    oracle_sha256: oracleHash,
+  })) {
+    if (evaluationResult[field] !== expected || graderResult[field] !== expected) {
+      return { valid: false, reasonCode: `benchmark-${field}-mismatch` };
+    }
+  }
+  if (metrics.suite_id !== task.suite_id || metrics.evaluation_task_id !== task.evaluation_task_id) {
+    return { valid: false, reasonCode: "benchmark-metrics-link-mismatch" };
+  }
+  if (evaluationResult.grader_result_id !== graderResult.grader_result_id || evaluationResult.run_metrics_id !== metrics.run_metrics_id) {
+    return { valid: false, reasonCode: "benchmark-result-link-mismatch" };
+  }
+  const gates = graderResult.hard_gates;
+  if (!Array.isArray(gates)) return { valid: false, reasonCode: "benchmark-hard-gates-invalid" };
+  const hardGatePassed = gates.filter((gate) => typeof gate === "object" && gate !== null && (gate as JsonObject).applicable === true).every((gate) => (gate as JsonObject).passed === true);
+  if (graderResult.hard_gate_passed !== hardGatePassed || evaluationResult.hard_gate_passed !== hardGatePassed) {
+    return { valid: false, reasonCode: "benchmark-hard-gate-summary-invalid" };
+  }
+  if (!hardGatePassed && (graderResult.quality_score !== "not_scored" || evaluationResult.quality_score !== "not_scored")) {
+    return { valid: false, reasonCode: "benchmark-quality-score-invalid" };
+  }
+  if (suiteReport.report_sha256 !== evaluationResult.report_sha256 || !Array.isArray(suiteReport.task_result_ids) || !suiteReport.task_result_ids.includes(evaluationResult.evaluation_result_id)) {
+    return { valid: false, reasonCode: "benchmark-report-link-invalid" };
+  }
+  return { valid: true };
 }

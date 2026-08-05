@@ -1,9 +1,12 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
   JsonObject,
+  canonicalJson,
   validateAgentActionForContext,
+  validateBenchmarkCoreResult,
   validateEvidenceChain,
   validateChange4AuthorizationProfile,
   validateHashBoundApproval,
@@ -94,7 +97,9 @@ const evidenceTrajectory = JSON.parse(
 const evidenceInvalid = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/evidence-trajectory-invalid-payloads.json"), "utf8"),
 ) as Record<string, { field: string; value?: unknown }>;
-const missingIdentity = JSON.parse(
+const invalidBenchmarkPayloads = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/invalid/evaluation-benchmark-invalid-payloads.json"), "utf8"),
+) as Record<string, JsonObject>;const missingIdentity = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/missing-schema-identity.json"), "utf8"),
 ) as JsonObject;
 
@@ -114,7 +119,11 @@ for (const [name, payload] of Object.entries(invalidWorkflowPayloads)) {
     failedSchemas.push(`invalid-workflow-${name}`);
   }
 }
-for (const [name, payload] of Object.entries(invalidAgentPayloads)) {
+for (const [name, payload] of Object.entries(invalidBenchmarkPayloads)) {
+  if (validatePayload(payload, root).valid) {
+    failedSchemas.push(`invalid-benchmark-${name}`);
+  }
+}for (const [name, payload] of Object.entries(invalidAgentPayloads)) {
   if (validatePayload(payload, root).valid) {
     failedSchemas.push(`invalid-agent-${name}`);
   }
@@ -232,6 +241,31 @@ if (
 if (!validatePayload(workflowNegativeCases.conflicting_observation, root).valid) {
   failedSchemas.push("conflicting-workflow-observation");
 }
+const benchmarkTask = JSON.parse(readFileSync(resolve(root, "evals/tasks/intake-accepted/task.json"), "utf8")) as JsonObject;
+const benchmarkOracle = JSON.parse(readFileSync(resolve(root, "evals/tasks/intake-accepted/oracle.json"), "utf8")) as JsonObject;
+const benchmarkTaskHash = createHash("sha256").update(canonicalJson(benchmarkTask)).digest("hex");
+const benchmarkOracleHash = createHash("sha256").update(canonicalJson(benchmarkOracle)).digest("hex");
+const benchmarkResultId = "evaluation-result-typescript-001";
+const benchmarkFlags = { offline: true, replay: true, network: false, model: false, external_write: false };
+const benchmarkGrader = {
+  schema_id: "https://weflow.local/contracts/v1/grader-result.schema.json", schema_version: "v1", tenant_id: "tenant-alpha", grader_result_id: "grader-typescript-001", suite_id: "offline-seed.v1", run_id: "typescript-run-001", evaluation_task_id: "intake-accepted", task_sha256: benchmarkTaskHash, oracle_sha256: benchmarkOracleHash,
+  hard_gates: (benchmarkOracle.required_hard_gates as string[]).map((name) => ({ name, applicable: true, passed: true, reason_code: "passed" })), hard_gate_passed: true,
+  dimensions: ["outcome", "evidence", "recovery", "efficiency"].map((name) => ({ name, score: 100 })), quality_score: 100, result: "passed", failure_classification: null, capability_flags: benchmarkFlags,
+} as JsonObject;
+const benchmarkMetrics = {
+  schema_id: "https://weflow.local/contracts/v1/run-metrics.schema.json", schema_version: "v1", tenant_id: "tenant-alpha", run_metrics_id: "metrics-typescript-001", suite_id: "offline-seed.v1", run_id: "typescript-run-001", evaluation_task_id: "intake-accepted", tool_call_count: 0, local_effect_count: 0, network_request_count: 0, model_invocation_count: 0, external_write_attempt_count: 0,
+} as JsonObject;
+const benchmarkReport = {
+  schema_id: "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json", schema_version: "v1", suite_report_id: "suite-report-typescript-001", suite_id: "offline-seed.v1", suite_sha256: "e".repeat(64), profile: "benchmark-core.v1", task_count: 1, passed_task_count: 1, failed_task_count: 0, unscored_task_count: 0, task_result_ids: [benchmarkResultId], capability_flags: benchmarkFlags, report_sha256: "f".repeat(64),
+} as JsonObject;
+const benchmarkEvaluationResult = {
+  schema_id: "https://weflow.local/contracts/v1/evaluation-result.schema.json", schema_version: "v1", tenant_id: "tenant-alpha", evaluation_result_id: benchmarkResultId, evaluation_case_id: "evaluation-case-typescript-001", result: "passed", recorded_at: "2026-08-05T00:00:00Z", failure_classification: null, benchmark_profile: "benchmark-core.v1", suite_id: "offline-seed.v1", evaluation_task_id: "intake-accepted", task_sha256: benchmarkTaskHash, oracle_sha256: benchmarkOracleHash, hard_gate_passed: true, grader_result_id: "grader-typescript-001", run_metrics_id: "metrics-typescript-001", suite_report_id: "suite-report-typescript-001", report_sha256: "f".repeat(64), quality_score: 100, capability_flags: benchmarkFlags,
+} as JsonObject;
+if (!validateBenchmarkCoreResult(benchmarkEvaluationResult, benchmarkTask, benchmarkOracle, benchmarkGrader, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-result");
+const invalidBenchmark = structuredClone(benchmarkGrader) as JsonObject;
+(invalidBenchmark.hard_gates as JsonObject[])[0].passed = false;
+invalidBenchmark.hard_gate_passed = false;
+if (validateBenchmarkCoreResult({ ...benchmarkEvaluationResult, hard_gate_passed: false, quality_score: 100 }, benchmarkTask, benchmarkOracle, invalidBenchmark, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-unscored-gate");
 if (failedSchemas.length > 0) {
   throw new Error(`contract-fixture-check-failed:${failedSchemas.join(",")}`);
 }
@@ -245,6 +279,7 @@ console.log(
       Object.keys(invalidWorkflowPayloads).length +
       Object.keys(invalidAgentPayloads).length +
       Object.keys(evidenceInvalid).length +
+      Object.keys(invalidBenchmarkPayloads).length +
       2,
   }),
 );

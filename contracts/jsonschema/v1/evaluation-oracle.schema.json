@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/evaluation-oracle.schema.json",
+  "title": "EvaluationOracle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "oracle_id", "evaluation_task_id", "expected_outcome", "expected_local_effect_count", "required_hard_gates", "quality_weights"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/evaluation-oracle.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "oracle_id": {"type": "string", "minLength": 1},
+    "evaluation_task_id": {"type": "string", "minLength": 1},
+    "expected_outcome": {"enum": ["accepted", "deduplicated", "inbound_out_of_order", "ticket_ready", "waiting_for_operator", "response_ready", "fixture_delivery_recorded", "authorization_denied", "recovered_after_interruption", "lineage_invalid"]},
+    "expected_local_effect_count": {"type": "integer", "minimum": 0, "maximum": 2},
+    "requires_approval": {"type": "boolean"},
+    "required_hard_gates": {"type": "array", "minItems": 1, "items": {"enum": ["tenant_reference", "offline_replay", "external_write_absent", "local_effect_identity", "approval_binding", "evidence_lineage", "expected_outcome"]}},
+    "quality_weights": {"type": "object", "additionalProperties": false, "required": ["outcome", "evidence", "recovery", "efficiency"], "properties": {"outcome": {"type": "integer", "minimum": 0, "maximum": 100}, "evidence": {"type": "integer", "minimum": 0, "maximum": 100}, "recovery": {"type": "integer", "minimum": 0, "maximum": 100}, "efficiency": {"type": "integer", "minimum": 0, "maximum": 100}}}
+  }
+}

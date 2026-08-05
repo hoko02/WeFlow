@@ -27,8 +27,11 @@ def test_parser_accepts_required_command_surface() -> None:
     )
     assert parser.parse_args(["archive-evidence-check"]).command == "archive-evidence-check"
     assert (
-        parser.parse_args(["reconciliation-verification"]).command
-        == "reconciliation-verification"
+        parser.parse_args(["evaluation-benchmark-acceptance"]).command
+        == "evaluation-benchmark-acceptance"
+    )
+    assert (
+        parser.parse_args(["reconciliation-verification"]).command == "reconciliation-verification"
     )
 
 

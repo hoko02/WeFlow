@@ -64,6 +64,7 @@ python scripts/dev.py durable-workflow-acceptance --output reports/change-2-acce
 python scripts/dev.py investigation-agent-acceptance --output reports/change-3-acceptance.json
 python scripts/dev.py policy-approval-acceptance --output reports/change-4-acceptance.json
 python scripts/dev.py evidence-trajectory-acceptance --output reports/change-5-evidence-trajectory-acceptance.json
+python scripts/dev.py evaluation-benchmark-acceptance --output reports/change-6-evaluation-benchmark-core-acceptance.json
 python scripts/dev.py reconciliation-verification --output reports/change-4-5-reconciliation-verification.json
 python scripts/dev.py archive-evidence-check
 
@@ -86,6 +87,7 @@ For the optional Docker-backed boundary mode, run `compose up`, then `up --mode 
 - [Change 3 Bounded Replay Investigation Agent Development Guide](docs/development/change-3-investigation-agent-loop.md)
 - [Change 4 Policy and Approval Gates Development Guide](docs/development/change-4-policy-approval-gates.md)
 - [Change 5 Evidence Trajectory and Replay Development Guide](docs/development/change-5-evidence-trajectory-replay.md)
+- [Change 6 Evaluation Benchmark Core Development Guide](docs/development/change-6-evaluation-benchmark.md)
 - [MVP 探索结论](docs/exploration/weflow-mvp-exploration.md)
 - [参考架构](docs/architecture/reference-architecture.md)
 - [OpenSpec 分步开发路线](docs/development/openspec-roadmap.md)

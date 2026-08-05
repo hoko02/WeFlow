@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+  "title": "GraderResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "grader_result_id", "suite_id", "run_id", "evaluation_task_id", "task_sha256", "oracle_sha256", "hard_gates", "hard_gate_passed", "dimensions", "quality_score", "result", "capability_flags"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/grader-result.schema.json"}, "schema_version": {"const": "v1"}, "tenant_id": {"type": "string", "minLength": 1}, "grader_result_id": {"type": "string", "minLength": 1}, "suite_id": {"type": "string", "minLength": 1}, "run_id": {"type": "string", "minLength": 1}, "evaluation_task_id": {"type": "string", "minLength": 1}, "task_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}, "oracle_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "hard_gates": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["name", "passed", "applicable", "reason_code"], "properties": {"name": {"enum": ["tenant_reference", "offline_replay", "external_write_absent", "local_effect_identity", "approval_binding", "evidence_lineage", "expected_outcome"]}, "passed": {"type": "boolean"}, "applicable": {"type": "boolean"}, "reason_code": {"type": "string", "minLength": 1}}}},
+    "dimensions": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "score"], "properties": {"name": {"enum": ["outcome", "evidence", "recovery", "efficiency"]}, "score": {"type": "number", "minimum": 0, "maximum": 100}}}}, "hard_gate_passed": {"type": "boolean"}, "quality_score": {"oneOf": [{"type": "number", "minimum": 0, "maximum": 100}, {"const": "not_scored"}]}, "result": {"enum": ["passed", "failed"]}, "failure_classification": {"type": ["string", "null"]},
+    "capability_flags": {"type": "object", "additionalProperties": false, "required": ["offline", "replay", "network", "model", "external_write"], "properties": {"offline": {"const": true}, "replay": {"const": true}, "network": {"const": false}, "model": {"const": false}, "external_write": {"const": false}}}
+  }
+}

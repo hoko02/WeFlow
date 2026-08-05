@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIRECTORY = Path(__file__).resolve().parent
 CONTROL_KERNEL_SRC = ROOT / "packages" / "python" / "weflow-control-kernel" / "src"
 CONTRACTS_SRC = ROOT / "packages" / "python" / "weflow-contracts" / "src"
+TESTKIT_SRC = ROOT / "packages" / "python" / "weflow-testkit" / "src"
 BUSINESS_SIMULATOR_SRC = ROOT / "apps" / "business-simulator" / "src"
 AGENT_RUNTIME_SRC = ROOT / "apps" / "agent-runtime" / "src"
 EXTENSION_SDK_SRC = ROOT / "packages" / "python" / "weflow-extension-sdk" / "src"
@@ -24,6 +25,7 @@ for source_directory in (
     SCRIPTS_DIRECTORY,
     CONTROL_KERNEL_SRC,
     CONTRACTS_SRC,
+    TESTKIT_SRC,
     BUSINESS_SIMULATOR_SRC,
     AGENT_RUNTIME_SRC,
     EXTENSION_SDK_SRC,
@@ -252,6 +254,28 @@ def command_evidence_trajectory_acceptance(arguments: argparse.Namespace) -> int
     return 0
 
 
+def command_evaluation_benchmark_acceptance(arguments: argparse.Namespace) -> int:
+    from evaluation_benchmark_acceptance import (
+        BenchmarkValidationError,
+        run_benchmark_core_acceptance,
+    )
+
+    try:
+        report = run_benchmark_core_acceptance(ROOT)
+        if arguments.output:
+            _write_acceptance_report(arguments.output, report)
+    except (BenchmarkValidationError, RuntimeError, ValueError) as error:
+        _print(
+            {
+                "report_type": "weflow-change-6-evaluation-benchmark-core-acceptance.v1",
+                "accepted": False,
+                "reason_code": str(error),
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
 def command_archive_evidence_check(_: argparse.Namespace) -> int:
     from reconcile_archive_evidence import EvidenceValidationError, validate_repository_evidence
 
@@ -384,6 +408,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional repository-relative evidence path under reports/",
     )
     evidence_trajectory.set_defaults(handler=command_evidence_trajectory_acceptance)
+    evaluation_benchmark = subcommands.add_parser(
+        "evaluation-benchmark-acceptance",
+        help="run the offline deterministic 12-task evaluation benchmark core",
+    )
+    evaluation_benchmark.add_argument(
+        "--output",
+        help="optional repository-relative evidence path under reports/",
+    )
+    evaluation_benchmark.set_defaults(handler=command_evaluation_benchmark_acceptance)
     subcommands.add_parser(
         "archive-evidence-check",
         help="validate redacted reconciliation evidence for archived Changes 4 and 5",
