@@ -7,7 +7,7 @@
     "build": "vite build",
     "dev": "vite --host 127.0.0.1",
     "lint": "pnpm --filter @weflow/contracts build && tsc --noEmit -p tsconfig.json",
-    "test": "pnpm --filter @weflow/contracts build && tsc -p tsconfig.status-check.json && node scripts/verify-foundation-status.mjs && vite build",
+    "test": "pnpm --filter @weflow/contracts build && tsc -p tsconfig.status-check.json && node scripts/verify-foundation-status.mjs && node scripts/verify-evaluation-report.mjs && vite build",
     "typecheck": "pnpm --filter @weflow/contracts build && tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
@@ -19,4 +19,3 @@
     "vite": "^7.0.0"
   }
 }
-

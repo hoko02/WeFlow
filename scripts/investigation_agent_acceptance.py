@@ -17,6 +17,10 @@ from weflow_control_kernel.durable_workflow import (
     WorkflowInterrupted,
 )
 from weflow_control_kernel.ledger import FixedClock, SQLiteCaseLedger
+from weflow_testkit.benchmark_observation import (
+    BenchmarkObservation,
+    make_benchmark_observation,
+)
 
 FIXTURE_ID = "api-503-investigation"
 FIXTURE_TIME = datetime(2026, 7, 29, 0, 0, 2, tzinfo=UTC)
@@ -143,6 +147,43 @@ def _assert_redacted(report: dict[str, object]) -> None:
     ):
         if forbidden in rendered:
             raise RuntimeError("investigation_acceptance_report_not_redacted")
+
+
+def run_investigation_benchmark_observation(
+    root: Path,
+    task: dict[str, object],
+    fixture: dict[str, object],
+    store_path: Path,
+) -> BenchmarkObservation:
+    """Return persisted investigation state and verifier/tool facts for one task."""
+
+    if (
+        fixture.get("fixture_id") != FIXTURE_ID
+        or fixture.get("fixture_id") != task.get("fixture_source_id")
+    ):
+        raise RuntimeError("benchmark_investigation_fixture_identity_invalid")
+    fault_point = task.get("fault_profile_id")
+    if fault_point is None:
+        observed = _baseline(root, store_path)
+        tool_count = int(observed["tool_evidence_count"])
+        evidence_valid = observed["verifier_outcome"] == "verified" and tool_count == 3
+    elif fault_point == "candidate":
+        observed = _fault_recovery(root, fault_point, store_path)
+        counts = observed["source_counts"]
+        tool_count = int(counts["investigation_tool_results"])
+        evidence_valid = tool_count == 3 and observed["state"] == "RESPONSE_READY"
+    else:
+        raise RuntimeError("benchmark_investigation_fault_unsupported")
+    state = str(observed["state"])
+    return make_benchmark_observation(
+        tenant_id="tenant-alpha",
+        state=state,
+        outcome=state.lower(),
+        evidence_valid=evidence_valid,
+        approval_valid=False,
+        local_effect_count=0,
+        tool_call_count=tool_count,
+    )
 
 
 def run_investigation_agent_acceptance(root: Path) -> dict[str, object]:

@@ -9,12 +9,14 @@ dependencies = [
   "weflow-contracts",
   "weflow-telemetry",
   "weflow-control-kernel",
+  "weflow-testkit",
 ]
 
 [tool.uv.sources]
 weflow-contracts = { workspace = true }
 weflow-control-kernel = { workspace = true }
 weflow-telemetry = { workspace = true }
+weflow-testkit = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.26"]

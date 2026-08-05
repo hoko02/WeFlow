@@ -1,0 +1,17 @@
+{
+  "foreign_tenant": "task_tenant",
+  "detached_report_hash": "report_hash",
+  "detached_suite_hash": "suite_hash",
+  "detached_source_hash": "source_hash",
+  "detached_result_id": "result_id",
+  "duplicate_task_id": "duplicate_task",
+  "count_mismatch": "count",
+  "numeric_quality_after_failed_gate": "failed_gate_score",
+  "unsafe_absolute_path": "absolute_path",
+  "raw_field": "raw",
+  "secret_like_field": "secret",
+  "caller_authority": "authority",
+  "live_provider_claim": "live_provider",
+  "customer_success_claim": "customer_success",
+  "external_write_capability": "external_write"
+}

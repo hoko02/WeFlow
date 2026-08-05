@@ -276,6 +276,27 @@ def command_evaluation_benchmark_acceptance(arguments: argparse.Namespace) -> in
     _print(report)
     return 0
 
+
+def command_evaluation_console_acceptance(arguments: argparse.Namespace) -> int:
+    from evaluation_console_acceptance import run_evaluation_console_acceptance
+
+    try:
+        report = run_evaluation_console_acceptance(ROOT)
+        if arguments.output:
+            _write_acceptance_report(arguments.output, report)
+    except (RuntimeError, ValueError):
+        _print(
+            {
+                "report_type": "weflow-offline-evaluation-report-console-acceptance.v1",
+                "accepted": False,
+                "reason_code": "evaluation_console_acceptance_failed",
+            }
+        )
+        return 2
+    _print(report)
+    return 0
+
+
 def command_archive_evidence_check(_: argparse.Namespace) -> int:
     from reconcile_archive_evidence import EvidenceValidationError, validate_repository_evidence
 
@@ -302,6 +323,7 @@ def command_reconciliation_verification(arguments: argparse.Namespace) -> int:
         _write_acceptance_report(arguments.output, report)
     _print(report)
     return 0 if report["outcome"] == "passed" else 2
+
 
 def command_up(arguments: argparse.Namespace) -> int:
     report = start_services(arguments.mode)
@@ -417,6 +439,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional repository-relative evidence path under reports/",
     )
     evaluation_benchmark.set_defaults(handler=command_evaluation_benchmark_acceptance)
+    evaluation_console = subcommands.add_parser(
+        "evaluation-console-acceptance",
+        help="validate and render the fixed offline evaluation report without side effects",
+    )
+    evaluation_console.add_argument(
+        "--output",
+        default="reports/add-offline-evaluation-report-console-acceptance.json",
+        help="repository-relative evidence path under reports/",
+    )
+    evaluation_console.set_defaults(handler=command_evaluation_console_acceptance)
     subcommands.add_parser(
         "archive-evidence-check",
         help="validate redacted reconciliation evidence for archived Changes 4 and 5",

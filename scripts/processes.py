@@ -51,7 +51,7 @@ def service_definitions() -> tuple[ServiceDefinition, ...]:
                 "--package",
                 "weflow-platform-api",
                 "uvicorn",
-                "weflow_platform_api.main:app",
+                "weflow_platform_api.asgi:app",
                 "--host",
                 "127.0.0.1",
                 "--port",

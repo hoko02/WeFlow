@@ -11,6 +11,7 @@ from typing import Any
 
 from weflow_agent_runtime import run_investigation_replay
 from weflow_business_simulator import SyntheticIntakeSimulator, SyntheticPolicyApprovalSimulator
+from weflow_contracts import approval_is_authorized
 from weflow_control_kernel.durable_workflow import (
     FaultProfile,
     FixtureClock,
@@ -19,6 +20,10 @@ from weflow_control_kernel.durable_workflow import (
 )
 from weflow_control_kernel.ledger import FixedClock, SQLiteCaseLedger
 from weflow_control_kernel.policy import API_503_POLICY_FIXTURE_ID, FIXTURE_APPROVER_ROLE
+from weflow_testkit.benchmark_observation import (
+    BenchmarkObservation,
+    make_benchmark_observation,
+)
 
 FIXTURE_TIME = datetime(2026, 7, 29, 0, 0, 2, tzinfo=UTC)
 FAULT_POINTS = (
@@ -241,6 +246,78 @@ def _assert_redacted(report: JsonObject) -> None:
     ):
         if forbidden in rendered:
             raise RuntimeError("policy_approval_acceptance_report_not_redacted")
+
+
+def run_policy_approval_benchmark_observation(
+    root: Path,
+    task: JsonObject,
+    fixture: JsonObject,
+    store_path: Path,
+) -> BenchmarkObservation:
+    """Return actual authorization, approval and fixture-local delivery facts."""
+
+    if fixture.get("fixture_id") != task.get("fixture_source_id"):
+        raise RuntimeError("benchmark_policy_fixture_identity_invalid")
+    fault_point = task.get("fault_profile_id")
+    tool_count = 0
+    if fault_point == "stale-approval":
+        authorized = approval_is_authorized(
+            fixture["request"],
+            fixture["decision"],
+            current_case_revision_id=str(fixture["current_case_revision_id"]),
+            current_evidence_hashes=fixture["current_evidence_hashes"],
+            now=FIXTURE_TIME,
+        )
+        state = "AWAITING_APPROVAL" if authorized else "APPROVAL_INVALIDATED"
+        outcome = "fixture_delivery_recorded" if authorized else "authorization_denied"
+        effects = 0
+        approval_valid = not authorized
+        evidence_valid = not authorized
+    else:
+        if fault_point is None:
+            observed = _baseline(root, store_path)
+        elif fault_point == "grant-revoked":
+            observed = _authorization_denial(root, store_path)
+        elif fault_point == "delivery-lost-response":
+            observed = _fault_recovery(root, fault_point, store_path)
+        else:
+            raise RuntimeError("benchmark_policy_fault_unsupported")
+        state = str(observed["state"])
+        _ledger, inspection, _clock = _new_store(root, store_path)
+        counts = inspection.source_counts("tenant-alpha")
+        tool_count = int(counts["investigation_tool_results"])
+        effects = int(counts["fixture_delivery_records"])
+        approval_valid = int(counts["approval_decisions"]) == 1
+        evidence_valid = True
+        if fault_point == "grant-revoked":
+            outcome = (
+                "authorization_denied"
+                if str(observed["reason_code"]).startswith("authorization_denied")
+                and effects == 0
+                else state.lower()
+            )
+        elif fault_point == "delivery-lost-response":
+            outcome = (
+                "recovered_after_interruption"
+                if state == "DELIVERY_RECORDED"
+                and observed.get("duplicate_delivery") is False
+                else state.lower()
+            )
+        else:
+            outcome = (
+                "fixture_delivery_recorded"
+                if state == "DELIVERY_RECORDED" and observed.get("fixture_local") is True
+                else state.lower()
+            )
+    return make_benchmark_observation(
+        tenant_id="tenant-alpha",
+        state=state,
+        outcome=outcome,
+        evidence_valid=evidence_valid,
+        approval_valid=approval_valid,
+        local_effect_count=effects,
+        tool_call_count=tool_count,
+    )
 
 
 def run_policy_approval_acceptance(root: Path) -> JsonObject:

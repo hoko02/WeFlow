@@ -1,0 +1,2037 @@
+{
+  "accepted": true,
+  "capabilities": {
+    "customer_resolution_enabled": false,
+    "external_writes_enabled": false,
+    "live_model_enabled": false,
+    "multi_agent_enabled": false,
+    "offline_evaluation_benchmark_core_implemented": true,
+    "planned_live_runs": 0,
+    "planned_task_count": 60
+  },
+  "determinism": {
+    "intentional_nondeterministic_fields": [],
+    "repeated_baseline_equal": true
+  },
+  "docker_required": false,
+  "model_credentials_required": false,
+  "network_required": false,
+  "offline": true,
+  "report_type": "weflow-change-6-evaluation-benchmark-core-acceptance.v1",
+  "suite_report": {
+    "capability_flags": {
+      "external_write": false,
+      "model": false,
+      "network": false,
+      "offline": true,
+      "replay": true
+    },
+    "failed_task_count": 0,
+    "passed_task_count": 12,
+    "profile": "benchmark-core.v1",
+    "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+    "schema_id": "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json",
+    "schema_version": "v1",
+    "suite_id": "offline-seed.v1",
+    "suite_report_id": "report:offline-seed.v1:baseline",
+    "suite_sha256": "62683ba2880cd0ab9a96abc6f2f69cec6ca671c001b05de704f491afdd80be6b",
+    "task_count": 12,
+    "task_result_ids": [
+      "evaluation-result:baseline:intake-accepted",
+      "evaluation-result:baseline:intake-deduplicated",
+      "evaluation-result:baseline:intake-out-of-order",
+      "evaluation-result:baseline:workflow-ticket-handoff",
+      "evaluation-result:baseline:workflow-sla-expiry",
+      "evaluation-result:baseline:investigation-response-ready",
+      "evaluation-result:baseline:investigation-candidate-recovery",
+      "evaluation-result:baseline:policy-delivery-recorded",
+      "evaluation-result:baseline:policy-delivery-recovery",
+      "evaluation-result:baseline:policy-revoked-grant",
+      "evaluation-result:baseline:policy-stale-approval",
+      "evaluation-result:baseline:evidence-tampered-lineage"
+    ],
+    "unscored_task_count": 0
+  },
+  "task_diagnostics": [
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:intake-accepted",
+        "evaluation_task_id": "intake-accepted",
+        "fixture_id": "api-503-first-delivery",
+        "input_hash": "bfd180c7a81ffd972e3be3bc5e06f4d586694b1ab88e9808d6cb769f73281239",
+        "oracle_id": "oracle-intake-accepted",
+        "oracle_sha256": "d21d559e9a2ae40218823f75ecc6e857738805edcaeffa6bcf665beb1616182b",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "e5a8810acf85e3cc5d2662fc177917a0d7a6e5982efa840015c40b9a88c9055c",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:intake-accepted",
+        "evaluation_result_id": "evaluation-result:baseline:intake-accepted",
+        "evaluation_task_id": "intake-accepted",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:intake-accepted",
+        "hard_gate_passed": true,
+        "oracle_sha256": "d21d559e9a2ae40218823f75ecc6e857738805edcaeffa6bcf665beb1616182b",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:intake-accepted",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "e5a8810acf85e3cc5d2662fc177917a0d7a6e5982efa840015c40b9a88c9055c",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "intake-accepted",
+      "fixture_id": "api-503-first-delivery",
+      "fixture_sha256": "bfd180c7a81ffd972e3be3bc5e06f4d586694b1ab88e9808d6cb769f73281239",
+      "fixture_source_path": "fixtures/intake/api-503-first-delivery.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "intake-accepted",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:intake-accepted",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "d21d559e9a2ae40218823f75ecc6e857738805edcaeffa6bcf665beb1616182b",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "e5a8810acf85e3cc5d2662fc177917a0d7a6e5982efa840015c40b9a88c9055c",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "intake-accepted",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:intake-accepted",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "accepted",
+        "replay": true,
+        "state": "RECEIVED",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "oracle_sha256": "d21d559e9a2ae40218823f75ecc6e857738805edcaeffa6bcf665beb1616182b",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "e5a8810acf85e3cc5d2662fc177917a0d7a6e5982efa840015c40b9a88c9055c"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:intake-deduplicated",
+        "evaluation_task_id": "intake-deduplicated",
+        "fixture_id": "api-503-duplicate-delivery",
+        "input_hash": "1184822b6b792bb3781b7f90af3bb6c74d0487bc6058128cb1b63423c806d5a2",
+        "oracle_id": "oracle-intake-deduplicated",
+        "oracle_sha256": "7b1e68c58bbacf97b07f30c67e4d1730af51d20d319e7bd72ecb45645719c1dc",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "e0eeef4848136bb40c313f2dcba8b857d2817f294ca30de3eecfb4551de4bbc8",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:intake-deduplicated",
+        "evaluation_result_id": "evaluation-result:baseline:intake-deduplicated",
+        "evaluation_task_id": "intake-deduplicated",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:intake-deduplicated",
+        "hard_gate_passed": true,
+        "oracle_sha256": "7b1e68c58bbacf97b07f30c67e4d1730af51d20d319e7bd72ecb45645719c1dc",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:intake-deduplicated",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "e0eeef4848136bb40c313f2dcba8b857d2817f294ca30de3eecfb4551de4bbc8",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "intake-deduplicated",
+      "fixture_id": "api-503-duplicate-delivery",
+      "fixture_sha256": "1184822b6b792bb3781b7f90af3bb6c74d0487bc6058128cb1b63423c806d5a2",
+      "fixture_source_path": "fixtures/intake/api-503-duplicate-delivery.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "intake-deduplicated",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:intake-deduplicated",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "7b1e68c58bbacf97b07f30c67e4d1730af51d20d319e7bd72ecb45645719c1dc",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "e0eeef4848136bb40c313f2dcba8b857d2817f294ca30de3eecfb4551de4bbc8",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "intake-deduplicated",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:intake-deduplicated",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "deduplicated",
+        "replay": true,
+        "state": "RECEIVED",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "oracle_sha256": "7b1e68c58bbacf97b07f30c67e4d1730af51d20d319e7bd72ecb45645719c1dc",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "e0eeef4848136bb40c313f2dcba8b857d2817f294ca30de3eecfb4551de4bbc8"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:intake-out-of-order",
+        "evaluation_task_id": "intake-out-of-order",
+        "fixture_id": "api-503-out-of-order",
+        "input_hash": "87586b2a1858ff547586777562afb5fd33e3686a40aa4b163ff38572445e227e",
+        "oracle_id": "oracle-intake-out-of-order",
+        "oracle_sha256": "0524b1328e42e6dfac533d7193b230d7896cbdedd04647de1dec69e5656e1dc8",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "2175ed44c427825a1afa67eb5dc8ddde7687d7ecc3d85344627664ee71fa7a79",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:intake-out-of-order",
+        "evaluation_result_id": "evaluation-result:baseline:intake-out-of-order",
+        "evaluation_task_id": "intake-out-of-order",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:intake-out-of-order",
+        "hard_gate_passed": true,
+        "oracle_sha256": "0524b1328e42e6dfac533d7193b230d7896cbdedd04647de1dec69e5656e1dc8",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:intake-out-of-order",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "2175ed44c427825a1afa67eb5dc8ddde7687d7ecc3d85344627664ee71fa7a79",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "intake-out-of-order",
+      "fixture_id": "api-503-out-of-order",
+      "fixture_sha256": "87586b2a1858ff547586777562afb5fd33e3686a40aa4b163ff38572445e227e",
+      "fixture_source_path": "fixtures/intake/api-503-out-of-order.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "intake-out-of-order",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:intake-out-of-order",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "0524b1328e42e6dfac533d7193b230d7896cbdedd04647de1dec69e5656e1dc8",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "2175ed44c427825a1afa67eb5dc8ddde7687d7ecc3d85344627664ee71fa7a79",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "intake-out-of-order",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:intake-out-of-order",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "inbound_out_of_order",
+        "replay": true,
+        "state": "INTAKE_REJECTED",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "oracle_sha256": "0524b1328e42e6dfac533d7193b230d7896cbdedd04647de1dec69e5656e1dc8",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "2175ed44c427825a1afa67eb5dc8ddde7687d7ecc3d85344627664ee71fa7a79"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:workflow-ticket-handoff",
+        "evaluation_task_id": "workflow-ticket-handoff",
+        "fixture_id": "api-503-ticket-handoff",
+        "input_hash": "036f8854be2cfe095ca2afa17de777c6af39054821853e294d97f9fc06493698",
+        "oracle_id": "oracle-workflow-ticket-handoff",
+        "oracle_sha256": "382a332caa1b55e3b562d99aecacb7e79eaae0c961977a4872df6f882e8780a0",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "fab286c6b31e559a2ee1b89beaa35e7e380aa410b1aa70318e70616c3be50a67",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:workflow-ticket-handoff",
+        "evaluation_result_id": "evaluation-result:baseline:workflow-ticket-handoff",
+        "evaluation_task_id": "workflow-ticket-handoff",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:workflow-ticket-handoff",
+        "hard_gate_passed": true,
+        "oracle_sha256": "382a332caa1b55e3b562d99aecacb7e79eaae0c961977a4872df6f882e8780a0",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:workflow-ticket-handoff",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "fab286c6b31e559a2ee1b89beaa35e7e380aa410b1aa70318e70616c3be50a67",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "workflow-ticket-handoff",
+      "fixture_id": "api-503-ticket-handoff",
+      "fixture_sha256": "036f8854be2cfe095ca2afa17de777c6af39054821853e294d97f9fc06493698",
+      "fixture_source_path": "fixtures/workflow/ticket-handoff.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "workflow-ticket-handoff",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:workflow-ticket-handoff",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "382a332caa1b55e3b562d99aecacb7e79eaae0c961977a4872df6f882e8780a0",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "fab286c6b31e559a2ee1b89beaa35e7e380aa410b1aa70318e70616c3be50a67",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "workflow-ticket-handoff",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 2,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:workflow-ticket-handoff",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 2,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "ticket_ready",
+        "replay": true,
+        "state": "TICKET_READY",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "oracle_sha256": "382a332caa1b55e3b562d99aecacb7e79eaae0c961977a4872df6f882e8780a0",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "fab286c6b31e559a2ee1b89beaa35e7e380aa410b1aa70318e70616c3be50a67"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:workflow-sla-expiry",
+        "evaluation_task_id": "workflow-sla-expiry",
+        "fixture_id": "api-503-sla-expiry",
+        "input_hash": "7880ed999188a48b51d89e3d28b13e76bade84ca9da60a5493a42c43fa31e97c",
+        "oracle_id": "oracle-workflow-sla-expiry",
+        "oracle_sha256": "ec6f49dd8ba3bbd41d3fd6784d335ff67f2b2f26a0898fbb72da0fb871893bc7",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "0e2e22c9658b3f2789e78b46a7c231bef9fb822030294f4ce262cb076fb27311",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:workflow-sla-expiry",
+        "evaluation_result_id": "evaluation-result:baseline:workflow-sla-expiry",
+        "evaluation_task_id": "workflow-sla-expiry",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:workflow-sla-expiry",
+        "hard_gate_passed": true,
+        "oracle_sha256": "ec6f49dd8ba3bbd41d3fd6784d335ff67f2b2f26a0898fbb72da0fb871893bc7",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:workflow-sla-expiry",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "0e2e22c9658b3f2789e78b46a7c231bef9fb822030294f4ce262cb076fb27311",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "workflow-sla-expiry",
+      "fixture_id": "api-503-sla-expiry",
+      "fixture_sha256": "7880ed999188a48b51d89e3d28b13e76bade84ca9da60a5493a42c43fa31e97c",
+      "fixture_source_path": "fixtures/workflow/sla-expiry.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "workflow-sla-expiry",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:workflow-sla-expiry",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "ec6f49dd8ba3bbd41d3fd6784d335ff67f2b2f26a0898fbb72da0fb871893bc7",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "0e2e22c9658b3f2789e78b46a7c231bef9fb822030294f4ce262cb076fb27311",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "workflow-sla-expiry",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:workflow-sla-expiry",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "waiting_for_operator",
+        "replay": true,
+        "state": "WAITING_FOR_OPERATOR",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "oracle_sha256": "ec6f49dd8ba3bbd41d3fd6784d335ff67f2b2f26a0898fbb72da0fb871893bc7",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "0e2e22c9658b3f2789e78b46a7c231bef9fb822030294f4ce262cb076fb27311"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:investigation-response-ready",
+        "evaluation_task_id": "investigation-response-ready",
+        "fixture_id": "api-503-investigation",
+        "input_hash": "927fdf84ae30bd09779e512df00e9fb95aeaf73c79bea569fe8a87245ad9dfbe",
+        "oracle_id": "oracle-investigation-response-ready",
+        "oracle_sha256": "40e78a0e41f9a5d4ce8579dbf140444b7a1df2775a898d1da2f16bae0e132237",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "00752b42b29536bf341daa88b60dcae674c7c45ad0d6684a2c3c43e9da8fc398",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:investigation-response-ready",
+        "evaluation_result_id": "evaluation-result:baseline:investigation-response-ready",
+        "evaluation_task_id": "investigation-response-ready",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:investigation-response-ready",
+        "hard_gate_passed": true,
+        "oracle_sha256": "40e78a0e41f9a5d4ce8579dbf140444b7a1df2775a898d1da2f16bae0e132237",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:investigation-response-ready",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "00752b42b29536bf341daa88b60dcae674c7c45ad0d6684a2c3c43e9da8fc398",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "investigation-response-ready",
+      "fixture_id": "api-503-investigation",
+      "fixture_sha256": "927fdf84ae30bd09779e512df00e9fb95aeaf73c79bea569fe8a87245ad9dfbe",
+      "fixture_source_path": "fixtures/investigation/api-503-investigation.transcript.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "investigation-response-ready",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:investigation-response-ready",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "40e78a0e41f9a5d4ce8579dbf140444b7a1df2775a898d1da2f16bae0e132237",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "00752b42b29536bf341daa88b60dcae674c7c45ad0d6684a2c3c43e9da8fc398",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "investigation-response-ready",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:investigation-response-ready",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "response_ready",
+        "replay": true,
+        "state": "RESPONSE_READY",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "oracle_sha256": "40e78a0e41f9a5d4ce8579dbf140444b7a1df2775a898d1da2f16bae0e132237",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "00752b42b29536bf341daa88b60dcae674c7c45ad0d6684a2c3c43e9da8fc398"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:investigation-candidate-recovery",
+        "evaluation_task_id": "investigation-candidate-recovery",
+        "fixture_id": "api-503-investigation-candidate-recovery",
+        "input_hash": "927fdf84ae30bd09779e512df00e9fb95aeaf73c79bea569fe8a87245ad9dfbe",
+        "oracle_id": "oracle-investigation-candidate-recovery",
+        "oracle_sha256": "023f73bba87f13f6183a6f482296ef9dca3cd925d69a71f2d338e858c88b12ae",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "fe48d3aad5d2ecb7ababaa7b3e6e268227765736ab3def94b91a8bd7020db81e",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:investigation-candidate-recovery",
+        "evaluation_result_id": "evaluation-result:baseline:investigation-candidate-recovery",
+        "evaluation_task_id": "investigation-candidate-recovery",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:investigation-candidate-recovery",
+        "hard_gate_passed": true,
+        "oracle_sha256": "023f73bba87f13f6183a6f482296ef9dca3cd925d69a71f2d338e858c88b12ae",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:investigation-candidate-recovery",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "fe48d3aad5d2ecb7ababaa7b3e6e268227765736ab3def94b91a8bd7020db81e",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "investigation-candidate-recovery",
+      "fixture_id": "api-503-investigation-candidate-recovery",
+      "fixture_sha256": "927fdf84ae30bd09779e512df00e9fb95aeaf73c79bea569fe8a87245ad9dfbe",
+      "fixture_source_path": "fixtures/investigation/api-503-investigation.transcript.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "investigation-candidate-recovery",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:investigation-candidate-recovery",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "023f73bba87f13f6183a6f482296ef9dca3cd925d69a71f2d338e858c88b12ae",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "fe48d3aad5d2ecb7ababaa7b3e6e268227765736ab3def94b91a8bd7020db81e",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "investigation-candidate-recovery",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:investigation-candidate-recovery",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "response_ready",
+        "replay": true,
+        "state": "RESPONSE_READY",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "oracle_sha256": "023f73bba87f13f6183a6f482296ef9dca3cd925d69a71f2d338e858c88b12ae",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "fe48d3aad5d2ecb7ababaa7b3e6e268227765736ab3def94b91a8bd7020db81e"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:policy-delivery-recorded",
+        "evaluation_task_id": "policy-delivery-recorded",
+        "fixture_id": "api-503-policy-approval-delivery",
+        "input_hash": "bbc3f8562bbd3da101e4c9b35768fba5d1c99b5c1f25481b5abd728f1d73d687",
+        "oracle_id": "oracle-policy-delivery-recorded",
+        "oracle_sha256": "c56bd0acb66d3db533c7b90f37ca4242a642d1b301c94efdc0cb44256cf8d425",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "b0982816fb1ce07570773a0dcadb94f8b54378331b11543fd6be697c3370b580",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:policy-delivery-recorded",
+        "evaluation_result_id": "evaluation-result:baseline:policy-delivery-recorded",
+        "evaluation_task_id": "policy-delivery-recorded",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-delivery-recorded",
+        "hard_gate_passed": true,
+        "oracle_sha256": "c56bd0acb66d3db533c7b90f37ca4242a642d1b301c94efdc0cb44256cf8d425",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:policy-delivery-recorded",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "b0982816fb1ce07570773a0dcadb94f8b54378331b11543fd6be697c3370b580",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "policy-delivery-recorded",
+      "fixture_id": "api-503-policy-approval-delivery",
+      "fixture_sha256": "bbc3f8562bbd3da101e4c9b35768fba5d1c99b5c1f25481b5abd728f1d73d687",
+      "fixture_source_path": "fixtures/policy/api-503-policy-approval-delivery.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "policy-delivery-recorded",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-delivery-recorded",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "c56bd0acb66d3db533c7b90f37ca4242a642d1b301c94efdc0cb44256cf8d425",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "b0982816fb1ce07570773a0dcadb94f8b54378331b11543fd6be697c3370b580",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "policy-delivery-recorded",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 1,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:policy-delivery-recorded",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "observation": {
+        "approval_valid": true,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 1,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "fixture_delivery_recorded",
+        "replay": true,
+        "state": "DELIVERY_RECORDED",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "oracle_sha256": "c56bd0acb66d3db533c7b90f37ca4242a642d1b301c94efdc0cb44256cf8d425",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "b0982816fb1ce07570773a0dcadb94f8b54378331b11543fd6be697c3370b580"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:policy-delivery-recovery",
+        "evaluation_task_id": "policy-delivery-recovery",
+        "fixture_id": "api-503-policy-delivery-lost-response",
+        "input_hash": "bbc3f8562bbd3da101e4c9b35768fba5d1c99b5c1f25481b5abd728f1d73d687",
+        "oracle_id": "oracle-policy-delivery-recovery",
+        "oracle_sha256": "f196bfd204018caf0f8f4ff414fdc63572bf987b83ac158e1f16ebf1fc504fd5",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "d22664bb3f2735c973af315777c46ebe8e774d8725fddbacd53b3c369c2f47e4",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:policy-delivery-recovery",
+        "evaluation_result_id": "evaluation-result:baseline:policy-delivery-recovery",
+        "evaluation_task_id": "policy-delivery-recovery",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-delivery-recovery",
+        "hard_gate_passed": true,
+        "oracle_sha256": "f196bfd204018caf0f8f4ff414fdc63572bf987b83ac158e1f16ebf1fc504fd5",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:policy-delivery-recovery",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "d22664bb3f2735c973af315777c46ebe8e774d8725fddbacd53b3c369c2f47e4",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "policy-delivery-recovery",
+      "fixture_id": "api-503-policy-delivery-lost-response",
+      "fixture_sha256": "bbc3f8562bbd3da101e4c9b35768fba5d1c99b5c1f25481b5abd728f1d73d687",
+      "fixture_source_path": "fixtures/policy/api-503-policy-approval-delivery.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "policy-delivery-recovery",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-delivery-recovery",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "f196bfd204018caf0f8f4ff414fdc63572bf987b83ac158e1f16ebf1fc504fd5",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "d22664bb3f2735c973af315777c46ebe8e774d8725fddbacd53b3c369c2f47e4",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "policy-delivery-recovery",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 1,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:policy-delivery-recovery",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "observation": {
+        "approval_valid": true,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 1,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "recovered_after_interruption",
+        "replay": true,
+        "state": "DELIVERY_RECORDED",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "oracle_sha256": "f196bfd204018caf0f8f4ff414fdc63572bf987b83ac158e1f16ebf1fc504fd5",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "d22664bb3f2735c973af315777c46ebe8e774d8725fddbacd53b3c369c2f47e4"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:policy-revoked-grant",
+        "evaluation_task_id": "policy-revoked-grant",
+        "fixture_id": "api-503-policy-revoked-grant",
+        "input_hash": "bbc3f8562bbd3da101e4c9b35768fba5d1c99b5c1f25481b5abd728f1d73d687",
+        "oracle_id": "oracle-policy-revoked-grant",
+        "oracle_sha256": "b58009ccabfd2e4d3f029c78f3e9d76d1e82cb79fe9b682ce8d8dd9e34ad501b",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "e4d2f44cd1ac7e7feb9db4c3b721be15184957f54b84ed97ce8ebd0bc3d3f0d6",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:policy-revoked-grant",
+        "evaluation_result_id": "evaluation-result:baseline:policy-revoked-grant",
+        "evaluation_task_id": "policy-revoked-grant",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-revoked-grant",
+        "hard_gate_passed": true,
+        "oracle_sha256": "b58009ccabfd2e4d3f029c78f3e9d76d1e82cb79fe9b682ce8d8dd9e34ad501b",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:policy-revoked-grant",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "e4d2f44cd1ac7e7feb9db4c3b721be15184957f54b84ed97ce8ebd0bc3d3f0d6",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "policy-revoked-grant",
+      "fixture_id": "api-503-policy-revoked-grant",
+      "fixture_sha256": "bbc3f8562bbd3da101e4c9b35768fba5d1c99b5c1f25481b5abd728f1d73d687",
+      "fixture_source_path": "fixtures/policy/api-503-policy-approval-delivery.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "policy-revoked-grant",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-revoked-grant",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "b58009ccabfd2e4d3f029c78f3e9d76d1e82cb79fe9b682ce8d8dd9e34ad501b",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "e4d2f44cd1ac7e7feb9db4c3b721be15184957f54b84ed97ce8ebd0bc3d3f0d6",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "policy-revoked-grant",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:policy-revoked-grant",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "observation": {
+        "approval_valid": true,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "authorization_denied",
+        "replay": true,
+        "state": "WAITING_FOR_OPERATOR",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 3
+      },
+      "oracle_sha256": "b58009ccabfd2e4d3f029c78f3e9d76d1e82cb79fe9b682ce8d8dd9e34ad501b",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "e4d2f44cd1ac7e7feb9db4c3b721be15184957f54b84ed97ce8ebd0bc3d3f0d6"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:policy-stale-approval",
+        "evaluation_task_id": "policy-stale-approval",
+        "fixture_id": "api-503-stale-approval",
+        "input_hash": "cb53b9bfec0f6a0dae59a52c9fe8c6ac66d7e590df629a02d5d7f13e837d1ab7",
+        "oracle_id": "oracle-policy-stale-approval",
+        "oracle_sha256": "5bcd849fe3be76493d19e11a61a354c30d2d5d6c86ea71ce0113586aa3b56faa",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "60f2fe223ee6cda75fd1049b8299066dadcf6c226ce3db71ba4649193ba0234b",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:policy-stale-approval",
+        "evaluation_result_id": "evaluation-result:baseline:policy-stale-approval",
+        "evaluation_task_id": "policy-stale-approval",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-stale-approval",
+        "hard_gate_passed": true,
+        "oracle_sha256": "5bcd849fe3be76493d19e11a61a354c30d2d5d6c86ea71ce0113586aa3b56faa",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:policy-stale-approval",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "60f2fe223ee6cda75fd1049b8299066dadcf6c226ce3db71ba4649193ba0234b",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "policy-stale-approval",
+      "fixture_id": "api-503-stale-approval",
+      "fixture_sha256": "cb53b9bfec0f6a0dae59a52c9fe8c6ac66d7e590df629a02d5d7f13e837d1ab7",
+      "fixture_source_path": "fixtures/evaluation/api-503-stale-approval.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "policy-stale-approval",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:policy-stale-approval",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "5bcd849fe3be76493d19e11a61a354c30d2d5d6c86ea71ce0113586aa3b56faa",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "60f2fe223ee6cda75fd1049b8299066dadcf6c226ce3db71ba4649193ba0234b",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "policy-stale-approval",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:policy-stale-approval",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "observation": {
+        "approval_valid": true,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "authorization_denied",
+        "replay": true,
+        "state": "APPROVAL_INVALIDATED",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "oracle_sha256": "5bcd849fe3be76493d19e11a61a354c30d2d5d6c86ea71ce0113586aa3b56faa",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "60f2fe223ee6cda75fd1049b8299066dadcf6c226ce3db71ba4649193ba0234b"
+    },
+    {
+      "evaluation_case": {
+        "benchmark_profile": "benchmark-core.v1",
+        "created_at": "2026-08-05T00:00:00Z",
+        "evaluation_case_id": "evaluation-case:baseline:evidence-tampered-lineage",
+        "evaluation_task_id": "evidence-tampered-lineage",
+        "fixture_id": "api-503-tampered-lineage",
+        "input_hash": "9ef5aa42c02630b18e80b4326f62c0cbac7865fdcd677e4816b9707ee0d28d75",
+        "oracle_id": "oracle-evidence-tampered-lineage",
+        "oracle_sha256": "8f65e928d3dafa91f3ecd8522946196b2f36f2a6902f6933310aad4ea989c2ee",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "04ac98af889057e9f0693cbee6dcc4bcb8c666382a17819190cfcad67441d342",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_result": {
+        "benchmark_profile": "benchmark-core.v1",
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "evaluation_case_id": "evaluation-case:baseline:evidence-tampered-lineage",
+        "evaluation_result_id": "evaluation-result:baseline:evidence-tampered-lineage",
+        "evaluation_task_id": "evidence-tampered-lineage",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:evidence-tampered-lineage",
+        "hard_gate_passed": true,
+        "oracle_sha256": "8f65e928d3dafa91f3ecd8522946196b2f36f2a6902f6933310aad4ea989c2ee",
+        "quality_score": 100,
+        "recorded_at": "2026-08-05T00:00:00Z",
+        "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+        "result": "passed",
+        "run_metrics_id": "metrics:baseline:evidence-tampered-lineage",
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "suite_report_id": "report:offline-seed.v1:baseline",
+        "task_sha256": "04ac98af889057e9f0693cbee6dcc4bcb8c666382a17819190cfcad67441d342",
+        "tenant_id": "tenant-alpha"
+      },
+      "evaluation_task_id": "evidence-tampered-lineage",
+      "fixture_id": "api-503-tampered-lineage",
+      "fixture_sha256": "9ef5aa42c02630b18e80b4326f62c0cbac7865fdcd677e4816b9707ee0d28d75",
+      "fixture_source_path": "fixtures/evaluation/api-503-tampered-lineage.json",
+      "grader_result": {
+        "capability_flags": {
+          "external_write": false,
+          "model": false,
+          "network": false,
+          "offline": true,
+          "replay": true
+        },
+        "dimensions": [
+          {
+            "name": "outcome",
+            "score": 100
+          },
+          {
+            "name": "evidence",
+            "score": 100
+          },
+          {
+            "name": "recovery",
+            "score": 100
+          },
+          {
+            "name": "efficiency",
+            "score": 100
+          }
+        ],
+        "evaluation_task_id": "evidence-tampered-lineage",
+        "failure_classification": null,
+        "grader_result_id": "grader:baseline:evidence-tampered-lineage",
+        "hard_gate_passed": true,
+        "hard_gates": [
+          {
+            "applicable": true,
+            "name": "tenant_reference",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "offline_replay",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "external_write_absent",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "local_effect_identity",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": false,
+            "name": "approval_binding",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "evidence_lineage",
+            "passed": true,
+            "reason_code": "passed"
+          },
+          {
+            "applicable": true,
+            "name": "expected_outcome",
+            "passed": true,
+            "reason_code": "passed"
+          }
+        ],
+        "oracle_sha256": "8f65e928d3dafa91f3ecd8522946196b2f36f2a6902f6933310aad4ea989c2ee",
+        "quality_score": 100,
+        "result": "passed",
+        "run_id": "baseline",
+        "schema_id": "https://weflow.local/contracts/v1/grader-result.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "task_sha256": "04ac98af889057e9f0693cbee6dcc4bcb8c666382a17819190cfcad67441d342",
+        "tenant_id": "tenant-alpha"
+      },
+      "metrics": {
+        "evaluation_task_id": "evidence-tampered-lineage",
+        "external_write_attempt_count": 0,
+        "local_effect_count": 0,
+        "model_invocation_count": 0,
+        "network_request_count": 0,
+        "run_id": "baseline",
+        "run_metrics_id": "metrics:baseline:evidence-tampered-lineage",
+        "schema_id": "https://weflow.local/contracts/v1/run-metrics.schema.json",
+        "schema_version": "v1",
+        "suite_id": "offline-seed.v1",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "observation": {
+        "approval_valid": false,
+        "evidence_valid": true,
+        "external_write": false,
+        "local_effect_count": 0,
+        "model": false,
+        "network": false,
+        "offline": true,
+        "outcome": "lineage_invalid",
+        "replay": true,
+        "state": "TRAJECTORY_REPLAY_REJECTED",
+        "tenant_id": "tenant-alpha",
+        "tool_call_count": 0
+      },
+      "oracle_sha256": "8f65e928d3dafa91f3ecd8522946196b2f36f2a6902f6933310aad4ea989c2ee",
+      "policy_sha256": "18ee92815cbffac5dfe55e2a653a73c9720b46c52c36a3cb69c58259c647bce3",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "task_sha256": "04ac98af889057e9f0693cbee6dcc4bcb8c666382a17819190cfcad67441d342"
+    }
+  ]
+}

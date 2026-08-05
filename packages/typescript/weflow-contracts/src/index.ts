@@ -1265,8 +1265,241 @@ export const EVALUATION_ORACLE_SCHEMA_ID = "https://weflow.local/contracts/v1/ev
 export const GRADER_RESULT_SCHEMA_ID = "https://weflow.local/contracts/v1/grader-result.schema.json";
 export const RUN_METRICS_SCHEMA_ID = "https://weflow.local/contracts/v1/run-metrics.schema.json";
 export const EVALUATION_SUITE_REPORT_SCHEMA_ID = "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json";
+export const EVALUATION_SUITE_SNAPSHOT_SCHEMA_ID = "https://weflow.local/contracts/v1/evaluation-suite-snapshot.schema.json";
+
+export interface EvaluationCapabilityFlags extends JsonObject {
+  offline: true;
+  replay: true;
+  network: false;
+  model: false;
+  external_write: false;
+}
+
+export interface EvaluationHardGate extends JsonObject {
+  name:
+    | "tenant_reference"
+    | "offline_replay"
+    | "external_write_absent"
+    | "local_effect_identity"
+    | "approval_binding"
+    | "evidence_lineage"
+    | "expected_outcome";
+  passed: boolean;
+  applicable: boolean;
+  reason_code: string;
+}
+
+export interface EvaluationDimension extends JsonObject {
+  name: "outcome" | "evidence" | "recovery" | "efficiency";
+  score: number;
+}
+
+export interface EvaluationOfflineMetrics extends JsonObject {
+  tool_call_count: number;
+  local_effect_count: number;
+  network_request_count: 0;
+  model_invocation_count: 0;
+  external_write_attempt_count: 0;
+}
+
+export interface EvaluationObservation extends JsonObject {
+  state:
+    | "APPROVAL_INVALIDATED"
+    | "DELIVERY_RECORDED"
+    | "INTAKE_REJECTED"
+    | "RECEIVED"
+    | "RESPONSE_READY"
+    | "TICKET_READY"
+    | "TRAJECTORY_REPLAY_REJECTED"
+    | "WAITING_FOR_OPERATOR";
+  outcome:
+    | "accepted"
+    | "authorization_denied"
+    | "deduplicated"
+    | "fixture_delivery_recorded"
+    | "inbound_out_of_order"
+    | "lineage_invalid"
+    | "recovered_after_interruption"
+    | "response_ready"
+    | "ticket_ready"
+    | "waiting_for_operator";
+  evidence_valid: boolean;
+  approval_valid: boolean;
+  tool_call_count: number;
+  local_effect_count: number;
+  offline: true;
+  replay: true;
+  network: false;
+  model: false;
+  external_write: false;
+}
+
+export interface EvaluationTaskSnapshot extends JsonObject {
+  tenant_id: string;
+  evaluation_task_id: string;
+  fixture_id: string;
+  fixture_source_id: string;
+  fixture_source_path: string;
+  fixture_sha256: string;
+  policy_source_id: string;
+  policy_source_path: string;
+  policy_sha256: string;
+  task_sha256: string;
+  oracle_id: string;
+  oracle_sha256: string;
+  evaluation_case_id: string;
+  grader_result_id: string;
+  run_metrics_id: string;
+  evaluation_result_id: string;
+  result: "passed" | "failed";
+  failure_classification: string | null;
+  hard_gate_passed: boolean;
+  hard_gates: EvaluationHardGate[];
+  dimensions: EvaluationDimension[];
+  quality_score: number | "not_scored";
+  metrics: EvaluationOfflineMetrics;
+  observation: EvaluationObservation;
+}
+
+export interface EvaluationSuiteSnapshot extends JsonObject {
+  schema_id: typeof EVALUATION_SUITE_SNAPSHOT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  evaluation_suite_snapshot_id: string;
+  suite_id: string;
+  profile: "benchmark-core.v1";
+  suite_report_id: string;
+  suite_sha256: string;
+  report_sha256: string;
+  accepted: true;
+  repeated_baseline_equal: true;
+  task_count: number;
+  passed_task_count: number;
+  failed_task_count: number;
+  unscored_task_count: number;
+  task_result_ids: string[];
+  capability_flags: EvaluationCapabilityFlags;
+  tasks: EvaluationTaskSnapshot[];
+  snapshot_sha256: string;
+}
+
+export function validateEvaluationSuiteSnapshot(
+  payload: JsonObject,
+  root?: string,
+): ValidationResult {
+  const schema = validateExpectedSchema(payload, EVALUATION_SUITE_SNAPSHOT_SCHEMA_ID, root);
+  if (!schema.valid) return schema;
+
+  const material = { ...payload };
+  delete material.snapshot_sha256;
+  const expectedHash = createHash("sha256").update(canonicalJson(material), "utf8").digest("hex");
+  if (payload.snapshot_sha256 !== expectedHash) {
+    return { valid: false, reasonCode: "snapshot-sha256-mismatch" };
+  }
+  if (
+    payload.evaluation_suite_snapshot_id !==
+    "evaluation-suite-snapshot:" + String(payload.report_sha256)
+  ) {
+    return { valid: false, reasonCode: "snapshot-report-identity-mismatch" };
+  }
+
+  const tasks = payload.tasks;
+  const resultIds = payload.task_result_ids;
+  if (
+    !Array.isArray(tasks) ||
+    !Array.isArray(resultIds) ||
+    typeof payload.task_count !== "number" ||
+    payload.task_count !== tasks.length ||
+    payload.task_count !== resultIds.length
+  ) {
+    return { valid: false, reasonCode: "snapshot-task-count-invalid" };
+  }
+
+  const taskIds: unknown[] = [];
+  const projectedResultIds: unknown[] = [];
+  let passed = 0;
+  let failed = 0;
+  let unscored = 0;
+  for (const item of tasks) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      return { valid: false, reasonCode: "snapshot-task-invalid" };
+    }
+    const task = item as JsonObject;
+    if (task.tenant_id !== payload.tenant_id) {
+      return { valid: false, reasonCode: "snapshot-tenant-mismatch" };
+    }
+    taskIds.push(task.evaluation_task_id);
+    projectedResultIds.push(task.evaluation_result_id);
+
+    const gates = task.hard_gates;
+    if (!Array.isArray(gates)) {
+      return { valid: false, reasonCode: "snapshot-hard-gates-invalid" };
+    }
+    const applicable = gates.filter(
+      (gate) => typeof gate === "object" && gate !== null && (gate as JsonObject).applicable === true,
+    );
+    const hardGatePassed =
+      applicable.length > 0 && applicable.every((gate) => (gate as JsonObject).passed === true);
+    if (task.hard_gate_passed !== hardGatePassed) {
+      return { valid: false, reasonCode: "snapshot-hard-gate-summary-invalid" };
+    }
+
+    const qualityScore = task.quality_score;
+    if (hardGatePassed) {
+      if (typeof qualityScore !== "number") {
+        return { valid: false, reasonCode: "snapshot-quality-score-missing" };
+      }
+    } else if (qualityScore !== "not_scored") {
+      return { valid: false, reasonCode: "snapshot-quality-score-not-scored" };
+    }
+
+    const metrics = task.metrics;
+    const observation = task.observation;
+    if (
+      typeof metrics !== "object" ||
+      metrics === null ||
+      Array.isArray(metrics) ||
+      typeof observation !== "object" ||
+      observation === null ||
+      Array.isArray(observation)
+    ) {
+      return { valid: false, reasonCode: "snapshot-task-evidence-invalid" };
+    }
+    const metricRecord = metrics as JsonObject;
+    const observationRecord = observation as JsonObject;
+    if (
+      metricRecord.tool_call_count !== observationRecord.tool_call_count ||
+      metricRecord.local_effect_count !== observationRecord.local_effect_count
+    ) {
+      return { valid: false, reasonCode: "snapshot-metrics-observation-mismatch" };
+    }
+
+    if (qualityScore === "not_scored") unscored += 1;
+    else if (task.result === "passed") passed += 1;
+    else failed += 1;
+  }
+
+  if (new Set(taskIds).size !== taskIds.length) {
+    return { valid: false, reasonCode: "snapshot-task-ids-duplicate" };
+  }
+  if (new Set(projectedResultIds).size !== projectedResultIds.length) {
+    return { valid: false, reasonCode: "snapshot-result-ids-duplicate" };
+  }
+  if (canonicalJson(projectedResultIds) !== canonicalJson(resultIds)) {
+    return { valid: false, reasonCode: "snapshot-result-order-mismatch" };
+  }
+  if (
+    payload.passed_task_count !== passed ||
+    payload.failed_task_count !== failed ||
+    payload.unscored_task_count !== unscored
+  ) {
+    return { valid: false, reasonCode: "snapshot-result-counts-invalid" };
+  }
+  return { valid: true };
+}
 
 export function validateBenchmarkCoreResult(
+  evaluationCase: JsonObject,
   evaluationResult: JsonObject,
   task: JsonObject,
   oracle: JsonObject,
@@ -1275,40 +1508,99 @@ export function validateBenchmarkCoreResult(
   suiteReport: JsonObject,
   root?: string,
 ): ValidationResult {
-  for (const payload of [evaluationResult, task, oracle, graderResult, metrics, suiteReport]) {
+  for (const payload of [evaluationCase, evaluationResult, task, oracle, graderResult, metrics, suiteReport]) {
     const result = validatePayload(payload, root);
     if (!result.valid) return result;
   }
-  if (evaluationResult.benchmark_profile !== "benchmark-core.v1") return { valid: false, reasonCode: "benchmark-profile-invalid" };
   const taskHash = createHash("sha256").update(canonicalJson(task)).digest("hex");
   const oracleHash = createHash("sha256").update(canonicalJson(oracle)).digest("hex");
-  for (const [field, expected] of Object.entries({
+  if (
+    evaluationCase.fixture_id !== task.fixture_id ||
+    evaluationCase.input_hash !== task.fixture_sha256 ||
+    evaluationCase.oracle_id !== oracle.oracle_id
+  ) {
+    return { valid: false, reasonCode: "benchmark-evaluation-case-source-mismatch" };
+  }
+  const expected = {
+    benchmark_profile: "benchmark-core.v1",
     suite_id: task.suite_id,
     evaluation_task_id: task.evaluation_task_id,
     task_sha256: taskHash,
     oracle_sha256: oracleHash,
-  })) {
-    if (evaluationResult[field] !== expected || graderResult[field] !== expected) {
-      return { valid: false, reasonCode: `benchmark-${field}-mismatch` };
+  };
+  for (const record of [evaluationCase, evaluationResult]) {
+    for (const [field, value] of Object.entries(expected)) {
+      if (record[field] !== value) {
+        return { valid: false, reasonCode: `benchmark-${field}-mismatch` };
+      }
     }
+  }
+  for (const field of ["suite_id", "evaluation_task_id", "task_sha256", "oracle_sha256"]) {
+    if (graderResult[field] !== expected[field as keyof typeof expected]) {
+      return { valid: false, reasonCode: `benchmark-grader-${field}-mismatch` };
+    }
+  }
+  const tenantId = task.tenant_id;
+  if ([evaluationCase, evaluationResult, oracle, graderResult, metrics].some((record) => record.tenant_id !== tenantId)) {
+    return { valid: false, reasonCode: "benchmark-tenant-mismatch" };
+  }
+  if (suiteReport.suite_id !== task.suite_id || suiteReport.profile !== "benchmark-core.v1") {
+    return { valid: false, reasonCode: "benchmark-suite-identity-mismatch" };
   }
   if (metrics.suite_id !== task.suite_id || metrics.evaluation_task_id !== task.evaluation_task_id) {
     return { valid: false, reasonCode: "benchmark-metrics-link-mismatch" };
   }
-  if (evaluationResult.grader_result_id !== graderResult.grader_result_id || evaluationResult.run_metrics_id !== metrics.run_metrics_id) {
+  if (graderResult.run_id !== metrics.run_id) {
+    return { valid: false, reasonCode: "benchmark-run-identity-mismatch" };
+  }
+  if (
+    evaluationResult.grader_result_id !== graderResult.grader_result_id ||
+    evaluationResult.run_metrics_id !== metrics.run_metrics_id ||
+    evaluationResult.evaluation_case_id !== evaluationCase.evaluation_case_id
+  ) {
     return { valid: false, reasonCode: "benchmark-result-link-mismatch" };
   }
   const gates = graderResult.hard_gates;
   if (!Array.isArray(gates)) return { valid: false, reasonCode: "benchmark-hard-gates-invalid" };
-  const hardGatePassed = gates.filter((gate) => typeof gate === "object" && gate !== null && (gate as JsonObject).applicable === true).every((gate) => (gate as JsonObject).passed === true);
+  const applicable = gates.filter(
+    (gate) => typeof gate === "object" && gate !== null && (gate as JsonObject).applicable === true,
+  );
+  const hardGatePassed = applicable.length > 0 && applicable.every((gate) => (gate as JsonObject).passed === true);
   if (graderResult.hard_gate_passed !== hardGatePassed || evaluationResult.hard_gate_passed !== hardGatePassed) {
     return { valid: false, reasonCode: "benchmark-hard-gate-summary-invalid" };
   }
   if (!hardGatePassed && (graderResult.quality_score !== "not_scored" || evaluationResult.quality_score !== "not_scored")) {
     return { valid: false, reasonCode: "benchmark-quality-score-invalid" };
   }
-  if (suiteReport.report_sha256 !== evaluationResult.report_sha256 || !Array.isArray(suiteReport.task_result_ids) || !suiteReport.task_result_ids.includes(evaluationResult.evaluation_result_id)) {
+  if (
+    evaluationResult.result !== graderResult.result ||
+    evaluationResult.failure_classification !== graderResult.failure_classification
+  ) {
+    return { valid: false, reasonCode: "benchmark-result-summary-mismatch" };
+  }
+  if (
+    canonicalJson(evaluationResult.capability_flags) !== canonicalJson(graderResult.capability_flags) ||
+    canonicalJson(evaluationResult.capability_flags) !== canonicalJson(suiteReport.capability_flags)
+  ) {
+    return { valid: false, reasonCode: "benchmark-capability-flags-mismatch" };
+  }
+  const reportMaterial = { ...suiteReport };
+  delete reportMaterial.report_sha256;
+  const reportHash = createHash("sha256").update(canonicalJson(reportMaterial)).digest("hex");
+  if (
+    suiteReport.report_sha256 !== reportHash ||
+    evaluationResult.suite_report_id !== suiteReport.suite_report_id ||
+    evaluationResult.report_sha256 !== reportHash
+  ) {
     return { valid: false, reasonCode: "benchmark-report-link-invalid" };
+  }
+  const resultIds = suiteReport.task_result_ids;
+  if (
+    !Array.isArray(resultIds) ||
+    new Set(resultIds).size !== resultIds.length ||
+    resultIds.filter((value) => value === evaluationResult.evaluation_result_id).length !== 1
+  ) {
+    return { valid: false, reasonCode: "benchmark-suite-result-missing" };
   }
   return { valid: true };
 }

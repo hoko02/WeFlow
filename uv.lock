@@ -915,6 +915,7 @@ dependencies = [
     { name = "weflow-contracts" },
     { name = "weflow-control-kernel" },
     { name = "weflow-telemetry" },
+    { name = "weflow-testkit" },
 ]
 
 [package.metadata]
@@ -924,6 +925,7 @@ requires-dist = [
     { name = "weflow-contracts", editable = "packages/python/weflow-contracts" },
     { name = "weflow-control-kernel", editable = "packages/python/weflow-control-kernel" },
     { name = "weflow-telemetry", editable = "packages/python/weflow-telemetry" },
+    { name = "weflow-testkit", editable = "packages/python/weflow-testkit" },
 ]
 
 [[package]]

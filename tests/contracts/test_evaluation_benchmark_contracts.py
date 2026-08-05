@@ -26,7 +26,7 @@ def _records() -> tuple[dict[str, object], dict[str, object], dict[str, object]]
 
 
 def _linked_records() -> tuple[dict[str, object], ...]:
-    task, oracle, fixture = _records()
+    task, oracle, _fixture = _records()
     task_hash = canonical_sha256(task)
     oracle_hash = canonical_sha256(oracle)
     gates = [
@@ -86,8 +86,8 @@ def _linked_records() -> tuple[dict[str, object], ...]:
         "schema_version": "v1",
         "tenant_id": task["tenant_id"],
         "evaluation_case_id": "evaluation-case-contract-001",
-        "fixture_id": fixture["fixture_id"],
-        "input_hash": fixture["fixture_sha256"],
+        "fixture_id": task["fixture_id"],
+        "input_hash": task["fixture_sha256"],
         "created_at": "2026-08-05T00:00:00Z",
         "oracle_id": oracle["oracle_id"],
         "benchmark_profile": "benchmark-core.v1",
@@ -159,3 +159,62 @@ def test_unsafe_task_field_is_rejected_before_execution() -> None:
 
     with pytest.raises(ContractValidationError):
         validate_payload(invalid, ROOT)
+
+
+def test_detached_suite_report_link_is_rejected() -> None:
+    records = list(_linked_records())
+    records[1] = deepcopy(records[1])
+    records[1]["suite_report_id"] = "suite-report-detached"
+
+    with pytest.raises(ContractValidationError, match="report_link_mismatch"):
+        validate_benchmark_result(*records, ROOT)
+
+
+def test_mismatched_evaluation_case_source_is_rejected() -> None:
+    records = list(_linked_records())
+    records[0] = deepcopy(records[0])
+    records[0]["input_hash"] = "f" * 64
+
+    with pytest.raises(ContractValidationError, match="evaluation_case_source_mismatch"):
+        validate_benchmark_result(*records, ROOT)
+
+
+def test_cross_task_metrics_link_is_rejected() -> None:
+    records = list(_linked_records())
+    records[5] = deepcopy(records[5])
+    records[5]["evaluation_task_id"] = "another-task"
+
+    with pytest.raises(ContractValidationError, match="metrics_link_mismatch"):
+        validate_benchmark_result(*records, ROOT)
+
+
+def test_failed_hard_gate_forms_a_complete_unscored_result_chain() -> None:
+    evaluation_case, evaluation_result, task, oracle, grader, metrics, report = deepcopy(
+        _linked_records()
+    )
+    grader["hard_gates"][0]["passed"] = False
+    grader["hard_gates"][0]["reason_code"] = "tenant_reference_failed"
+    grader["hard_gate_passed"] = False
+    grader["quality_score"] = "not_scored"
+    grader["result"] = "failed"
+    grader["failure_classification"] = "hard_gate_failed"
+    report["passed_task_count"] = 0
+    report["failed_task_count"] = 0
+    report["unscored_task_count"] = 1
+    report["report_sha256"] = canonical_sha256(report, without="report_sha256")
+    evaluation_result["hard_gate_passed"] = False
+    evaluation_result["quality_score"] = "not_scored"
+    evaluation_result["result"] = "failed"
+    evaluation_result["failure_classification"] = "hard_gate_failed"
+    evaluation_result["report_sha256"] = report["report_sha256"]
+
+    validate_benchmark_result(
+        evaluation_case,
+        evaluation_result,
+        task,
+        oracle,
+        grader,
+        metrics,
+        report,
+        ROOT,
+    )

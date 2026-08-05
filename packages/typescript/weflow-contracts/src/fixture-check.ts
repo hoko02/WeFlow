@@ -7,6 +7,7 @@ import {
   canonicalJson,
   validateAgentActionForContext,
   validateBenchmarkCoreResult,
+  validateEvaluationSuiteSnapshot,
   validateEvidenceChain,
   validateChange4AuthorizationProfile,
   validateHashBoundApproval,
@@ -99,11 +100,76 @@ const evidenceInvalid = JSON.parse(
 ) as Record<string, { field: string; value?: unknown }>;
 const invalidBenchmarkPayloads = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/evaluation-benchmark-invalid-payloads.json"), "utf8"),
-) as Record<string, JsonObject>;const missingIdentity = JSON.parse(
+) as Record<string, JsonObject>;
+const evaluationSuiteSnapshot = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/evaluation-suite-snapshot.json"), "utf8"),
+) as JsonObject;
+const invalidEvaluationSuiteSnapshotCases = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/invalid/evaluation-suite-snapshot-invalid-cases.json"), "utf8"),
+) as Record<string, string>;
+const missingIdentity = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/missing-schema-identity.json"), "utf8"),
 ) as JsonObject;
 
 const failedSchemas: string[] = [];
+
+function rehashEvaluationSuiteSnapshot(snapshot: JsonObject): void {
+  const material = { ...snapshot };
+  delete material.snapshot_sha256;
+  snapshot.snapshot_sha256 = createHash("sha256").update(canonicalJson(material), "utf8").digest("hex");
+}
+
+function invalidEvaluationSuiteSnapshot(kind: string): JsonObject {
+  const snapshot = structuredClone(evaluationSuiteSnapshot) as JsonObject;
+  const tasks = snapshot.tasks as JsonObject[];
+  const task = tasks[0];
+  if (kind === "task_tenant") {
+    task.tenant_id = "tenant-foreign";
+    rehashEvaluationSuiteSnapshot(snapshot);
+  } else if (kind === "report_hash") {
+    snapshot.report_sha256 = "1".repeat(64);
+    rehashEvaluationSuiteSnapshot(snapshot);
+  } else if (kind === "suite_hash") {
+    snapshot.suite_sha256 = "2".repeat(64);
+  } else if (kind === "source_hash") {
+    task.fixture_sha256 = "3".repeat(64);
+  } else if (kind === "result_id") {
+    task.evaluation_result_id = "evaluation-result:detached";
+    rehashEvaluationSuiteSnapshot(snapshot);
+  } else if (kind === "duplicate_task") {
+    tasks.push(structuredClone(task));
+    snapshot.task_count = 2;
+    snapshot.passed_task_count = 2;
+    (snapshot.task_result_ids as unknown[]).push(task.evaluation_result_id);
+    rehashEvaluationSuiteSnapshot(snapshot);
+  } else if (kind === "count") {
+    snapshot.passed_task_count = 0;
+    snapshot.failed_task_count = 1;
+    rehashEvaluationSuiteSnapshot(snapshot);
+  } else if (kind === "failed_gate_score") {
+    ((task.hard_gates as JsonObject[])[0]).passed = false;
+    task.hard_gate_passed = false;
+    rehashEvaluationSuiteSnapshot(snapshot);
+  } else if (kind === "absolute_path") {
+    task.fixture_source_path = "C:/private/fixture.json";
+  } else if (kind === "raw") {
+    task.raw_payload = "blocked";
+  } else if (kind === "secret") {
+    task.provider_token = "blocked";
+  } else if (kind === "authority") {
+    snapshot.caller_role = "operator";
+  } else if (kind === "live_provider") {
+    snapshot.live_provider_enabled = true;
+  } else if (kind === "customer_success") {
+    snapshot.customer_resolved = true;
+  } else if (kind === "external_write") {
+    (snapshot.capability_flags as JsonObject).external_write = true;
+  } else {
+    throw new Error("unknown-invalid-evaluation-suite-snapshot-kind");
+  }
+  return snapshot;
+}
+
 for (const [name, payload] of Object.entries(validPayloads)) {
   if (!validatePayload(payload, root).valid) {
     failedSchemas.push(name);
@@ -255,17 +321,102 @@ const benchmarkGrader = {
 const benchmarkMetrics = {
   schema_id: "https://weflow.local/contracts/v1/run-metrics.schema.json", schema_version: "v1", tenant_id: "tenant-alpha", run_metrics_id: "metrics-typescript-001", suite_id: "offline-seed.v1", run_id: "typescript-run-001", evaluation_task_id: "intake-accepted", tool_call_count: 0, local_effect_count: 0, network_request_count: 0, model_invocation_count: 0, external_write_attempt_count: 0,
 } as JsonObject;
+const benchmarkReportMaterial = {
+  schema_id: "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json",
+  schema_version: "v1",
+  suite_report_id: "suite-report-typescript-001",
+  suite_id: "offline-seed.v1",
+  suite_sha256: "e".repeat(64),
+  profile: "benchmark-core.v1",
+  task_count: 1,
+  passed_task_count: 1,
+  failed_task_count: 0,
+  unscored_task_count: 0,
+  task_result_ids: [benchmarkResultId],
+  capability_flags: benchmarkFlags,
+} as JsonObject;
 const benchmarkReport = {
-  schema_id: "https://weflow.local/contracts/v1/evaluation-suite-report.schema.json", schema_version: "v1", suite_report_id: "suite-report-typescript-001", suite_id: "offline-seed.v1", suite_sha256: "e".repeat(64), profile: "benchmark-core.v1", task_count: 1, passed_task_count: 1, failed_task_count: 0, unscored_task_count: 0, task_result_ids: [benchmarkResultId], capability_flags: benchmarkFlags, report_sha256: "f".repeat(64),
+  ...benchmarkReportMaterial,
+  report_sha256: createHash("sha256").update(canonicalJson(benchmarkReportMaterial)).digest("hex"),
+} as JsonObject;
+const benchmarkEvaluationCase = {
+  schema_id: "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+  schema_version: "v1",
+  tenant_id: "tenant-alpha",
+  evaluation_case_id: "evaluation-case-typescript-001",
+  fixture_id: benchmarkTask.fixture_id,
+  input_hash: benchmarkTask.fixture_sha256,
+  created_at: "2026-08-05T00:00:00Z",
+  oracle_id: benchmarkOracle.oracle_id,
+  benchmark_profile: "benchmark-core.v1",
+  suite_id: "offline-seed.v1",
+  evaluation_task_id: "intake-accepted",
+  task_sha256: benchmarkTaskHash,
+  oracle_sha256: benchmarkOracleHash,
 } as JsonObject;
 const benchmarkEvaluationResult = {
-  schema_id: "https://weflow.local/contracts/v1/evaluation-result.schema.json", schema_version: "v1", tenant_id: "tenant-alpha", evaluation_result_id: benchmarkResultId, evaluation_case_id: "evaluation-case-typescript-001", result: "passed", recorded_at: "2026-08-05T00:00:00Z", failure_classification: null, benchmark_profile: "benchmark-core.v1", suite_id: "offline-seed.v1", evaluation_task_id: "intake-accepted", task_sha256: benchmarkTaskHash, oracle_sha256: benchmarkOracleHash, hard_gate_passed: true, grader_result_id: "grader-typescript-001", run_metrics_id: "metrics-typescript-001", suite_report_id: "suite-report-typescript-001", report_sha256: "f".repeat(64), quality_score: 100, capability_flags: benchmarkFlags,
+  schema_id: "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+  schema_version: "v1",
+  tenant_id: "tenant-alpha",
+  evaluation_result_id: benchmarkResultId,
+  evaluation_case_id: "evaluation-case-typescript-001",
+  result: "passed",
+  recorded_at: "2026-08-05T00:00:00Z",
+  failure_classification: null,
+  benchmark_profile: "benchmark-core.v1",
+  suite_id: "offline-seed.v1",
+  evaluation_task_id: "intake-accepted",
+  task_sha256: benchmarkTaskHash,
+  oracle_sha256: benchmarkOracleHash,
+  hard_gate_passed: true,
+  grader_result_id: "grader-typescript-001",
+  run_metrics_id: "metrics-typescript-001",
+  suite_report_id: "suite-report-typescript-001",
+  report_sha256: benchmarkReport.report_sha256,
+  quality_score: 100,
+  capability_flags: benchmarkFlags,
 } as JsonObject;
-if (!validateBenchmarkCoreResult(benchmarkEvaluationResult, benchmarkTask, benchmarkOracle, benchmarkGrader, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-result");
+if (!validateBenchmarkCoreResult(benchmarkEvaluationCase, benchmarkEvaluationResult, benchmarkTask, benchmarkOracle, benchmarkGrader, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-result");
 const invalidBenchmark = structuredClone(benchmarkGrader) as JsonObject;
 (invalidBenchmark.hard_gates as JsonObject[])[0].passed = false;
 invalidBenchmark.hard_gate_passed = false;
-if (validateBenchmarkCoreResult({ ...benchmarkEvaluationResult, hard_gate_passed: false, quality_score: 100 }, benchmarkTask, benchmarkOracle, invalidBenchmark, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-unscored-gate");
+if (validateBenchmarkCoreResult(benchmarkEvaluationCase, { ...benchmarkEvaluationResult, hard_gate_passed: false, quality_score: 100 }, benchmarkTask, benchmarkOracle, invalidBenchmark, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-unscored-gate");
+if (validateBenchmarkCoreResult(benchmarkEvaluationCase, { ...benchmarkEvaluationResult, suite_report_id: "detached-report" }, benchmarkTask, benchmarkOracle, benchmarkGrader, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-detached-report");
+if (validateBenchmarkCoreResult({ ...benchmarkEvaluationCase, input_hash: "f".repeat(64) }, benchmarkEvaluationResult, benchmarkTask, benchmarkOracle, benchmarkGrader, benchmarkMetrics, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-source-mismatch");
+if (validateBenchmarkCoreResult(benchmarkEvaluationCase, benchmarkEvaluationResult, benchmarkTask, benchmarkOracle, benchmarkGrader, { ...benchmarkMetrics, evaluation_task_id: "another-task" }, benchmarkReport, root).valid) failedSchemas.push("benchmark-core-cross-task-link");
+const unscoredGrader = structuredClone(benchmarkGrader) as JsonObject;
+(unscoredGrader.hard_gates as JsonObject[])[0].passed = false;
+(unscoredGrader.hard_gates as JsonObject[])[0].reason_code = "tenant_reference_failed";
+unscoredGrader.hard_gate_passed = false;
+unscoredGrader.quality_score = "not_scored";
+unscoredGrader.result = "failed";
+unscoredGrader.failure_classification = "hard_gate_failed";
+const unscoredReportMaterial = {
+  ...benchmarkReportMaterial,
+  passed_task_count: 0,
+  unscored_task_count: 1,
+} as JsonObject;
+const unscoredReport = {
+  ...unscoredReportMaterial,
+  report_sha256: createHash("sha256").update(canonicalJson(unscoredReportMaterial)).digest("hex"),
+} as JsonObject;
+const unscoredResult = {
+  ...benchmarkEvaluationResult,
+  hard_gate_passed: false,
+  quality_score: "not_scored",
+  result: "failed",
+  failure_classification: "hard_gate_failed",
+  report_sha256: unscoredReport.report_sha256,
+} as JsonObject;
+if (!validateBenchmarkCoreResult(benchmarkEvaluationCase, unscoredResult, benchmarkTask, benchmarkOracle, unscoredGrader, benchmarkMetrics, unscoredReport, root).valid) failedSchemas.push("benchmark-core-unscored-chain");
+if (!validateEvaluationSuiteSnapshot(evaluationSuiteSnapshot, root).valid) {
+  failedSchemas.push("evaluation-suite-snapshot");
+}
+for (const [name, kind] of Object.entries(invalidEvaluationSuiteSnapshotCases)) {
+  if (validateEvaluationSuiteSnapshot(invalidEvaluationSuiteSnapshot(kind), root).valid) {
+    failedSchemas.push("invalid-evaluation-suite-snapshot-" + name);
+  }
+}
 if (failedSchemas.length > 0) {
   throw new Error(`contract-fixture-check-failed:${failedSchemas.join(",")}`);
 }

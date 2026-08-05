@@ -1,0 +1,85 @@
+{
+  "accepted": true,
+  "api": {
+    "authorized_status": 200,
+    "foreign_and_missing_status": 404,
+    "identity_denied_status": 403,
+    "selector_status": 422,
+    "tenant_identity_derived": true,
+    "unsupported_method_status": 405
+  },
+  "capabilities": {
+    "customer_resolution_enabled": false,
+    "external_writes_enabled": false,
+    "latency_cost_variance_available": false,
+    "live_model_enabled": false,
+    "multi_agent_enabled": false,
+    "offline_evaluation_report_console_implemented": true
+  },
+  "console": {
+    "production_vite_build": true,
+    "runtime_validation": true,
+    "safe_unavailable_states_checked": 4,
+    "selected_task_hard_gate_checked": true,
+    "task_summaries_rendered": 12,
+    "typescript_contract_build": true,
+    "unrestricted_json_rendered": false,
+    "unsupported_success_claims_rendered": false
+  },
+  "determinism": {
+    "intentional_nondeterministic_fields": [],
+    "snapshot_reads_equal": true
+  },
+  "docker_required": false,
+  "integrity_matrix": {
+    "arbitrary_selector": "evaluation_request_invalid",
+    "detached": "evaluation_report_not_ready",
+    "duplicate_key": "evaluation_report_not_ready",
+    "foreign": "evaluation_report_not_found",
+    "malformed": "evaluation_report_not_ready",
+    "missing": "evaluation_report_not_found",
+    "stale": "evaluation_report_not_ready",
+    "tampered": "evaluation_report_not_ready",
+    "unsafe": "evaluation_report_not_ready",
+    "unsafe_path": "evaluation_report_not_ready",
+    "unsupported_claim": "evaluation_report_not_ready"
+  },
+  "model_credentials_required": false,
+  "network_required": false,
+  "offline": true,
+  "report_type": "weflow-offline-evaluation-report-console-acceptance.v1",
+  "side_effects": {
+    "case_workflow_approval_delivery_mutation_count": 0,
+    "external_write_attempt_count": 0,
+    "model_invocation_count": 0,
+    "network_request_count": 0,
+    "retained_store_mutation_count": 0,
+    "source_report_mutation_count": 0
+  },
+  "source_report_sha256": "ba907fb0e453b288596996f4f33dd5870ef08ba5fe39f039985043ea49342899",
+  "suite": {
+    "failed_task_count": 0,
+    "passed_task_count": 12,
+    "profile": "benchmark-core.v1",
+    "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+    "snapshot_sha256": "918a5959a6d5cb8046be8286b053391aceea9d7c65a2006724f8a1c59324c079",
+    "suite_id": "offline-seed.v1",
+    "suite_sha256": "62683ba2880cd0ab9a96abc6f2f69cec6ca671c001b05de704f491afdd80be6b",
+    "task_count": 12,
+    "task_result_ids": [
+      "evaluation-result:baseline:intake-accepted",
+      "evaluation-result:baseline:intake-deduplicated",
+      "evaluation-result:baseline:intake-out-of-order",
+      "evaluation-result:baseline:workflow-ticket-handoff",
+      "evaluation-result:baseline:workflow-sla-expiry",
+      "evaluation-result:baseline:investigation-response-ready",
+      "evaluation-result:baseline:investigation-candidate-recovery",
+      "evaluation-result:baseline:policy-delivery-recorded",
+      "evaluation-result:baseline:policy-delivery-recovery",
+      "evaluation-result:baseline:policy-revoked-grant",
+      "evaluation-result:baseline:policy-stale-approval",
+      "evaluation-result:baseline:evidence-tampered-lineage"
+    ],
+    "unscored_task_count": 0
+  }
+}

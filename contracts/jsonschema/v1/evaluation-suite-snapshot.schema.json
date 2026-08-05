@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/evaluation-suite-snapshot.schema.json",
+  "title": "EvaluationSuiteSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id", "schema_version", "tenant_id", "evaluation_suite_snapshot_id",
+    "suite_id", "profile", "suite_report_id", "suite_sha256", "report_sha256",
+    "accepted", "repeated_baseline_equal", "task_count", "passed_task_count",
+    "failed_task_count", "unscored_task_count", "task_result_ids",
+    "capability_flags", "tasks", "snapshot_sha256"
+  ],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/evaluation-suite-snapshot.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "evaluation_suite_snapshot_id": {"type": "string", "minLength": 1},
+    "suite_id": {"type": "string", "minLength": 1},
+    "profile": {"const": "benchmark-core.v1"},
+    "suite_report_id": {"type": "string", "minLength": 1},
+    "suite_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "report_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "accepted": {"const": true},
+    "repeated_baseline_equal": {"const": true},
+    "task_count": {"type": "integer", "minimum": 1},
+    "passed_task_count": {"type": "integer", "minimum": 0},
+    "failed_task_count": {"type": "integer", "minimum": 0},
+    "unscored_task_count": {"type": "integer", "minimum": 0},
+    "task_result_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "capability_flags": {"$ref": "#/$defs/capability_flags"},
+    "tasks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/task_snapshot"}},
+    "snapshot_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+  },
+  "$defs": {
+    "capability_flags": {
+      "type": "object", "additionalProperties": false,
+      "required": ["offline", "replay", "network", "model", "external_write"],
+      "properties": {
+        "offline": {"const": true}, "replay": {"const": true},
+        "network": {"const": false}, "model": {"const": false},
+        "external_write": {"const": false}
+      }
+    },
+    "hard_gate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "passed", "applicable", "reason_code"],
+      "properties": {
+        "name": {"enum": ["tenant_reference", "offline_replay", "external_write_absent", "local_effect_identity", "approval_binding", "evidence_lineage", "expected_outcome"]},
+        "passed": {"type": "boolean"}, "applicable": {"type": "boolean"},
+        "reason_code": {"type": "string", "minLength": 1}
+      }
+    },
+    "dimension": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "score"],
+      "properties": {
+        "name": {"enum": ["outcome", "evidence", "recovery", "efficiency"]},
+        "score": {"type": "number", "minimum": 0, "maximum": 100}
+      }
+    },
+    "metrics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["tool_call_count", "local_effect_count", "network_request_count", "model_invocation_count", "external_write_attempt_count"],
+      "properties": {
+        "tool_call_count": {"type": "integer", "minimum": 0},
+        "local_effect_count": {"type": "integer", "minimum": 0, "maximum": 2},
+        "network_request_count": {"const": 0}, "model_invocation_count": {"const": 0},
+        "external_write_attempt_count": {"const": 0}
+      }
+    },
+    "observation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "outcome", "evidence_valid", "approval_valid", "tool_call_count", "local_effect_count", "offline", "replay", "network", "model", "external_write"],
+      "properties": {
+        "state": {"enum": ["APPROVAL_INVALIDATED", "DELIVERY_RECORDED", "INTAKE_REJECTED", "RECEIVED", "RESPONSE_READY", "TICKET_READY", "TRAJECTORY_REPLAY_REJECTED", "WAITING_FOR_OPERATOR"]},
+        "outcome": {"enum": ["accepted", "authorization_denied", "deduplicated", "fixture_delivery_recorded", "inbound_out_of_order", "lineage_invalid", "recovered_after_interruption", "response_ready", "ticket_ready", "waiting_for_operator"]},
+        "evidence_valid": {"type": "boolean"}, "approval_valid": {"type": "boolean"},
+        "tool_call_count": {"type": "integer", "minimum": 0},
+        "local_effect_count": {"type": "integer", "minimum": 0, "maximum": 2},
+        "offline": {"const": true}, "replay": {"const": true},
+        "network": {"const": false}, "model": {"const": false}, "external_write": {"const": false}
+      }
+    },
+    "task_snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "tenant_id", "evaluation_task_id", "fixture_id", "fixture_source_id",
+        "fixture_source_path", "fixture_sha256", "policy_source_id", "policy_source_path",
+        "policy_sha256", "task_sha256", "oracle_id", "oracle_sha256",
+        "evaluation_case_id", "grader_result_id", "run_metrics_id", "evaluation_result_id",
+        "result", "failure_classification", "hard_gate_passed", "hard_gates", "dimensions",
+        "quality_score", "metrics", "observation"
+      ],
+      "properties": {
+        "tenant_id": {"type": "string", "minLength": 1},
+        "evaluation_task_id": {"type": "string", "minLength": 1},
+        "fixture_id": {"type": "string", "minLength": 1},
+        "fixture_source_id": {"type": "string", "minLength": 1},
+        "fixture_source_path": {"type": "string", "pattern": "^(?!.*(?:^|/)\\.\\.(?:/|$))fixtures/[A-Za-z0-9._/-]+\\.json$"},
+        "fixture_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "policy_source_id": {"type": "string", "minLength": 1},
+        "policy_source_path": {"type": "string", "pattern": "^(?!.*(?:^|/)\\.\\.(?:/|$))evals/sources/[A-Za-z0-9._/-]+\\.json$"},
+        "policy_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "task_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "oracle_id": {"type": "string", "minLength": 1},
+        "oracle_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "evaluation_case_id": {"type": "string", "minLength": 1},
+        "grader_result_id": {"type": "string", "minLength": 1},
+        "run_metrics_id": {"type": "string", "minLength": 1},
+        "evaluation_result_id": {"type": "string", "minLength": 1},
+        "result": {"enum": ["passed", "failed"]},
+        "failure_classification": {"type": ["string", "null"]},
+        "hard_gate_passed": {"type": "boolean"},
+        "hard_gates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/hard_gate"}},
+        "dimensions": {"type": "array", "items": {"$ref": "#/$defs/dimension"}},
+        "quality_score": {"oneOf": [{"type": "number", "minimum": 0, "maximum": 100}, {"const": "not_scored"}]},
+        "metrics": {"$ref": "#/$defs/metrics"}, "observation": {"$ref": "#/$defs/observation"}
+      }
+    }
+  }
+}

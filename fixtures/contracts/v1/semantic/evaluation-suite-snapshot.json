@@ -1,0 +1,79 @@
+{
+  "schema_id": "https://weflow.local/contracts/v1/evaluation-suite-snapshot.schema.json",
+  "schema_version": "v1",
+  "tenant_id": "tenant-alpha",
+  "evaluation_suite_snapshot_id": "evaluation-suite-snapshot:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "suite_id": "offline-seed.v1",
+  "profile": "benchmark-core.v1",
+  "suite_report_id": "report:offline-seed.v1:contract",
+  "suite_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "report_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "accepted": true,
+  "repeated_baseline_equal": true,
+  "task_count": 1,
+  "passed_task_count": 1,
+  "failed_task_count": 0,
+  "unscored_task_count": 0,
+  "task_result_ids": ["evaluation-result:contract:intake-accepted"],
+  "capability_flags": {
+    "offline": true,
+    "replay": true,
+    "network": false,
+    "model": false,
+    "external_write": false
+  },
+  "tasks": [
+    {
+      "tenant_id": "tenant-alpha",
+      "evaluation_task_id": "intake-accepted",
+      "fixture_id": "api-503-first-delivery",
+      "fixture_source_id": "api-503-first-delivery",
+      "fixture_source_path": "fixtures/intake/api-503-first-delivery.json",
+      "fixture_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "policy_source_id": "offline-policy.v1",
+      "policy_source_path": "evals/sources/offline-policy.v1.json",
+      "policy_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "task_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "oracle_id": "oracle-intake-accepted",
+      "oracle_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evaluation_case_id": "evaluation-case:contract:intake-accepted",
+      "grader_result_id": "grader:contract:intake-accepted",
+      "run_metrics_id": "metrics:contract:intake-accepted",
+      "evaluation_result_id": "evaluation-result:contract:intake-accepted",
+      "result": "passed",
+      "failure_classification": null,
+      "hard_gate_passed": true,
+      "hard_gates": [
+        {
+          "name": "tenant_reference",
+          "passed": true,
+          "applicable": true,
+          "reason_code": "passed"
+        }
+      ],
+      "dimensions": [{"name": "outcome", "score": 100}],
+      "quality_score": 100,
+      "metrics": {
+        "tool_call_count": 0,
+        "local_effect_count": 0,
+        "network_request_count": 0,
+        "model_invocation_count": 0,
+        "external_write_attempt_count": 0
+      },
+      "observation": {
+        "state": "RECEIVED",
+        "outcome": "accepted",
+        "evidence_valid": true,
+        "approval_valid": false,
+        "tool_call_count": 0,
+        "local_effect_count": 0,
+        "offline": true,
+        "replay": true,
+        "network": false,
+        "model": false,
+        "external_write": false
+      }
+    }
+  ],
+  "snapshot_sha256": "ad4485b47103ee06c4bbc4d1b7c97099aabd8c44c61793c7da1b58ff777bf609"
+}

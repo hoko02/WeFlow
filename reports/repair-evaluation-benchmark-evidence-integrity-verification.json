@@ -1,0 +1,89 @@
+{
+  "accepted": true,
+  "benchmark": {
+    "acceptance_report": "reports/change-6-evaluation-benchmark-core-acceptance.json",
+    "accepted": true,
+    "all_evaluation_case_input_hashes_match_sources": true,
+    "all_suite_result_ids_match_evaluation_results": true,
+    "failed_task_count": 0,
+    "passed_task_count": 12,
+    "profile": "benchmark-core.v1",
+    "repeated_baseline_equal": true,
+    "report_sha256": "a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11",
+    "suite_sha256": "62683ba2880cd0ab9a96abc6f2f69cec6ca671c001b05de704f491afdd80be6b",
+    "task_count": 12,
+    "unscored_task_count": 0
+  },
+  "capability_flags": {
+    "external_write": false,
+    "model": false,
+    "network": false,
+    "offline": true,
+    "replay": true
+  },
+  "change_id": "repair-evaluation-benchmark-evidence-integrity",
+  "checks": [
+    {
+      "command": "python scripts/dev.py check",
+      "evidence": {
+        "missing_tools": [],
+        "mode": "offline",
+        "ready": true
+      },
+      "status": "passed"
+    },
+    {
+      "command": "python scripts/dev.py lint",
+      "evidence": {
+        "secret_hygiene_findings": 0,
+        "typescript_and_web_console_lint": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "command": "python scripts/dev.py contracts",
+      "evidence": {
+        "python_passed": 55,
+        "typescript_invalid_payloads": 29,
+        "typescript_valid_payloads": 37
+      },
+      "status": "passed"
+    },
+    {
+      "command": "python scripts/dev.py test",
+      "evidence": {
+        "python_duration_seconds": 561.55,
+        "python_passed": 234,
+        "python_skipped": 2,
+        "typescript_contract_check": "passed",
+        "web_console_build": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "command": "python scripts/dev.py evaluation-benchmark-acceptance --output reports/change-6-evaluation-benchmark-core-acceptance.json",
+      "evidence": {
+        "accepted": true,
+        "passed_task_count": 12,
+        "repeated_baseline_equal": true
+      },
+      "status": "passed"
+    },
+    {
+      "command": "openspec validate repair-evaluation-benchmark-evidence-integrity --type change --strict",
+      "evidence": {
+        "message": "Change 'repair-evaluation-benchmark-evidence-integrity' is valid"
+      },
+      "status": "passed"
+    }
+  ],
+  "limitations": [
+    "Synthetic redacted fixtures only",
+    "No network or model credentials",
+    "No provider or enterprise credentials",
+    "No external writes or live customer outcome claims",
+    "No multi-Agent execution"
+  ],
+  "report_type": "weflow-evaluation-benchmark-evidence-integrity-verification.v1",
+  "verified_on": "2026-08-05"
+}

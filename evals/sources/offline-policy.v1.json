@@ -1,0 +1,20 @@
+{
+  "policy_id": "offline-policy.v1",
+  "schema_version": "v1",
+  "tenant_id": "tenant-alpha",
+  "mode": "offline",
+  "allowed_adapters": [
+    "case-intake",
+    "durable-workflow",
+    "investigation-agent",
+    "policy-approval",
+    "evidence-trajectory"
+  ],
+  "capability_flags": {
+    "offline": true,
+    "replay": true,
+    "network": false,
+    "model": false,
+    "external_write": false
+  }
+}

@@ -497,3 +497,127 @@ Next-stage gate:
   tenant isolation, independent grading/evidence, cost and safety budgets,
   intent/reconcile/execute/complete behavior for every write, rollback, and live
   safety acceptance evidence.
+
+## 18. Archived benchmark evidence-integrity repair (2026-08-05)
+
+`repair-evaluation-benchmark-evidence-integrity` was archived as
+`2026-08-05-repair-evaluation-benchmark-evidence-integrity`. Its three repaired
+offline-benchmark requirements and one runtime-record linkage requirement were synced
+to the main OpenSpec specifications before archive.
+
+Verified facts:
+
+- Every seed task now binds to an allowlisted checked-in fixture and policy source by
+  safe repository-relative path, stable identity, and canonical content hash. The
+  loader rejects missing, escaped, mutated, mismatched, duplicate-key, or task-local
+  mirror inputs before opening a task store.
+- The runner invokes public typed offline adapters and creates a fresh temporary SQLite
+  store for each task attempt. The adapters return actual safe state, outcome, evidence,
+  approval, tool, and effect observations; the runner no longer substitutes cached or
+  hard-coded suite outcomes.
+- Each execution emits and semantically validates the complete `EvaluationCase` ->
+  `GraderResult` -> `RunMetrics` -> `EvaluationResult` -> `EvaluationSuiteReport`
+  chain. Suite result IDs are the 12 distinct emitted `EvaluationResult` IDs, and every
+  `EvaluationCase.input_hash` matches its resolved fixture source hash.
+- The regenerated redacted report at
+  `reports/change-6-evaluation-benchmark-core-acceptance.json` passed 12/12 tasks with
+  zero failed or unscored tasks. Its report hash is
+  `a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11`, and two
+  fixed-baseline runs were equal.
+- The 2026-08-05 checks passed: `python scripts/dev.py check`, `lint`, and `contracts`
+  (Python 55 passed; TypeScript 37 valid / 29 invalid); benchmark acceptance; and
+  `python scripts/dev.py test` (Python 234 passed, 2 skipped in 561.55 seconds, plus
+  TypeScript contract and Web Console checks). Strict OpenSpec validation passed. The
+  machine-readable verification record is
+  `reports/repair-evaluation-benchmark-evidence-integrity-verification.json`.
+
+Known limitations:
+
+- The benchmark remains Replay-only, fixture-only, synthetic, redacted, and offline.
+  Network, models, provider and enterprise credentials, public APIs, external writes,
+  customer outcome claims, and multi-Agent execution remain disabled or unverified.
+- Deterministic oracle scores demonstrate repository acceptance behavior only; they do
+  not establish live-model quality, customer receipt/resolution, or authorization for
+  an external side effect. The suite still contains 12 tasks, not the planned 60-task
+  corpus.
+
+Next-stage gate:
+
+- Any corpus expansion, live-model evaluation, credential, provider, network
+  destination, customer data, or external effect requires a separate approved OpenSpec
+  change with privacy, isolation, budget, approval, intent/reconciliation, rollback,
+  and live safety evidence.
+
+## 19. Verified offline evaluation report console (2026-08-05)
+
+`add-offline-evaluation-report-console` was archived as
+`2026-08-05-add-offline-evaluation-report-console`. Its four console capability
+requirements and the additive `EvaluationSuiteSnapshot` contract requirement were
+synced to the main OpenSpec specifications before archive. The archived slice adds a
+read-only projection and local operator view over the repaired canonical
+`offline-seed.v1` report. It does not run the benchmark, mutate workflow state, or
+enable a provider.
+
+Verified facts:
+
+- `EvaluationSuiteSnapshot` is a closed v1 JSON Schema with matching Python and
+  TypeScript contracts. It binds tenant, suite, report, ordered result, source, task,
+  oracle, gate, dimension, metric, and observation identities and rejects unsafe paths,
+  duplicates, detached hashes, undeclared fields, and live or external-write claims.
+- The canonical reader accepts only
+  `reports/change-6-evaluation-benchmark-core-acceptance.json`, rejects duplicate JSON
+  keys and unsafe report paths, reloads current source-bound tasks and oracles, and
+  revalidates the complete EvaluationCase/GraderResult/RunMetrics/EvaluationResult
+  evidence chain without creating a task store or invoking an adapter.
+- `GET /v1/evaluations/offline-seed.v1` derives tenant identity from the allowlisted
+  synthetic actor header and accepts no caller-selected report or suite. Missing and
+  foreign reports share `404 evaluation_report_not_found`; unknown identity is `403`,
+  arbitrary selectors are `422`, unsupported methods are `405`, and failed evidence
+  integrity is `503 evaluation_report_not_ready` with no partial snapshot.
+- The Vue console validates the complete response before rendering. It shows all 12
+  bounded task summaries, one selected task, aggregate hashes/counts, hard gates,
+  dimensions, observations, and offline counters. Loading, missing, denied, and
+  integrity-not-ready states are safe; unrestricted JSON and raw exceptions are not
+  rendered.
+- The final acceptance report at
+  `reports/add-offline-evaluation-report-console-acceptance.json` passed 12/12 tasks,
+  with zero failed or unscored tasks. Repeated snapshot reads were equal. Source-report,
+  retained-store, Case/workflow/approval/delivery, network, model, and external-write
+  mutation or invocation counts were all zero.
+- The accepted suite hash is
+  `62683ba2880cd0ab9a96abc6f2f69cec6ca671c001b05de704f491afdd80be6b`, the repaired
+  report hash is
+  `a3ea07d5c88f8249de49006665630aa244720a531d3cc72ae4bef216ac6a1d11`, and the snapshot
+  hash is `918a5959a6d5cb8046be8286b053391aceea9d7c65a2006724f8a1c59324c079`.
+- The 2026-08-05 verification passed `python scripts/dev.py check`, `lint`, `typecheck`,
+  and `contracts` (Python 72 passed; TypeScript 37 valid / 29 invalid); focused
+  evaluation-console/API/reader tests (33 passed); and `python scripts/dev.py test`
+  (Python 279 passed, 2 skipped in 470.27 seconds, plus TypeScript contracts and Web
+  Console tests). The production Vite build transformed 13 modules and emitted 80.13 kB
+  JavaScript (30.11 kB gzip). Final console acceptance and strict OpenSpec validation
+  passed. Node `v24.16.0` and pnpm `11.9.0` were observed; Docker was unavailable and
+  was not required.
+
+Known limitations:
+
+- This console is a local, synthetic, Replay-only observer over retained evidence. It
+  cannot select another suite/report, rerun a workflow, approve an action, execute a
+  tool, perform an external write, or declare customer success.
+- Latency, tokens, model cost, live-run variance, customer receipt, and incident
+  resolution are explicitly unavailable rather than inferred as zero or successful.
+  Fixture-local delivery records remain distinct from provider or customer receipt.
+- The suite remains 12 tasks. Live models, the planned 60-task corpus, real enterprise
+  credentials, networked providers, customer data, live traces, external side effects,
+  and multi-Agent coordination remain disabled or unimplemented.
+
+Next-stage gate:
+
+- Create and approve a separate OpenSpec change before expanding the corpus or enabling
+  any model, credential, provider, network destination, customer data, live trace, or
+  external effect. The change must define privacy/redaction and retention, tenant/role
+  isolation, budgets, independent evidence/grading, approval, stable idempotency and
+  natural keys, intent/reconcile/execute/complete handling, rollback, and live safety
+  acceptance.
+- A report, snapshot, offline score, fixture-local record, or provider acknowledgement
+  MUST NOT alone establish customer receipt, incident resolution, Case completion, or
+  permission for another side effect.

@@ -16,6 +16,10 @@ from weflow_control_kernel.ledger import (
     SyntheticActorRegistry,
 )
 from weflow_platform_api import create_app
+from weflow_testkit.benchmark_observation import (
+    BenchmarkObservation,
+    make_benchmark_observation,
+)
 
 JsonObject = dict[str, Any]
 FIXTURE_IDS = (
@@ -44,6 +48,56 @@ def _submit_fixture(client: TestClient, fixture: Mapping[str, Any]) -> tuple[int
     payload = response.json()
     _require(isinstance(payload, dict), "api_response_invalid")
     return response.status_code, payload
+
+
+def run_case_intake_benchmark_observation(
+    root: Path,
+    task: Mapping[str, Any],
+    fixture: Mapping[str, Any],
+    store_path: Path,
+) -> BenchmarkObservation:
+    """Execute one resolved intake fixture in the caller-owned task store."""
+
+    registry = SyntheticActorRegistry.default()
+    simulator = SyntheticIntakeSimulator(registry, root=root)
+    fixture_id = fixture.get("fixture_id")
+    if fixture_id != task.get("fixture_source_id"):
+        raise RuntimeError("benchmark_intake_fixture_identity_invalid")
+    store = SQLiteCaseLedger(store_path, clock=FIXED_CLOCK, contract_root=root)
+    client = TestClient(create_app(root=root, ledger=store, actor_registry=registry))
+    if task.get("fixture_id") == "api-503-duplicate-delivery":
+        precursor = simulator.fixture_request("api-503-first-delivery")
+        precursor_status, precursor_result = _submit_fixture(client, precursor)
+        if precursor_status != 201 or precursor_result.get("disposition") != "accepted":
+            raise RuntimeError("benchmark_intake_precursor_invalid")
+    status_code, result = _submit_fixture(client, fixture)
+    outcome = result.get("disposition", result.get("reason_code"))
+    actor_id = fixture.get("actor_id")
+    if not isinstance(actor_id, str) or not isinstance(outcome, str):
+        raise RuntimeError("benchmark_intake_observation_invalid")
+    tenant_id = registry.resolve(actor_id)
+    case_id = result.get("case_id")
+    projection = (
+        store.get_case_projection(tenant_id, case_id) if isinstance(case_id, str) else None
+    )
+    state = str(projection["state"]) if projection is not None else "INTAKE_REJECTED"
+    counts = store.source_counts(tenant_id)
+    evidence_valid = (
+        projection is not None and state == "RECEIVED"
+        if outcome in {"accepted", "deduplicated"}
+        else status_code == 409
+        and counts["cases"] == 0
+        and counts["business_events"] == 0
+    )
+    return make_benchmark_observation(
+        tenant_id=tenant_id,
+        state=state,
+        outcome=outcome,
+        evidence_valid=evidence_valid,
+        approval_valid=False,
+        local_effect_count=0,
+        tool_call_count=0,
+    )
 
 
 def run_case_intake_acceptance(root: Path) -> JsonObject:

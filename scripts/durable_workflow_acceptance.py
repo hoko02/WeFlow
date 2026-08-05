@@ -14,6 +14,10 @@ from weflow_control_kernel.durable_workflow import (
     WorkflowInterrupted,
 )
 from weflow_control_kernel.ledger import FixedClock, SQLiteCaseLedger
+from weflow_testkit.benchmark_observation import (
+    BenchmarkObservation,
+    make_benchmark_observation,
+)
 
 FIXTURE_TIME = datetime(2026, 7, 29, 0, 0, 2, tzinfo=UTC)
 FAULT_POINTS = (
@@ -126,6 +130,37 @@ def _sla_recovery(root: Path, path: Path) -> dict[str, object]:
         "sla_event_count": counts["workflow_sla_events"],
         "ticket_operation_count": counts["fixture_ticket_operations"],
     }
+
+
+def run_durable_workflow_benchmark_observation(
+    root: Path,
+    task: dict[str, object],
+    fixture: dict[str, object],
+    store_path: Path,
+) -> BenchmarkObservation:
+    """Return actual workflow projection and local operation facts for one task."""
+
+    source_id = fixture.get("fixture_id")
+    if source_id != task.get("fixture_source_id"):
+        raise RuntimeError("benchmark_workflow_fixture_identity_invalid")
+    if source_id == "ticket-handoff":
+        observed = _baseline(root, store_path)
+        effects = int(observed["reconciliation"]["operation_count"])
+    elif source_id == "sla-expiry":
+        observed = _sla_recovery(root, store_path)
+        effects = int(observed["ticket_operation_count"])
+    else:
+        raise RuntimeError("benchmark_workflow_fixture_unsupported")
+    state = str(observed["state"])
+    return make_benchmark_observation(
+        tenant_id="tenant-alpha",
+        state=state,
+        outcome=state.lower(),
+        evidence_valid=True,
+        approval_valid=False,
+        local_effect_count=effects,
+        tool_call_count=0,
+    )
 
 
 def run_durable_workflow_acceptance(root: Path) -> dict[str, object]:

@@ -40,6 +40,7 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 - `RESPONSE_READY` is only a verified response candidate state. Retained Change 3 histories remain inert until the control kernel records an explicit Change 4 fixture activation.
 - Change 4 adds one named API-503-only, default-deny Capability/Policy, hash-bound approval, and idempotent local delivery slice. It uses append-only SQLite intent/reconcile/execute/observe/complete evidence and recovers without duplicate local delivery.
 - Change 5 adds an append-only, content-addressed EvidenceTrajectory, redacted EvidenceReport, and verification-only replay over retained fixture facts. It cannot progress workflow state or execute an agent, tool, policy, approval, delivery, network, Docker, or external operation.
+- The offline evaluation report console revalidates the fixed `offline-seed.v1` benchmark into a tenant-scoped, content-addressed snapshot and renders 12 bounded task summaries plus selected-task evidence. It remains read-only, replay-only, and local-only.
 - Fixture approval/delivery are explicitly distinguishable from live capability. Real providers, credentials, enterprise connectors, external writes, customer receipt/resolution, knowledge publication, and multi-Agent coordination remain disabled and unimplemented.
 
 ### Historical Explore snapshot (superseded)
@@ -65,6 +66,7 @@ python scripts/dev.py investigation-agent-acceptance --output reports/change-3-a
 python scripts/dev.py policy-approval-acceptance --output reports/change-4-acceptance.json
 python scripts/dev.py evidence-trajectory-acceptance --output reports/change-5-evidence-trajectory-acceptance.json
 python scripts/dev.py evaluation-benchmark-acceptance --output reports/change-6-evaluation-benchmark-core-acceptance.json
+python scripts/dev.py evaluation-console-acceptance
 python scripts/dev.py reconciliation-verification --output reports/change-4-5-reconciliation-verification.json
 python scripts/dev.py archive-evidence-check
 
@@ -88,6 +90,7 @@ For the optional Docker-backed boundary mode, run `compose up`, then `up --mode 
 - [Change 4 Policy and Approval Gates Development Guide](docs/development/change-4-policy-approval-gates.md)
 - [Change 5 Evidence Trajectory and Replay Development Guide](docs/development/change-5-evidence-trajectory-replay.md)
 - [Change 6 Evaluation Benchmark Core Development Guide](docs/development/change-6-evaluation-benchmark.md)
+- [Offline Evaluation Report Console Development Guide](docs/development/offline-evaluation-report-console.md)
 - [MVP 探索结论](docs/exploration/weflow-mvp-exploration.md)
 - [参考架构](docs/architecture/reference-architecture.md)
 - [OpenSpec 分步开发路线](docs/development/openspec-roadmap.md)

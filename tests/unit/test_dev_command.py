@@ -30,6 +30,11 @@ def test_parser_accepts_required_command_surface() -> None:
         parser.parse_args(["evaluation-benchmark-acceptance"]).command
         == "evaluation-benchmark-acceptance"
     )
+    evaluation_console = parser.parse_args(["evaluation-console-acceptance"])
+    assert evaluation_console.command == "evaluation-console-acceptance"
+    assert (
+        evaluation_console.output == "reports/add-offline-evaluation-report-console-acceptance.json"
+    )
     assert (
         parser.parse_args(["reconciliation-verification"]).command == "reconciliation-verification"
     )
@@ -69,6 +74,31 @@ def test_lint_runs_secret_hygiene_before_language_checks(monkeypatch) -> None:
     assert calls[0] == [dev.sys.executable, "scripts/scan_secrets.py"]
     assert calls[1] == ["uv", "run", "ruff", "check", "."]
     assert calls[2] == ["pnpm", "lint"]
+
+
+def test_failed_evaluation_console_acceptance_does_not_replace_prior_report(
+    monkeypatch,
+) -> None:
+    dev = _load_dev_module()
+    writes: list[tuple[str, dict[str, object]]] = []
+
+    def fail(_root: Path) -> dict[str, object]:
+        raise RuntimeError("blocked")
+
+    monkeypatch.setitem(
+        dev.sys.modules,
+        "evaluation_console_acceptance",
+        SimpleNamespace(run_evaluation_console_acceptance=fail),
+    )
+    monkeypatch.setattr(
+        dev,
+        "_write_acceptance_report",
+        lambda path, report: writes.append((path, report)),
+    )
+    arguments = dev.build_parser().parse_args(["evaluation-console-acceptance"])
+
+    assert dev.command_evaluation_console_acceptance(arguments) == 2
+    assert writes == []
 
 
 def test_compose_up_uses_detached_local_command(monkeypatch) -> None:

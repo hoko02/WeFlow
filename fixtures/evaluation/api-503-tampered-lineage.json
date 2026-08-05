@@ -1,0 +1,8 @@
+{
+  "fixture_id": "api-503-tampered-lineage",
+  "synthetic": true,
+  "tenant_id": "tenant-alpha",
+  "source_fixture_id": "api-503-policy-approval-delivery",
+  "fault_profile_id": "tampered-lineage",
+  "expected_outcome": "lineage_invalid"
+}

@@ -14,6 +14,10 @@ from typing import Any
 from weflow_business_simulator import SyntheticEvidenceTrajectorySimulator
 from weflow_control_kernel.durable_workflow import FixtureClock, SQLiteDurableWorkflow
 from weflow_control_kernel.ledger import FixedClock, SQLiteCaseLedger
+from weflow_testkit.benchmark_observation import (
+    BenchmarkObservation,
+    make_benchmark_observation,
+)
 
 JsonObject = dict[str, Any]
 FIXTURE_TIME = datetime(2026, 8, 4, tzinfo=UTC)
@@ -120,6 +124,36 @@ def _assert_redacted(report: JsonObject) -> None:
     ):
         if forbidden in rendered:
             raise RuntimeError("evidence_acceptance_report_not_redacted")
+
+
+def run_evidence_trajectory_benchmark_observation(
+    root: Path,
+    task: JsonObject,
+    fixture: JsonObject,
+    store_path: Path,
+) -> BenchmarkObservation:
+    """Return the actual verification-only replay outcome for a tampered trajectory."""
+
+    if (
+        fixture.get("fixture_id") != task.get("fixture_source_id")
+        or fixture.get("fault_profile_id") != task.get("fault_profile_id")
+    ):
+        raise RuntimeError("benchmark_evidence_fixture_identity_invalid")
+    if task.get("fault_profile_id") != "tampered-lineage":
+        raise RuntimeError("benchmark_evidence_fault_unsupported")
+    observed = _tampered(root, store_path)
+    outcome = str(observed["outcome"])
+    evidence_valid = outcome == "lineage_invalid"
+    state = "TRAJECTORY_REPLAY_REJECTED" if evidence_valid else "TRAJECTORY_REPLAY_VERIFIED"
+    return make_benchmark_observation(
+        tenant_id="tenant-alpha",
+        state=state,
+        outcome=outcome,
+        evidence_valid=evidence_valid,
+        approval_valid=False,
+        local_effect_count=0,
+        tool_call_count=0,
+    )
 
 
 def run_evidence_trajectory_acceptance(

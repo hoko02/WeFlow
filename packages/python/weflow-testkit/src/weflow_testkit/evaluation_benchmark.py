@@ -8,16 +8,17 @@ import json
 import sqlite3
 import sys
 from collections.abc import Mapping
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
 from typing import Any
 
-from weflow_contracts import ContractValidationError, approval_is_authorized
+from weflow_contracts import ContractValidationError
 from weflow_contracts.evaluation import (
     EVALUATION_SUITE_REPORT_SCHEMA_ID,
     GRADER_RESULT_SCHEMA_ID,
     RUN_METRICS_SCHEMA_ID,
     canonical_sha256,
+    validate_benchmark_result,
     validate_evaluation_oracle,
     validate_evaluation_suite_report,
     validate_evaluation_task,
@@ -25,14 +26,14 @@ from weflow_contracts.evaluation import (
     validate_run_metrics,
 )
 
+from .benchmark_observation import (
+    OFFLINE_CAPABILITY_FLAGS,
+    BenchmarkObservation,
+    validate_benchmark_observation,
+)
+
 JsonObject = dict[str, Any]
-CAPABILITY_FLAGS: JsonObject = {
-    "offline": True,
-    "replay": True,
-    "network": False,
-    "model": False,
-    "external_write": False,
-}
+CAPABILITY_FLAGS: JsonObject = dict(OFFLINE_CAPABILITY_FLAGS)
 FORBIDDEN_INPUT_TOKENS = (
     "raw_message",
     "raw_payload",
@@ -55,10 +56,21 @@ def _sha256(value: object) -> str:
     return hashlib.sha256(_canonical(value).encode("utf-8")).hexdigest()
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> JsonObject:
+    loaded: JsonObject = {}
+    for key, value in pairs:
+        if key in loaded:
+            raise BenchmarkValidationError("benchmark_input_invalid")
+        loaded[key] = value
+    return loaded
+
+
 def _load_json(path: Path) -> JsonObject:
     try:
-        loaded = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+        loaded = json.loads(
+            path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys
+        )
+    except (OSError, json.JSONDecodeError, UnicodeError) as error:
         raise BenchmarkValidationError("benchmark_input_invalid") from error
     if not isinstance(loaded, dict):
         raise BenchmarkValidationError("benchmark_input_invalid")
@@ -77,14 +89,61 @@ def _contains_forbidden(value: object) -> bool:
     return False
 
 
-def _require_safe_reference(reference: JsonObject, *, expected_id: str, expected_hash: str) -> None:
-    if _contains_forbidden(reference):
-        raise BenchmarkValidationError("benchmark_reference_unsafe")
-    if reference.get("fixture_id", reference.get("policy_id")) != expected_id:
-        raise BenchmarkValidationError("benchmark_reference_mismatch")
-    reference_hash = reference.get("fixture_sha256", reference.get("policy_sha256"))
-    if reference_hash != expected_hash:
-        raise BenchmarkValidationError("benchmark_reference_hash_mismatch")
+def _require_safe_source_path(relative_path: object) -> PurePosixPath:
+    if not isinstance(relative_path, str) or "\\" in relative_path:
+        raise BenchmarkValidationError("benchmark_source_path_unsafe")
+    pure = PurePosixPath(relative_path)
+    if pure.is_absolute() or any(part in ("", ".", "..") for part in pure.parts):
+        raise BenchmarkValidationError("benchmark_source_path_unsafe")
+    return pure
+
+
+def _resolve_source(
+    root: Path,
+    relative_path: object,
+    *,
+    allowed_directory: str,
+    expected_id: object,
+    expected_hash: object,
+    identity_field: str,
+) -> tuple[JsonObject, str]:
+    pure = _require_safe_source_path(relative_path)
+    allowed_root = (root / allowed_directory).resolve()
+    source_path = (root / Path(*pure.parts)).resolve()
+    try:
+        source_path.relative_to(allowed_root)
+    except ValueError as error:
+        raise BenchmarkValidationError("benchmark_source_path_unsafe") from error
+    try:
+        source = _load_json(source_path)
+    except BenchmarkValidationError as error:
+        raise BenchmarkValidationError("benchmark_source_invalid") from error
+    if _contains_forbidden(source):
+        raise BenchmarkValidationError("benchmark_source_unsafe")
+    if not isinstance(expected_id, str) or source.get(identity_field) != expected_id:
+        raise BenchmarkValidationError("benchmark_source_identity_mismatch")
+    source_hash = _sha256(source)
+    if not isinstance(expected_hash, str) or source_hash != expected_hash:
+        raise BenchmarkValidationError("benchmark_source_hash_mismatch")
+    return source, relative_path
+
+
+def _validate_policy_source(task: JsonObject, policy: JsonObject) -> None:
+    allowed_adapters = policy.get("allowed_adapters")
+    if (
+        policy.get("tenant_id") != task.get("tenant_id")
+        or policy.get("mode") != "offline"
+        or not isinstance(allowed_adapters, list)
+        or task.get("execution_adapter") not in allowed_adapters
+        or policy.get("capability_flags") != CAPABILITY_FLAGS
+    ):
+        raise BenchmarkValidationError("benchmark_policy_source_mismatch")
+
+
+def _validate_fixture_source(task: JsonObject, fixture: JsonObject) -> None:
+    tenant_id = fixture.get("tenant_id")
+    if tenant_id is not None and tenant_id != task.get("tenant_id"):
+        raise BenchmarkValidationError("benchmark_source_tenant_mismatch")
 
 
 def load_offline_seed_suite(
@@ -114,12 +173,14 @@ def load_offline_seed_suite(
             raise BenchmarkValidationError("benchmark_task_duplicate")
         seen.add(task_id)
         directory = root / "evals" / "tasks" / task_id
+        if (directory / "fixture.json").exists() or (directory / "policy.json").exists():
+            raise BenchmarkValidationError("benchmark_task_local_mirror_forbidden")
         task = _load_json(directory / "task.json")
         oracle = _load_json(directory / "oracle.json")
-        fixture = _load_json(directory / "fixture.json")
-        policy = _load_json(directory / "policy.json")
         if _contains_forbidden(task) or _contains_forbidden(oracle):
             raise BenchmarkValidationError("benchmark_task_unsafe")
+        for source_path_key in ("fixture_source_path", "policy_source_path"):
+            _require_safe_source_path(task.get(source_path_key))
         try:
             validate_evaluation_task(task, root)
             validate_evaluation_oracle(oracle, root)
@@ -131,22 +192,32 @@ def load_offline_seed_suite(
             "tenant_id"
         ):
             raise BenchmarkValidationError("benchmark_oracle_mismatch")
-        _require_safe_reference(
-            fixture,
-            expected_id=str(task["fixture_id"]),
-            expected_hash=str(task["fixture_sha256"]),
+        fixture, fixture_source_path = _resolve_source(
+            root,
+            task.get("fixture_source_path"),
+            allowed_directory="fixtures",
+            expected_id=task.get("fixture_source_id"),
+            expected_hash=task.get("fixture_sha256"),
+            identity_field="fixture_id",
         )
-        _require_safe_reference(
-            policy,
-            expected_id="offline-policy.v1",
-            expected_hash=str(task["policy_sha256"]),
+        policy, policy_source_path = _resolve_source(
+            root,
+            task.get("policy_source_path"),
+            allowed_directory="evals/sources",
+            expected_id=task.get("policy_source_id"),
+            expected_hash=task.get("policy_sha256"),
+            identity_field="policy_id",
         )
+        _validate_fixture_source(task, fixture)
+        _validate_policy_source(task, policy)
         loaded.append(
             {
                 "task": task,
                 "oracle": oracle,
                 "fixture": fixture,
                 "policy": policy,
+                "fixture_source_path": fixture_source_path,
+                "policy_source_path": policy_source_path,
             }
         )
     return suite, loaded
@@ -159,149 +230,50 @@ def _load_acceptance_module(root: Path, module_name: str) -> Any:
     return importlib.import_module(module_name)
 
 
-def _acceptance_report(
-    root: Path, cache: dict[str, Any], module_name: str, function_name: str
-) -> Any:
-    cache_key = f"{module_name}:{function_name}"
-    if cache_key not in cache:
-        module = _load_acceptance_module(root, module_name)
-        cache[cache_key] = getattr(module, function_name)(root)
-    return cache[cache_key]
+PUBLIC_ADAPTERS: Mapping[str, tuple[str, str]] = {
+    "case-intake": (
+        "case_intake_acceptance",
+        "run_case_intake_benchmark_observation",
+    ),
+    "durable-workflow": (
+        "durable_workflow_acceptance",
+        "run_durable_workflow_benchmark_observation",
+    ),
+    "investigation-agent": (
+        "investigation_agent_acceptance",
+        "run_investigation_benchmark_observation",
+    ),
+    "policy-approval": (
+        "policy_approval_acceptance",
+        "run_policy_approval_benchmark_observation",
+    ),
+    "evidence-trajectory": (
+        "evidence_trajectory_acceptance",
+        "run_evidence_trajectory_benchmark_observation",
+    ),
+}
 
 
-def _find_fault(items: object, fault_point: str) -> Mapping[str, Any]:
-    if not isinstance(items, list):
-        raise BenchmarkValidationError("benchmark_observation_invalid")
-    for item in items:
-        if isinstance(item, Mapping) and item.get("fault_point") == fault_point:
-            return item
-    raise BenchmarkValidationError("benchmark_observation_invalid")
+def _observe_task(root: Path, record: JsonObject, store_path: Path) -> BenchmarkObservation:
+    """Invoke one public adapter and accept only its closed, typed safe facts."""
 
-
-def _observe_task(
-    root: Path, task: JsonObject, cache: dict[str, Any], store_path: Path
-) -> JsonObject:
-    """Use supported existing offline paths; no benchmark code selects a provider."""
-
-    adapter = task["execution_adapter"]
-    fixture_id = str(task["fixture_id"])
-    if adapter == "case-intake":
-        report = _acceptance_report(
-            root, cache, "case_intake_acceptance", "run_case_intake_acceptance"
-        )
-        observed = report["fixture_results"].get(fixture_id)
-        if not isinstance(observed, Mapping):
-            raise BenchmarkValidationError("benchmark_observation_invalid")
-        return {
-            "tenant_id": "tenant-alpha",
-            "outcome": observed["outcome"],
-            "local_effect_count": 0,
-            "approval_valid": False,
-            "evidence_valid": True,
-            "tool_call_count": 0,
-            **CAPABILITY_FLAGS,
-        }
-    if adapter == "durable-workflow":
-        module = _load_acceptance_module(root, "durable_workflow_acceptance")
-        if fixture_id == "api-503-ticket-handoff":
-            item = module._baseline(root, store_path)
-            outcome = "ticket_ready"
-            effects = int(item["reconciliation"]["operation_count"])
-        elif fixture_id == "api-503-sla-expiry":
-            item = module._sla_recovery(root, store_path)
-            outcome = "waiting_for_operator"
-            effects = int(item["ticket_operation_count"])
-        else:
-            raise BenchmarkValidationError("benchmark_fixture_unsupported")
-        return {
-            "tenant_id": "tenant-alpha",
-            "outcome": outcome,
-            "local_effect_count": effects,
-            "approval_valid": False,
-            "evidence_valid": True,
-            "tool_call_count": 0,
-            **CAPABILITY_FLAGS,
-        }
-    if adapter == "investigation-agent":
-        module = _load_acceptance_module(root, "investigation_agent_acceptance")
-        if fixture_id == "api-503-investigation":
-            item = module._baseline(root, store_path)
-            effects = 0
-        else:
-            item = module._fault_recovery(root, "candidate", store_path)
-            effects = 0
-        return {
-            "tenant_id": "tenant-alpha",
-            "outcome": "response_ready",
-            "local_effect_count": effects,
-            "approval_valid": False,
-            "evidence_valid": item.get("verifier_outcome", "verified") == "verified",
-            "tool_call_count": 3,
-            **CAPABILITY_FLAGS,
-        }
-    if adapter == "policy-approval":
-        if fixture_id == "api-503-stale-approval":
-            fixture = _load_json(
-                root / "fixtures" / "contracts" / "v1" / "semantic" / "stale-approval.json"
-            )
-            authorized = approval_is_authorized(
-                fixture["request"],
-                fixture["decision"],
-                current_case_revision_id=str(fixture["current_case_revision_id"]),
-                current_evidence_hashes=fixture["current_evidence_hashes"],
-            )
-            return {
-                "tenant_id": "tenant-alpha",
-                "outcome": "authorization_denied"
-                if not authorized
-                else "fixture_delivery_recorded",
-                "local_effect_count": 0,
-                "approval_valid": not authorized,
-                "evidence_valid": True,
-                "tool_call_count": 0,
-                **CAPABILITY_FLAGS,
-            }
-        module = _load_acceptance_module(root, "policy_approval_acceptance")
-
-        if fixture_id == "api-503-policy-approval-delivery":
-            item = module._baseline(root, store_path)
-            outcome = "fixture_delivery_recorded"
-            effects = int(item["source_counts"]["fixture_delivery_records"])
-            approval_valid = True
-        elif fixture_id == "api-503-policy-revoked-grant":
-            item = module._authorization_denial(root, store_path)
-            outcome = "authorization_denied"
-            effects = int(item["delivery_record_count"])
-            approval_valid = True
-        else:
-            item = module._fault_recovery(root, "delivery-lost-response", store_path)
-            outcome = "recovered_after_interruption"
-            effects = int(item["delivery_record_count"])
-            approval_valid = True
-        return {
-            "tenant_id": "tenant-alpha",
-            "outcome": outcome,
-            "local_effect_count": effects,
-            "approval_valid": approval_valid,
-            "evidence_valid": True,
-            "tool_call_count": 3,
-            **CAPABILITY_FLAGS,
-        }
-    if adapter == "evidence-trajectory":
-        module = _load_acceptance_module(root, "evidence_trajectory_acceptance")
-
-        item = module._tampered(root, store_path)
-        return {
-            "tenant_id": "tenant-alpha",
-            "outcome": item["outcome"],
-            "local_effect_count": 0,
-            "approval_valid": False,
-            "evidence_valid": item["outcome"] != "lineage_invalid"
-            or fixture_id == "api-503-tampered-lineage",
-            "tool_call_count": 0,
-            **CAPABILITY_FLAGS,
-        }
-    raise BenchmarkValidationError("benchmark_adapter_unsupported")
+    task = record["task"]
+    adapter_spec = PUBLIC_ADAPTERS.get(str(task.get("execution_adapter")))
+    if adapter_spec is None:
+        raise BenchmarkValidationError("benchmark_adapter_unsupported")
+    module_name, function_name = adapter_spec
+    if function_name.startswith("_"):
+        raise BenchmarkValidationError("benchmark_adapter_not_public")
+    module = _load_acceptance_module(root, module_name)
+    adapter = getattr(module, function_name, None)
+    if not callable(adapter):
+        raise BenchmarkValidationError("benchmark_adapter_not_public")
+    try:
+        observation = adapter(root, task, record["fixture"], store_path)
+        validate_benchmark_observation(observation)
+    except (KeyError, TypeError, ValueError) as error:
+        raise BenchmarkValidationError("benchmark_observation_invalid") from error
+    return observation
 
 
 def _grade(
@@ -383,6 +355,166 @@ def _grade(
     return grader_result, metrics
 
 
+def _evaluation_result_id(run_id: str, task: JsonObject) -> str:
+    return f"evaluation-result:{run_id}:{task['evaluation_task_id']}"
+
+
+def _materialize_evaluation_case(task: JsonObject, oracle: JsonObject, run_id: str) -> JsonObject:
+    return {
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-case.schema.json",
+        "schema_version": "v1",
+        "tenant_id": task["tenant_id"],
+        "evaluation_case_id": f"evaluation-case:{run_id}:{task['evaluation_task_id']}",
+        "fixture_id": task["fixture_id"],
+        "input_hash": task["fixture_sha256"],
+        "created_at": task["created_at"],
+        "oracle_id": oracle["oracle_id"],
+        "benchmark_profile": "benchmark-core.v1",
+        "suite_id": task["suite_id"],
+        "evaluation_task_id": task["evaluation_task_id"],
+        "task_sha256": canonical_sha256(task),
+        "oracle_sha256": canonical_sha256(oracle),
+    }
+
+
+def _materialize_evaluation_result(
+    task: JsonObject,
+    grader_result: JsonObject,
+    metrics: JsonObject,
+    evaluation_case: JsonObject,
+    suite_report: JsonObject,
+    run_id: str,
+) -> JsonObject:
+    return {
+        "schema_id": "https://weflow.local/contracts/v1/evaluation-result.schema.json",
+        "schema_version": "v1",
+        "tenant_id": task["tenant_id"],
+        "evaluation_result_id": _evaluation_result_id(run_id, task),
+        "evaluation_case_id": evaluation_case["evaluation_case_id"],
+        "result": grader_result["result"],
+        "recorded_at": task["created_at"],
+        "failure_classification": grader_result["failure_classification"],
+        "benchmark_profile": "benchmark-core.v1",
+        "suite_id": task["suite_id"],
+        "evaluation_task_id": task["evaluation_task_id"],
+        "task_sha256": canonical_sha256(task),
+        "oracle_sha256": grader_result["oracle_sha256"],
+        "hard_gate_passed": grader_result["hard_gate_passed"],
+        "grader_result_id": grader_result["grader_result_id"],
+        "run_metrics_id": metrics["run_metrics_id"],
+        "suite_report_id": suite_report["suite_report_id"],
+        "report_sha256": suite_report["report_sha256"],
+        "quality_score": grader_result["quality_score"],
+        "capability_flags": dict(CAPABILITY_FLAGS),
+    }
+
+
+def validate_retained_benchmark_diagnostic(
+    root: Path,
+    record: JsonObject,
+    diagnostic: Mapping[str, object],
+    suite_report: JsonObject,
+) -> None:
+    """Revalidate one retained diagnostic without executing its adapter."""
+
+    expected_keys = {
+        "evaluation_task_id",
+        "fixture_id",
+        "fixture_source_path",
+        "fixture_sha256",
+        "policy_source_path",
+        "policy_sha256",
+        "task_sha256",
+        "oracle_sha256",
+        "observation",
+        "evaluation_case",
+        "grader_result",
+        "metrics",
+        "evaluation_result",
+    }
+    if set(diagnostic) != expected_keys:
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid")
+
+    task = record["task"]
+    oracle = record["oracle"]
+    expected_metadata = {
+        "evaluation_task_id": task["evaluation_task_id"],
+        "fixture_id": task["fixture_id"],
+        "fixture_source_path": record["fixture_source_path"],
+        "fixture_sha256": task["fixture_sha256"],
+        "policy_source_path": record["policy_source_path"],
+        "policy_sha256": task["policy_sha256"],
+        "task_sha256": canonical_sha256(task),
+        "oracle_sha256": canonical_sha256(oracle),
+    }
+    if any(diagnostic.get(key) != value for key, value in expected_metadata.items()):
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid")
+
+    observation = diagnostic.get("observation")
+    grader_result = diagnostic.get("grader_result")
+    metrics = diagnostic.get("metrics")
+    evaluation_case = diagnostic.get("evaluation_case")
+    evaluation_result = diagnostic.get("evaluation_result")
+    if not all(
+        isinstance(item, dict)
+        for item in (
+            observation,
+            grader_result,
+            metrics,
+            evaluation_case,
+            evaluation_result,
+        )
+    ):
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid")
+    try:
+        validate_benchmark_observation(observation)
+    except ValueError as error:
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid") from error
+    if (
+        observation.get("tenant_id") != task["tenant_id"]
+        or not all(observation.get(key) is value for key, value in CAPABILITY_FLAGS.items())
+        or not isinstance(observation.get("tool_call_count"), int)
+        or isinstance(observation.get("tool_call_count"), bool)
+        or not isinstance(observation.get("local_effect_count"), int)
+        or isinstance(observation.get("local_effect_count"), bool)
+    ):
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid")
+
+    run_id = grader_result.get("run_id")
+    if not isinstance(run_id, str) or not run_id:
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid")
+    expected_grader, expected_metrics = _grade(task, oracle, observation, run_id)
+    expected_case = _materialize_evaluation_case(task, oracle, run_id)
+    expected_result = _materialize_evaluation_result(
+        task,
+        expected_grader,
+        expected_metrics,
+        expected_case,
+        suite_report,
+        run_id,
+    )
+    if (
+        grader_result != expected_grader
+        or metrics != expected_metrics
+        or evaluation_case != expected_case
+        or evaluation_result != expected_result
+    ):
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid")
+    try:
+        validate_benchmark_result(
+            evaluation_case,
+            evaluation_result,
+            task,
+            oracle,
+            grader_result,
+            metrics,
+            suite_report,
+            root,
+        )
+    except ContractValidationError as error:
+        raise BenchmarkValidationError("benchmark_report_integrity_invalid") from error
+
+
 def run_offline_seed_suite(
     root: Path, *, configuration: Mapping[str, object] | None = None, run_id: str = "run-a"
 ) -> JsonObject:
@@ -391,27 +523,26 @@ def run_offline_seed_suite(
     if configuration not in (None, {}, {"mode": "offline"}):
         raise BenchmarkValidationError("offline_benchmark_configuration_denied")
     suite, records = load_offline_seed_suite(root)
-    diagnostics: list[JsonObject] = []
-    acceptance_cache: dict[str, Any] = {}
+    executions: list[JsonObject] = []
     for record in records:
         task = record["task"]
         with TemporaryDirectory(prefix="weflow-evaluation-task-") as temporary:
             store_path = Path(temporary) / "fixture.sqlite3"
             sqlite3.connect(store_path).close()
-            observation = _observe_task(root, task, acceptance_cache, store_path)
+            observation = _observe_task(root, record, store_path)
         grader_result, metrics = _grade(task, record["oracle"], observation, run_id)
-        diagnostics.append(
+        executions.append(
             {
-                "evaluation_task_id": task["evaluation_task_id"],
-                "fixture_id": task["fixture_id"],
-                "task_sha256": canonical_sha256(task),
-                "oracle_sha256": canonical_sha256(record["oracle"]),
+                "record": record,
+                "observation": observation,
                 "grader_result": grader_result,
                 "metrics": metrics,
+                "evaluation_case": _materialize_evaluation_case(task, record["oracle"], run_id),
             }
         )
-    passed = sum(item["grader_result"]["result"] == "passed" for item in diagnostics)
-    unscored = sum(item["grader_result"]["quality_score"] == "not_scored" for item in diagnostics)
+    passed = sum(item["grader_result"]["result"] == "passed" for item in executions)
+    unscored = sum(item["grader_result"]["quality_score"] == "not_scored" for item in executions)
+    failed = len(executions) - passed - unscored
     report: JsonObject = {
         "schema_id": EVALUATION_SUITE_REPORT_SCHEMA_ID,
         "schema_version": "v1",
@@ -419,15 +550,57 @@ def run_offline_seed_suite(
         "suite_id": suite["suite_id"],
         "suite_sha256": _sha256(suite),
         "profile": "benchmark-core.v1",
-        "task_count": len(diagnostics),
+        "task_count": len(executions),
         "passed_task_count": passed,
-        "failed_task_count": len(diagnostics) - passed,
+        "failed_task_count": failed,
         "unscored_task_count": unscored,
-        "task_result_ids": [item["grader_result"]["grader_result_id"] for item in diagnostics],
+        "task_result_ids": [
+            _evaluation_result_id(run_id, item["record"]["task"]) for item in executions
+        ],
         "capability_flags": dict(CAPABILITY_FLAGS),
     }
     report["report_sha256"] = canonical_sha256(report)
-    validate_evaluation_suite_report(report)
+    validate_evaluation_suite_report(report, root)
+
+    diagnostics: list[JsonObject] = []
+    for execution in executions:
+        record = execution["record"]
+        task = record["task"]
+        evaluation_result = _materialize_evaluation_result(
+            task,
+            execution["grader_result"],
+            execution["metrics"],
+            execution["evaluation_case"],
+            report,
+            run_id,
+        )
+        validate_benchmark_result(
+            execution["evaluation_case"],
+            evaluation_result,
+            task,
+            record["oracle"],
+            execution["grader_result"],
+            execution["metrics"],
+            report,
+            root,
+        )
+        diagnostics.append(
+            {
+                "evaluation_task_id": task["evaluation_task_id"],
+                "fixture_id": task["fixture_id"],
+                "fixture_source_path": record["fixture_source_path"],
+                "fixture_sha256": task["fixture_sha256"],
+                "policy_source_path": record["policy_source_path"],
+                "policy_sha256": task["policy_sha256"],
+                "task_sha256": canonical_sha256(task),
+                "oracle_sha256": canonical_sha256(record["oracle"]),
+                "observation": execution["observation"],
+                "evaluation_case": execution["evaluation_case"],
+                "grader_result": execution["grader_result"],
+                "metrics": execution["metrics"],
+                "evaluation_result": evaluation_result,
+            }
+        )
     return {"suite_report": report, "task_diagnostics": diagnostics}
 
 
