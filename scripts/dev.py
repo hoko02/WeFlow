@@ -488,6 +488,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional repository-relative evidence path under reports/",
     )
     reconciliation_verification.set_defaults(handler=command_reconciliation_verification)
+    from live_model_cli import configure_live_model_parser
+
+    configure_live_model_parser(subcommands, root=ROOT, printer=_print)
+
     up = subcommands.add_parser("up", help="accept a local startup request")
     up.add_argument("--mode", choices=("offline", "service-boundary"), default="offline")
     up.set_defaults(handler=command_up)

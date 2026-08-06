@@ -1,6 +1,6 @@
 # WeFlow 项目长期记忆
 
-> 最近更新：2026-08-05
+> 最近更新：2026-08-06
 > 用途：保存跨 change 的产品定位、已锁定决策、边界和启动门槛。它不是某个 change 的实现规格；进入开发前仍需通过 OpenSpec proposal 固化本次范围。
 
 ## 1. 产品定位
@@ -692,3 +692,69 @@ Next-stage gate:
   idempotency and audit evidence, cancellation/recovery, and negative proof that an
   observer cannot mutate the source Case or grant approval, workflow, retry, provider,
   or external-write authority.
+
+## 21. Archived bounded live-model evaluation (2026-08-06)
+
+`add-bounded-live-model-evaluation` was archived as
+`2026-08-06-add-bounded-live-model-evaluation`. Its seven delta capabilities were
+synced into the main OpenSpec specifications before archive: 17 requirements were
+added and 7 were modified, with no removals or renames.
+
+Verified facts:
+
+- A dedicated, explicit-confirmation command can create one OpenAI-compatible DeepSeek
+  provider for a bounded synthetic investigation. Normal services and retained offline
+  commands remain Replay-only; the live adapter is command-local and grants no workflow,
+  approval, delivery, external-write, knowledge-publication, or multi-Agent authority.
+- The retained real session completed 30/30 attempts and passed 330/330 deterministic
+  hard-gate checks. The grounded happy path reached verifier-authorized
+  `RESPONSE_READY` 5/5 times. Approval, delivery, and external business-write counts
+  were all zero; credentials were not persisted.
+- Observed usage was 100,739 tokens with estimated cost USD 0.01502032. The accepted
+  report hash is `cba0b5450ded45a2bf1f3ec3af6ce5edc3a1253f3da083b93e98c9d976264dd9`;
+  its source-linked verification hash is
+  `33e3cf5809a40f5941dcfee4282dabf292ab8e2c59c86ff16b95140e23f0ebe3`.
+  The final change-verification hash is
+  `63f671bced8f2ea4b6e9d270f662a32ab9b5b4490dfdc7f6f21ced04175263e5`.
+- Suite-level oracle success was 83.33%. `missing-information` matched its expected safe
+  outcome 0/5 times: four attempts reached `response_ready` and one was
+  `policy_denied`. This model-quality limitation is retained rather than hidden by
+  weakening the accepted 100% hard-gate result.
+- The final verification passed 71 focused live contract/provider/runtime/security/
+  runner tests, secret hygiene with zero findings, Python/TypeScript lint, retained
+  offline acceptances, and strict OpenSpec validation. Contracts passed 104 Python
+  tests; the TypeScript corpus accepted 37 valid and rejected 60 invalid payloads.
+  The full aggregate suite had previously passed 396 Python tests with 2 explicit
+  service-boundary skips; Docker was unavailable.
+
+Known limitations:
+
+- The pilot uses six checked-in synthetic tasks, synthetic CRM/monitoring/knowledge
+  reads, and five attempts per task. It is not the planned 60-task M1 corpus and does
+  not establish production quality, customer receipt, incident resolution, or ROI.
+- Missing-information behavior requires prompt/evaluator/product investigation before
+  claiming uniformly reliable model quality. Five samples per task are too small for
+  broad statistical conclusions, and provider cost is an estimate rather than an
+  invoice.
+- The dated DeepSeek model and price profile are evaluation evidence only and expire
+  before 2026-09-06. A later live run requires official provider re-verification and a
+  reviewed profile rather than silently reusing stale pricing.
+- Real customer data, enterprise credentials, WeCom/Tencent/ticket connectors, real
+  approval or outbound delivery, external business writes, production deployment,
+  customer outcomes, knowledge publication, and multi-Agent coordination remain
+  disabled, unsupported, or unverified. Docker-backed service boundaries were not
+  live-verified on this workstation.
+
+Next-stage gate:
+
+- Start one new independently verifiable OpenSpec proposal before expanding the corpus,
+  changing prompts/oracles, exposing live reports in an operator demo, adding a provider
+  or connector, or enabling any external effect. The next portfolio-oriented increment
+  should preserve the Replay default, synthetic no-write demo path, explicit live
+  authorization, deterministic hard gates, report lineage, and honest capability labels.
+- Any 60-task expansion must define sampling, holdout contamination controls, repeated
+  live-run budgets, failure attribution, privacy/retention, and comparison baselines.
+  Any external write still requires stable natural/idempotency keys, durable
+  intent/reconcile/execute/complete evidence, tenant/role policy, independent approval,
+  rollback, and proof that provider acknowledgement alone cannot establish customer
+  receipt, resolution, Case completion, or permission for another effect.

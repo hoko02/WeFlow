@@ -23,6 +23,12 @@ import {
   validateWorkflowCommandTenant,
   validateWorkflowCommandVersion,
 } from "./index.js";
+import {
+  validateLiveContractChain,
+  validateModelActionProposal,
+  validateModelToolObservation,
+  validateProviderPriceProfile,
+} from "./live.js";
 
 function findRepositoryRoot(start = process.cwd()): string {
   let current = resolve(start);
@@ -119,6 +125,14 @@ const invalidEvaluationSuiteSnapshotCases = JSON.parse(
 const missingIdentity = JSON.parse(
   readFileSync(resolve(root, "fixtures/contracts/v1/invalid/missing-schema-identity.json"), "utf8"),
 ) as JsonObject;
+const liveBoundary = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/live-boundary.json"), "utf8"),
+) as Record<string, JsonObject>;
+const invalidLivePayloads = JSON.parse(
+  readFileSync(
+    resolve(root, "fixtures/contracts/v1/invalid/live-boundary-invalid-payloads.json"), "utf8",
+  ),
+) as Record<string, JsonObject>;
 
 const failedSchemas: string[] = [];
 
@@ -520,6 +534,56 @@ for (const [name, kind] of Object.entries(invalidOperatorCaseSnapshotCases)) {
     failedSchemas.push("invalid-operator-case-snapshot-" + name);
   }
 }
+
+for (const [name, payload] of Object.entries(liveBoundary)) {
+  if (!validatePayload(payload, root).valid) failedSchemas.push("live-schema-" + name);
+}
+for (const [name, payload] of Object.entries(invalidLivePayloads)) {
+  if (validatePayload(payload, root).valid) failedSchemas.push("invalid-live-" + name);
+}
+if (!validateModelActionProposal(liveBoundary.model_action_proposal, root).valid) {
+  failedSchemas.push("model-action-proposal");
+}
+if (!validateModelToolObservation(liveBoundary.model_tool_observation, root).valid) {
+  failedSchemas.push("model-tool-observation");
+}
+
+function rehashLive(payload: JsonObject, field: string): void {
+  const material = { ...payload };
+  delete material[field];
+  payload[field] = createHash("sha256").update(canonicalJson(material), "utf8").digest("hex");
+}
+
+const liveIntent = structuredClone(liveBoundary.model_invocation_intent);
+const liveObservation = structuredClone(liveBoundary.model_invocation_observation);
+const liveArtifact = structuredClone(liveBoundary.response_draft_artifact);
+const liveBinding = structuredClone(liveBoundary.live_candidate_binding);
+const liveMetrics = structuredClone(liveBoundary.live_run_metrics);
+const liveAttempt = structuredClone(liveBoundary.live_evaluation_attempt);
+const liveReport = structuredClone(liveBoundary.live_evaluation_suite_report);
+for (const [payload, field] of [
+  [liveIntent, "intent_sha256"],
+  [liveObservation, "observation_sha256"],
+  [liveArtifact, "artifact_sha256"],
+  [liveBinding, "binding_sha256"],
+  [liveMetrics, "metrics_sha256"],
+] as [JsonObject, string][]) rehashLive(payload, field);
+liveAttempt.metrics_sha256 = liveMetrics.metrics_sha256;
+liveAttempt.candidate_binding_id = liveBinding.binding_sha256;
+rehashLive(liveAttempt, "attempt_sha256");
+rehashLive(liveReport, "report_sha256");
+if (!validateLiveContractChain(liveIntent, liveObservation, liveArtifact, liveBinding, liveMetrics, liveAttempt, liveReport, root).valid) {
+  failedSchemas.push("live-contract-chain");
+}
+const livePriceProfile = structuredClone(liveBoundary.provider_price_profile);
+rehashLive(livePriceProfile, "profile_sha256");
+if (!validateProviderPriceProfile(livePriceProfile, root).valid) failedSchemas.push("live-price-profile");
+const detachedLiveBinding = structuredClone(liveBinding);
+detachedLiveBinding.tenant_id = "tenant-foreign";
+rehashLive(detachedLiveBinding, "binding_sha256");
+if (validateLiveContractChain(liveIntent, liveObservation, liveArtifact, detachedLiveBinding, liveMetrics, liveAttempt, liveReport, root).valid) {
+  failedSchemas.push("detached-live-binding");
+}
 if (failedSchemas.length > 0) {
   throw new Error(`contract-fixture-check-failed:${failedSchemas.join(",")}`);
 }
@@ -535,6 +599,7 @@ console.log(
       Object.keys(evidenceInvalid).length +
       Object.keys(invalidBenchmarkPayloads).length +
       Object.keys(invalidOperatorCaseSnapshotCases).length +
+      Object.keys(invalidLivePayloads).length +
       2,
   }),
 );

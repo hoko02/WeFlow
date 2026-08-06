@@ -1,0 +1,10 @@
+{
+  "source_id": "crm-missing.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "tool_name": "crm",
+  "classification": "untrusted_synthetic",
+  "status": "missing",
+  "summary": "The synthetic account record does not contain a service tier or SLA.",
+  "facts": ["service_tier=missing", "sla_minutes=missing"]
+}

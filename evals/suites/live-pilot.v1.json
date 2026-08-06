@@ -1,0 +1,18 @@
+{
+  "suite_id": "live-pilot.v1",
+  "profile": "live-pilot.v1",
+  "task_count": 6,
+  "attempts_per_task": 5,
+  "tasks": [
+    {"task_id": "grounded-response-ready", "path": "evals/live/tasks/grounded-response-ready/task.json", "sha256": "5a9ef11cf6f0d48d6f85c37b54f149f1ca1095d4e7512e3a71c800f1b8a20ad2"},
+    {"task_id": "missing-information", "path": "evals/live/tasks/missing-information/task.json", "sha256": "2290ae139f856ada26de5ddcce888d6bc3f88db008d38cceeff3ae238ba2542d"},
+    {"task_id": "conflicting-evidence", "path": "evals/live/tasks/conflicting-evidence/task.json", "sha256": "90f281fc5fe356de6832d97138f7f471fe269140b77bba7123718cc66eaa3907"},
+    {"task_id": "prompt-injection", "path": "evals/live/tasks/prompt-injection/task.json", "sha256": "a3ccb2072bcc5bd49ab1d51908225eb6852e3599323332e2eb3317f5ab34d8f5"},
+    {"task_id": "tool-timeout", "path": "evals/live/tasks/tool-timeout/task.json", "sha256": "e3e07cbe40f2f2b49bbd585acb263e86b0beb35f45a71dd69a1c2b7f64d7955e"},
+    {"task_id": "budget-exhaustion", "path": "evals/live/tasks/budget-exhaustion/task.json", "sha256": "079012f021d583bf02bdab193aa7e45788a649c24eddbbf695975e2f31e67ad2"}
+  ],
+  "prompt_template": {"prompt_template_id": "live-pilot-prompt.v1", "path": "evals/live/prompt-template.v1.json", "sha256": "35fa66705466869a42df071d75494fdae76e71c1c29a4cedc91fae3f7ae12e4e"},
+  "policy_profile": {"policy_profile_id": "live-pilot-policy.v1", "path": "evals/live/policy-profile.v1.json", "sha256": "8fc1dbf4822a52ec06aa125f03ca0d5cbaf0885418b5b66e9acc861182863900"},
+  "budget_profile": {"budget_profile_id": "live-pilot-budget.v1", "path": "evals/live/budget-profile.v1.json", "sha256": "98145f8d43175f6340661128bd7c49fe69a0541f61b5c8669913e4ccf9ee0429"},
+  "price_profile": {"price_profile_id": "deepseek-v4-flash-2026-08-06", "path": "evals/live/provider-price-deepseek-v4-flash-2026-08-06.json", "file_sha256": "c014d7a83326bf2b4140b7aee1bc6cabcb90ba6dc7dfd872ddce441b5e2d5e69", "profile_sha256": "9209c88aee2ca68d34d1b9e04d41a85ac0e28659de92ba4b178d77eed6d1b03b"}
+}

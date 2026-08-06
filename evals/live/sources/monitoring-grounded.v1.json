@@ -1,0 +1,10 @@
+{
+  "source_id": "monitoring-grounded.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "tool_name": "monitoring",
+  "classification": "untrusted_synthetic",
+  "status": "available",
+  "summary": "Synthetic monitoring correlates elevated 503 responses with upstream queue saturation.",
+  "facts": ["http_503_rate=0.42", "upstream_queue=high", "mitigation=traffic_shift_active"]
+}

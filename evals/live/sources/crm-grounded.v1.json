@@ -1,0 +1,10 @@
+{
+  "source_id": "crm-grounded.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "tool_name": "crm",
+  "classification": "untrusted_synthetic",
+  "status": "available",
+  "summary": "The synthetic account is covered by the standard API availability objective.",
+  "facts": ["service_tier=standard", "sla_minutes=60", "region=synthetic-east"]
+}

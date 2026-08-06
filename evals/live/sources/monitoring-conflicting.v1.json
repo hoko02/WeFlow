@@ -1,0 +1,10 @@
+{
+  "source_id": "monitoring-conflicting.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "tool_name": "monitoring",
+  "classification": "untrusted_synthetic",
+  "status": "conflicting",
+  "summary": "Two synthetic monitors disagree about whether the upstream queue is saturated.",
+  "facts": ["monitor_a_upstream_queue=high", "monitor_b_upstream_queue=normal", "http_503_rate=0.42"]
+}

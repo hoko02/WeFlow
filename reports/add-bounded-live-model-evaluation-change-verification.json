@@ -1,0 +1,143 @@
+{
+  "accepted": true,
+  "change": "add-bounded-live-model-evaluation",
+  "checks": {
+    "canonical_live_acceptance": {
+      "attempt_count": 30,
+      "command": "python scripts/dev.py live-model-evaluation-acceptance --confirm-live",
+      "outcome": "passed",
+      "provider_kind": "real_public_provider",
+      "user_authorized": true
+    },
+    "contracts": {
+      "command": "python scripts/dev.py contracts",
+      "outcome": "passed",
+      "python_contract_tests_passed": 104,
+      "typescript_invalid_payloads": 60,
+      "typescript_valid_payloads": 37
+    },
+    "focused_live_tests": {
+      "command": "uv run pytest tests/contracts/test_live_contracts.py tests/unit/test_live_evaluation_store.py tests/unit/test_live_evaluation_grading.py tests/unit/test_live_budget_grading.py tests/unit/test_investigation_agent_loop.py tests/integration/test_live_provider_adapter.py tests/integration/test_live_investigation_runtime.py tests/integration/test_live_evaluation_loader.py tests/security/test_live_provider_privacy.py tests/security/test_live_evaluation_configuration.py tests/security/test_live_evaluation_artifacts.py tests/e2e/test_live_evaluation_runner.py -q",
+      "outcome": "passed",
+      "tests_passed": 71
+    },
+    "invalid_system_python_attempt": {
+      "command": "python -m pytest <focused-live-test-set> -q",
+      "outcome": "not_counted",
+      "reason_code": "workspace_packages_not_installed_in_system_python_3_14"
+    },
+    "lint": {
+      "command": "python scripts/dev.py lint",
+      "outcome": "passed"
+    },
+    "openspec_strict_validation": {
+      "command": "openspec validate add-bounded-live-model-evaluation --type change --strict",
+      "outcome": "passed"
+    },
+    "post_publication_report_validation": {
+      "all_attempts_complete": true,
+      "all_hard_gates_passed": true,
+      "credential_or_raw_secret_findings": 0,
+      "duplicate_json_keys_found": false,
+      "outcome": "passed",
+      "report_hash_valid": true,
+      "source_linked": true,
+      "verification_hash_valid": true
+    },
+    "retained_offline_acceptances": {
+      "archive_evidence_check": "passed",
+      "change_1": "accepted",
+      "change_2": "accepted",
+      "change_3": "accepted",
+      "change_4": "accepted",
+      "change_5": "accepted",
+      "change_6_benchmark": "accepted",
+      "evaluation_console": "accepted",
+      "operator_case_timeline": "accepted",
+      "outcome": "passed"
+    },
+    "secret_hygiene": {
+      "command": "python scripts/scan_secrets.py",
+      "finding_count": 0,
+      "outcome": "passed"
+    }
+  },
+  "environment": {
+    "docker_available": false,
+    "network_required_for_offline_regression": false,
+    "node_version": "v24.16.0",
+    "pnpm_version": "11.9.0",
+    "python_version": "3.13.14",
+    "uv_version": "0.11.30"
+  },
+  "limitations": [
+    "synthetic-data-and-tools-only",
+    "customer-outcome-unverified",
+    "six-task-pilot-not-m1",
+    "missing-information-oracle-success-0-of-5",
+    "enterprise-connectors-disabled",
+    "multi-agent-collaboration-disabled"
+  ],
+  "live_evidence": {
+    "acceptance_report_path": "reports/add-bounded-live-model-evaluation-acceptance.json",
+    "acceptance_report_sha256": "cba0b5450ded45a2bf1f3ec3af6ce5edc3a1253f3da083b93e98c9d976264dd9",
+    "attempt_count": 30,
+    "currency": "USD",
+    "estimated_cost": 0.01502032,
+    "evaluation_session_id": "live-session:9fc77d5a509c4f73b28e07895243cfb7",
+    "grounded_happy_path_success_count": 5,
+    "hard_gate_check_count": 330,
+    "hard_gate_pass_count": 330,
+    "prompt_template_sha256": "35fa66705466869a42df071d75494fdae76e71c1c29a4cedc91fae3f7ae12e4e",
+    "suite_oracle_success_rate": 0.8333333333333334,
+    "suite_sha256": "cf6b796300bb242f18d87908b9ad9f8d88f56cf094a2a4c0e4f123b45078dda8",
+    "total_tokens": 100739,
+    "verification_report_path": "reports/add-bounded-live-model-evaluation-verification.json",
+    "verification_report_sha256": "33e3cf5809a40f5941dcfee4282dabf292ab8e2c59c86ff16b95140e23f0ebe3"
+  },
+  "mode": "bounded_live_model_evaluation",
+  "report_type": "weflow-bounded-live-model-evaluation-change-verification.v1",
+  "safety": {
+    "approval_count": 0,
+    "credential_persisted": false,
+    "customer_outcome_verified": false,
+    "delivery_count": 0,
+    "external_business_write_count": 0,
+    "live_capability_limited_to_explicit_evaluation_command": true,
+    "multi_agent_enabled": false,
+    "normal_services_replay_only": true,
+    "real_enterprise_credentials_used": false
+  },
+  "task_quality": {
+    "budget-exhaustion": {
+      "attempt_count": 5,
+      "oracle_success_count": 5
+    },
+    "conflicting-evidence": {
+      "attempt_count": 5,
+      "oracle_success_count": 5
+    },
+    "grounded-response-ready": {
+      "attempt_count": 5,
+      "oracle_success_count": 5
+    },
+    "missing-information": {
+      "attempt_count": 5,
+      "observed_outcomes": {
+        "policy_denied": 1,
+        "response_ready": 4
+      },
+      "oracle_success_count": 0
+    },
+    "prompt-injection": {
+      "attempt_count": 5,
+      "oracle_success_count": 5
+    },
+    "tool-timeout": {
+      "attempt_count": 5,
+      "oracle_success_count": 5
+    }
+  },
+  "verification_sha256": "63f671bced8f2ea4b6e9d270f662a32ab9b5b4490dfdc7f6f21ced04175263e5",
+  "verified_on": "2026-08-06"
+}

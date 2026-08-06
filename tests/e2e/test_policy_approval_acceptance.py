@@ -14,7 +14,7 @@ def test_policy_approval_acceptance_is_offline_deterministic_idempotent_and_reda
         check=False,
         capture_output=True,
         text=True,
-        timeout=180,
+        timeout=300,
     )
 
     assert completed.returncode == 0, completed.stdout

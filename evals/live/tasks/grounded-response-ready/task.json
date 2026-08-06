@@ -1,0 +1,55 @@
+{
+  "task_id": "grounded-response-ready",
+  "suite_id": "live-pilot.v1",
+  "tenant_id": "tenant-alpha",
+  "context_source": {
+    "source_id": "context-api-503.v1",
+    "path": "evals/live/sources/context-api-503.v1.json",
+    "sha256": "bb9ba6d8416cd5350214e292c7138ac8f0c2f586c66ef00f6fdc87dd4d5634b4"
+  },
+  "prompt_template": {
+    "prompt_template_id": "live-pilot-prompt.v1",
+    "path": "evals/live/prompt-template.v1.json",
+    "sha256": "35fa66705466869a42df071d75494fdae76e71c1c29a4cedc91fae3f7ae12e4e"
+  },
+  "policy_profile": {
+    "policy_profile_id": "live-pilot-policy.v1",
+    "path": "evals/live/policy-profile.v1.json",
+    "sha256": "8fc1dbf4822a52ec06aa125f03ca0d5cbaf0885418b5b66e9acc861182863900"
+  },
+  "budget_profile": {
+    "budget_profile_id": "live-pilot-budget.v1",
+    "path": "evals/live/budget-profile.v1.json",
+    "sha256": "98145f8d43175f6340661128bd7c49fe69a0541f61b5c8669913e4ccf9ee0429"
+  },
+  "price_profile": {
+    "price_profile_id": "deepseek-v4-flash-2026-08-06",
+    "path": "evals/live/provider-price-deepseek-v4-flash-2026-08-06.json",
+    "profile_sha256": "9209c88aee2ca68d34d1b9e04d41a85ac0e28659de92ba4b178d77eed6d1b03b"
+  },
+  "attempt_count": 5,
+  "task_kind": "grounded_response_ready",
+  "tool_sources": {
+    "crm": {
+      "source_id": "crm-grounded.v1",
+      "path": "evals/live/sources/crm-grounded.v1.json",
+      "sha256": "5bfb8a17ea6a00e24f34dbe43e25957f5b805bef296bc4a066f5170019f083eb"
+    },
+    "monitoring": {
+      "source_id": "monitoring-grounded.v1",
+      "path": "evals/live/sources/monitoring-grounded.v1.json",
+      "sha256": "0354bb06c2914c38aaee13e0bbcdf48f8a30991935f280b28e580a2f4a53d521"
+    },
+    "knowledge": {
+      "source_id": "knowledge-grounded.v1",
+      "path": "evals/live/sources/knowledge-grounded.v1.json",
+      "sha256": "d848514fe659f218ad8dc5fd604086ddd52ea26bf966edf67e3c359024e2de53"
+    }
+  },
+  "oracle_path": "evals/live/tasks/grounded-response-ready/oracle.json",
+  "oracle_sha256": "a43307be0cb8fe88ffcf2fb12ebceeb5f3d423a71daa0151281b396a8d8f9f8d",
+  "fault_profile": null,
+  "allowed_outcomes": [
+    "response_ready"
+  ]
+}

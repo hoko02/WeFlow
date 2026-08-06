@@ -1,0 +1,10 @@
+{
+  "source_id": "monitoring-timeout.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "tool_name": "monitoring",
+  "classification": "untrusted_synthetic",
+  "status": "timed_out",
+  "summary": "The declared synthetic monitoring read timed out before returning evidence.",
+  "facts": []
+}

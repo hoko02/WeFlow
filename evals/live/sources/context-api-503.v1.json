@@ -1,0 +1,9 @@
+{
+  "source_id": "context-api-503.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "classification": "untrusted_synthetic",
+  "incident_summary": "A synthetic enterprise API began returning HTTP 503 responses during a controlled reliability exercise.",
+  "customer_visible_scope": "Synthetic callers see intermittent service unavailable responses.",
+  "required_evidence": ["crm", "monitoring", "knowledge"]
+}

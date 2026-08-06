@@ -1,0 +1,13 @@
+{
+  "policy_profile_id": "live-pilot-policy.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "classification": "synthetic",
+  "allowed_actions": ["read_crm", "read_monitoring", "read_knowledge", "needs_information", "needs_operator", "response_candidate"],
+  "allowed_tools": ["crm", "monitoring", "knowledge"],
+  "external_business_write": false,
+  "approval": false,
+  "delivery": false,
+  "knowledge_publication": false,
+  "multi_agent": false
+}

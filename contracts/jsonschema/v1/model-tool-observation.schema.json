@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/model-tool-observation.schema.json",
+  "title": "ModelToolObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tool_name", "source_id", "source_sha256", "classification", "summary", "status", "facts"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/model-tool-observation.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tool_name": {"enum": ["crm", "monitoring", "knowledge"]},
+    "source_id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9_.:-]+$"},
+    "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "classification": {"const": "untrusted_synthetic"},
+    "summary": {"type": "string", "minLength": 1, "maxLength": 600},
+    "status": {"enum": ["available", "missing", "conflicting", "timed_out"]},
+    "facts": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 200}}
+  }
+}

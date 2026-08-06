@@ -6,11 +6,13 @@ import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from .schemas import load_contract_schemas
+from .schemas import find_repository_root, load_contract_schemas
 
 
 class ContractValidationError(ValueError):
@@ -26,16 +28,23 @@ def _schema_name(schema_id: str) -> str:
     return schema_id.rsplit("/", 1)[-1].removesuffix(".schema.json")
 
 
+@lru_cache(maxsize=8)
+def _contract_validators(root: Path) -> dict[str, Draft202012Validator]:
+    return {
+        schema_id: Draft202012Validator(schema)
+        for schema_id, schema in load_contract_schemas(root).items()
+    }
+
+
 def validate_payload(payload: Mapping[str, Any], root: Any = None) -> None:
     declared_schema_id = payload.get("schema_id")
     if not isinstance(declared_schema_id, str) or not declared_schema_id:
         raise ContractValidationError("unknown", "missing_schema_id")
-    schemas = load_contract_schemas(root)
-    schema = schemas.get(declared_schema_id)
-    if schema is None:
+    contract_root = Path(root).resolve() if root is not None else find_repository_root()
+    validator = _contract_validators(contract_root).get(declared_schema_id)
+    if validator is None:
         raise ContractValidationError("unknown", "schema_not_found")
 
-    validator = Draft202012Validator(schema)
     errors = sorted(
         validator.iter_errors(dict(payload)), key=lambda error: list(error.absolute_path)
     )

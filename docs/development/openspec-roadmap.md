@@ -157,18 +157,35 @@ verified candidate 和 `RESPONSE_READY`；两次 baseline 完全一致；四个�
 
 ## 8. Change 6：`add-evaluation-benchmark`
 
-**目的**：用可复现 benchmark 量化 Agent 与 Harness，而非只展示 Demo。
+**状态**：已归档为 12-task Replay-only benchmark core；随后完成了证据完整性 repair。原路线中的 60-task corpus、live runs 和 LLM Judge 没有在该 change 中实现。
+
+**已验证范围**：
+
+- 12 个合成任务、固定 task/oracle/source 哈希和离线 Replay runner；
+- hard gates、确定性加权质量分、failure taxonomy 和机器可读报告；
+- 两次重复运行完全一致，网络、模型、凭据和外部写均为 0；
+- 证据 repair 后 source、task、oracle、result、metrics、aggregate 链路重新绑定并通过跨语言合同检查。
+
+**验收事实**：12/12 Replay tasks 通过；该报告不包含真实 token、模型成本、live-run 方差或客户结果。扩展到 60 个任务仍是 M1 后续门槛。
+
+## 8.1 已归档增量：`add-bounded-live-model-evaluation`
+
+**状态**：已同步并归档为 `2026-08-06-add-bounded-live-model-evaluation`。七个 delta capabilities 已进入 main specs；真实 DeepSeek acceptance、verification 和最终 change verification 均已保留。
 
 **范围**：
 
-- 统一 task-directory format；
-- 60 个合成任务与污染隔离的 holdout；
-- 规则、代码、检索证据和受限 LLM Judge grader；
-- hard gates + weighted quality score；
-- suite runner、5 次重复 live run 和机器可读报告；
-- failure taxonomy 与单任务诊断包。
+- 只在 `python scripts/dev.py live-model-evaluation-acceptance --confirm-live` 内创建 provider；普通服务仍为 Replay-only；
+- 六个合成任务 × 五次，使用真实模型但只读 synthetic CRM/monitoring/knowledge；
+- 模型只输出闭合 `ModelActionProposal`，代码派生 `AgentAction`、身份、工具范围、预算和状态；
+- 原始请求/响应与密钥不落盘；保留 invocation intent/observation、哈希、usage、估算成本、latency、draft metadata/binding；
+- 只允许 verifier 到 `RESPONSE_READY` 或安全终止，不注册审批、外发、真实业务写、知识发布或多 Agent；
+- fake transport 可以验证边界和跑满 30 次，但不能发布 `live_verified=true` 报告。
 
-**验收**：一条命令生成完整报告；安全失败不会被平均分掩盖；报告包含方差、成本、P50/P95 和失败分类。
+**验收门槛**：真实 public provider 完成 30/30 attempt；所有 hard gates 100% 通过；approval/delivery/external business write 均为 0；grounded happy path 至少 4/5 到 verifier-authorized `RESPONSE_READY`；发布 redacted、content-addressed report 和 verification record。
+
+**实测事实**：30/30 attempts、330/330 hard gates、grounded happy path 5/5、零 approval/delivery/external business write；总计 100,739 tokens，估算成本 USD 0.01502032，报告哈希 cba0b5450ded45a2bf1f3ec3af6ce5edc3a1253f3da083b93e98c9d976264dd9。总体 oracle success rate 为 83.33%；missing-information 为 0/5（4 次 response_ready、1 次 policy_denied），作为待改进的模型质量证据保留。
+
+**仍未覆盖**：60-task M1 corpus、真实客户数据/客户结果、企微/腾讯云/工单连接器、真实审批/外发、生产部署、多 Agent 和 LLM Judge。
 
 ## 9. Change 7：`add-operator-console-and-demo`
 

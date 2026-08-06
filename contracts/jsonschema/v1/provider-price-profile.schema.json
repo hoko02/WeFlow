@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/provider-price-profile.schema.json",
+  "title": "ProviderPriceProfile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "price_profile_id", "provider_profile_id", "model_pattern", "currency", "input_per_million_tokens", "output_per_million_tokens", "effective_at", "expires_at", "profile_sha256"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/provider-price-profile.schema.json"}, "schema_version": {"const": "v1"}, "price_profile_id": {"type": "string", "minLength": 1}, "provider_profile_id": {"type": "string", "minLength": 1}, "model_pattern": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "input_per_million_tokens": {"type": "number", "minimum": 0}, "output_per_million_tokens": {"type": "number", "minimum": 0}, "effective_at": {"type": "string", "minLength": 1}, "expires_at": {"type": "string", "minLength": 1}, "profile_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -62,7 +62,17 @@ LEGACY_DOCUMENTED_REPORT_PATHS = frozenset(
         "reports/change-3-verification.json",
     }
 )
-ALLOWED_DOCUMENTED_REPORT_PATHS = CANONICAL_REPORT_PATHS | LEGACY_DOCUMENTED_REPORT_PATHS
+CURRENT_DOCUMENTED_REPORT_PATHS = frozenset(
+    {
+        "reports/add-offline-evaluation-report-console-acceptance.json",
+        "reports/add-offline-operator-case-timeline-acceptance.json",
+        "reports/change-6-evaluation-benchmark-core-acceptance.json",
+        "reports/repair-evaluation-benchmark-evidence-integrity-verification.json",
+    }
+)
+ALLOWED_DOCUMENTED_REPORT_PATHS = (
+    CANONICAL_REPORT_PATHS | LEGACY_DOCUMENTED_REPORT_PATHS | CURRENT_DOCUMENTED_REPORT_PATHS
+)
 DOCUMENTATION_PATHS = (
     "README.md",
     "docs/PROJECT_MEMORY.md",

@@ -1,0 +1,13 @@
+{
+  "schema_id": "https://weflow.local/contracts/v1/provider-price-profile.schema.json",
+  "schema_version": "v1",
+  "price_profile_id": "deepseek-v4-flash-2026-08-06",
+  "provider_profile_id": "openai-compatible.v1",
+  "model_pattern": "deepseek-v4-flash",
+  "currency": "USD",
+  "input_per_million_tokens": 0.14,
+  "output_per_million_tokens": 0.28,
+  "effective_at": "2026-08-06T00:00:00Z",
+  "expires_at": "2026-09-06T00:00:00Z",
+  "profile_sha256": "9209c88aee2ca68d34d1b9e04d41a85ac0e28659de92ba4b178d77eed6d1b03b"
+}

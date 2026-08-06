@@ -1,0 +1,10 @@
+{
+  "source_id": "knowledge-grounded.v1",
+  "version": "v1",
+  "tenant_id": "tenant-alpha",
+  "tool_name": "knowledge",
+  "classification": "untrusted_synthetic",
+  "status": "available",
+  "summary": "The synthetic runbook recommends a bounded traffic shift and continued observation for upstream saturation.",
+  "facts": ["runbook=api-503-upstream-saturation", "approved_mitigation=traffic_shift", "observation_window_minutes=15"]
+}

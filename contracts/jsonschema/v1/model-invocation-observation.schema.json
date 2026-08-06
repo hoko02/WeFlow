@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/model-invocation-observation.schema.json",
+  "title": "ModelInvocationObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "tenant_id", "evaluation_session_id", "suite_id", "evaluation_task_id", "attempt_id", "logical_turn_id", "invocation_id", "observation_id", "status", "request_reference_sha256", "response_sha256", "usage", "provider_latency_ms", "estimated_cost", "currency", "failure_classification", "observed_at", "observation_sha256"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/model-invocation-observation.schema.json"}, "schema_version": {"const": "v1"}, "tenant_id": {"type": "string", "minLength": 1}, "evaluation_session_id": {"type": "string", "minLength": 1}, "suite_id": {"const": "live-pilot.v1"}, "evaluation_task_id": {"type": "string", "minLength": 1}, "attempt_id": {"type": "string", "minLength": 1}, "logical_turn_id": {"type": "string", "minLength": 1}, "invocation_id": {"type": "string", "minLength": 1}, "observation_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["completed", "observed_retryable_error", "provider_outcome_unknown", "malformed_model_output", "rejected"]},
+    "request_reference_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}, "response_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "usage": {"type": "object", "additionalProperties": false, "required": ["available", "input_tokens", "output_tokens", "total_tokens"], "properties": {"available": {"type": "boolean"}, "input_tokens": {"type": "integer", "minimum": 0}, "output_tokens": {"type": "integer", "minimum": 0}, "total_tokens": {"type": "integer", "minimum": 0}}},
+    "provider_latency_ms": {"type": "integer", "minimum": 0}, "estimated_cost": {"type": "number", "minimum": 0}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "failure_classification": {"type": ["string", "null"], "enum": [null, "provider_rate_limited", "provider_unavailable", "provider_outcome_unknown", "malformed_model_output", "provider_rejected"]},
+    "observed_at": {"type": "string", "minLength": 1}, "observation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

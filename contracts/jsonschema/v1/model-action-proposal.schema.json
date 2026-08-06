@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/model-action-proposal.schema.json",
+  "title": "ModelActionProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "action_type", "reason_code", "evidence_references", "draft"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/model-action-proposal.schema.json"},
+    "schema_version": {"const": "v1"},
+    "action_type": {"enum": ["read_crm", "read_monitoring", "read_knowledge", "needs_information", "needs_operator", "response_candidate"]},
+    "reason_code": {"type": ["string", "null"], "enum": [null, "missing_required_information", "conflicting_evidence", "tool_unavailable", "policy_safe_stop"]},
+    "evidence_references": {"type": "array", "maxItems": 3, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9_.:-]+$"}},
+    "draft": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["summary", "diagnosis", "next_steps", "risk"],
+          "properties": {
+            "summary": {"type": "string", "minLength": 1, "maxLength": 500},
+            "diagnosis": {"type": "string", "minLength": 1, "maxLength": 300},
+            "next_steps": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string", "minLength": 1, "maxLength": 160}},
+            "risk": {"enum": ["low", "medium", "high"]}
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"action_type": {"enum": ["read_crm", "read_monitoring", "read_knowledge"]}}},
+      "then": {"properties": {"reason_code": {"type": "null"}, "evidence_references": {"type": "array", "maxItems": 0}, "draft": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"action_type": {"enum": ["needs_information", "needs_operator"]}}},
+      "then": {"properties": {"reason_code": {"type": "string"}, "draft": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"action_type": {"const": "response_candidate"}}},
+      "then": {"properties": {"reason_code": {"type": "null"}, "evidence_references": {"type": "array", "minItems": 1}, "draft": {"type": "object"}}}
+    }
+  ]
+}
