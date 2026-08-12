@@ -3,9 +3,7 @@
 ## Purpose
 Define safe, reconstructable intent and reconciliation semantics for fixture-local
 side effects without authorizing real external writes.
-
 ## Requirements
-
 ### Requirement: Each simulated side effect records an immutable intent before execution
 Before a fixture-local ticket operation is attempted, the control kernel SHALL persist
 a tenant-scoped immutable `SideEffectIntent` containing the Case, CaseRevision,
@@ -121,3 +119,107 @@ and their natural keys SHALL remain unchanged.
   Grant, approval, candidate, evidence, or authorization binding
 - **THEN** recovery SHALL append no execution or completion and SHALL preserve the
   existing immutable facts for safe handling
+
+### Requirement: QQ sandbox acknowledgement has a distinct immutable recovery chain
+Before the bounded QQ executor is contacted, the control kernel SHALL persist one
+tenant-scoped immutable QQAcknowledgementIntent containing the Case, CaseRevision,
+source QQ message reference, configured group resource, fixed template hash, passive
+reply deadline, operation, natural key, stable idempotency key, original provider
+`msg_id`, deterministic positive reply `msg_seq`, safe evidence references, and
+correlation metadata. It SHALL reconcile, execute, observe, and complete only that
+same intent through distinct append-only QQ acknowledgement facts. Ticket SideEffect
+and approved final OutboundDelivery records and their natural keys SHALL remain
+unchanged.
+
+#### Scenario: A worker stops immediately after acknowledgement intent persistence
+- **WHEN** fault injection stops the worker after the QQ intent commits but before
+  reconciliation or execution
+- **THEN** recovery SHALL find the same intent, deadline, and provider deduplication
+  tuple and SHALL not create a second intent or reply identity
+
+#### Scenario: Concurrent runners encounter the same acknowledgement
+- **WHEN** two workers race on the same tenant, Case revision, fixed template, and QQ
+  source message
+- **THEN** durable uniqueness/claim rules SHALL yield one logical intent and at most one
+  provider-deduplicated acknowledgement outcome
+
+### Requirement: QQ acknowledgement reconciliation is mandatory and truthful
+The QQ recovery boundary SHALL reconcile local durable facts before every execution and
+after interruption, timeout, disconnect, restart, lost response, duplicate response,
+or conflict. It SHALL execute/retry only with the original `msg_id` and deterministic
+`msg_seq`, only while the deadline and exact command capability remain valid. A
+validated accepted or duplicate/present provider observation MAY append one immutable
+completion. Unknown, unreadable, conflicting, unauthorized, or expired outcomes SHALL
+append safe recovery evidence and remain incomplete; they MUST NOT generate a new
+reply sequence, arbitrary resend, customer-receipt claim, final-delivery completion,
+or Case/customer completion.
+
+#### Scenario: Execution succeeds but its response is lost
+- **WHEN** fault injection records that the fake provider accepted the original
+  deduplication tuple but drops the response before observation/completion persistence
+- **THEN** recovery SHALL reuse the same tuple, reconcile a present/duplicate result,
+  and append at most one completion without a second logical send
+
+#### Scenario: Reconciliation times out without proof
+- **WHEN** neither local evidence nor the bounded provider response proves accepted,
+  duplicate/present, absent-and-retryable, or conflicting state
+- **THEN** recovery SHALL record an unknown safe reason, enter
+  `NEEDS_RECONCILIATION`, and SHALL not blindly send or mark the acknowledgement
+  complete
+
+#### Scenario: Recovery observes an expired or unauthorized intent
+- **WHEN** the passive reply deadline has elapsed or the exact QQ command capability,
+  tenant/group mapping, template hash, or source binding no longer matches
+- **THEN** recovery SHALL make no provider call, append no completion, and preserve the
+  immutable intent for safe inspection
+
+### Requirement: Active C2C notification SHALL use at-most-once transport execution
+
+The system SHALL create a durable notification intent with a stable Case/binding natural key and SHALL make no more than one active provider transport attempt. Local reconciliation SHALL precede the attempt. A provider-accepted result may be recorded as accepted; a timeout, disconnect, or unknown outcome SHALL remain ambiguous and MUST NOT be retried or reported as delivered.
+
+#### Scenario: Process restarts before transport attempt
+
+- **WHEN** a durable intent exists with no recorded attempt
+- **THEN** recovery may make the one allowed transport attempt after local reconciliation
+
+#### Scenario: Process restarts after ambiguous transport
+
+- **WHEN** an attempt was started but no authoritative provider outcome is known
+- **THEN** recovery records `NOTIFICATION_UNKNOWN` and makes no second active C2C attempt
+
+### Requirement: Passive C2C replies SHALL derive idempotency from the source event
+
+Each private pull result, task response, draft preview, or rejection response SHALL use the current C2C source `msg_id`, a stable response-kind-specific `msg_seq`, and an idempotency key bound to the Case, binding, and workflow version. Execution SHALL respect the provider passive-reply window and count limit.
+
+#### Scenario: Duplicate C2C event is delivered
+
+- **WHEN** QQ delivers the same private command event more than once
+- **THEN** the system produces one logical transition and at most one provider-visible reply for each response kind
+
+#### Scenario: Passive window expires
+
+- **WHEN** a private response cannot execute within the provider window
+- **THEN** it expires safely and requires a new private command rather than an active-send fallback
+
+### Requirement: Final group delivery SHALL reconcile against the approval source and decision
+
+The final reply intent SHALL bind the exact approval decision, candidate artifact hash, group approval source `msg_id`, stable `msg_seq`, group, Case, and workflow version. Recovery SHALL check local intent/result state before any repeat and SHALL never switch to an active group send.
+
+#### Scenario: Worker crashes after provider acceptance is recorded
+
+- **WHEN** the final intent is replayed after restart
+- **THEN** recovery observes the completed result and performs no transport call
+
+#### Scenario: Final outcome is unknown
+
+- **WHEN** transport returns an ambiguous outcome
+- **THEN** the workflow records the uncertainty, attempts only safe reconciliation within the passive path, and does not claim delivery or completion
+
+### Requirement: Recovery evidence SHALL distinguish provider acceptance from business completion
+
+Intent, reconcile, execute, and complete records SHALL retain content-free evidence for each external write path. Provider acceptance MUST NOT set customer receipt, issue resolution, or Case completion.
+
+#### Scenario: Acceptance report is built after final provider acceptance
+
+- **WHEN** all live provider calls were accepted
+- **THEN** the report may set the transport acceptance facts while receipt, resolution, and Case completion remain false

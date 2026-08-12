@@ -28,10 +28,10 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 
 ## 当前状态
 
-### Verified offline foundation plus bounded real-model pilot
+### Verified offline foundation, bounded real-model pilot, and QQ Stage 3 integration
 
 - Local Git repository, uv/pnpm workspace, five loopback-only skeleton services, and a Vue diagnostics console are implemented.
-- Replay remains the only provider path imported by normal services and offline commands. A dedicated, explicit-confirmation live-model evaluation command is isolated from normal startup.
+- Replay remains the only provider path imported by normal services and offline commands. Dedicated explicit-confirmation live-model evaluation and QQ Stage 3 commands remain isolated from normal startup.
 - Canonical v1 JSON Schema, Python/TypeScript compatibility checks, synthetic fixtures, secret hygiene, offline acceptance, and CI are implemented.
 - The health report separates operational readiness from unimplemented business capabilities.
 - Change 1 accepts only canonical synthetic IM envelopes, derives tenant identity from an allowlisted actor header, and creates one Case, revision 1, and three append-only ledger events.
@@ -43,10 +43,11 @@ WeFlow 是一个面向企业 IM 客户问题闭环的 Agent Reliability Harness�
 - Change 4 adds one named API-503-only, default-deny Capability/Policy, hash-bound approval, and idempotent local delivery slice. It uses append-only SQLite intent/reconcile/execute/observe/complete evidence and recovers without duplicate local delivery.
 - Change 5 adds an append-only, content-addressed EvidenceTrajectory, redacted EvidenceReport, and verification-only replay over retained fixture facts. It cannot progress workflow state or execute an agent, tool, policy, approval, delivery, network, Docker, or external operation.
 - The archived `add-bounded-live-model-evaluation` change has a real DeepSeek accepted report: 30/30 attempts, 330/330 hard gates, 5/5 grounded `RESPONSE_READY`, 100,739 observed tokens, estimated cost USD 0.01502032, and zero approval, delivery, or external business writes. The canonical report hash is `cba0b5450ded45a2bf1f3ec3af6ce5edc3a1253f3da083b93e98c9d976264dd9`.
+- Archived change `2026-08-12-enable-bounded-live-model-in-qq-workflow` has one independently verified sandbox integration: one real QQ Case traversed fixed ACK, private handler pull/accept/assist, four real DeepSeek calls, three fixture-local read tools, verifier-authorized private candidate, exact human group approval, and one provider-accepted passive final QQ reply. The run observed 4,979 tokens, USD 0.00076034 estimated cost, 6,260 ms provider latency, and 6,460 ms end-to-end latency. Report SHA-256 is `7d5ba73ce84ed9bfa268c3d315317c94782bc7c929758ca09afc3d56f22162e1`; independent verification SHA-256 is `125702f4fc89636772757fcf9117edc1bfd15905f6de8338d97b7faa2708ed4c`.
 - Live quality is not uniformly successful: the missing-information task reached its expected safe outcome 0/5 times (four `response_ready`, one `policy_denied`). The deterministic gates still remained intact, so this is retained as model-quality evidence rather than hidden by changing the acceptance threshold.
 - The offline evaluation report console revalidates the fixed `offline-seed.v1` benchmark into a tenant-scoped, content-addressed snapshot and renders 12 bounded task summaries plus selected-task evidence. It remains read-only, replay-only, and local-only.
 - The offline Operator Case workspace projects the fixed API-503 source evidence into a tenant-scoped 49-entry intake-to-Replay timeline. It is read-only and labels delivery as fixture-local; it grants no approval, workflow, retry, Replay, or external-write authority.
-- Fixture approval/delivery are explicitly distinguishable from live capability. Only the command-local synthetic model evaluation is live-verified; enterprise connectors, real external writes, customer receipt/resolution, knowledge publication, and multi-Agent coordination remain disabled and unimplemented.
+- Fixture approval/delivery remain distinguishable from the one live-integrated sandbox proof. The Stage 3 business tools are still checked-in synthetic CRM/monitoring/knowledge reads; customer receipt, issue resolution, Case completion, production readiness, enterprise connectors, knowledge publication, and multi-Agent coordination remain false, disabled, or unimplemented.
 
 ### Historical Explore snapshot (superseded)
 
@@ -106,6 +107,9 @@ For the optional Docker-backed boundary mode, run `compose up`, then `up --mode 
 - [Change 6 Evaluation Benchmark Core Development Guide](docs/development/change-6-evaluation-benchmark.md)
 - [Offline Evaluation Report Console Development Guide](docs/development/offline-evaluation-report-console.md)
 - [Bounded Live-Model Evaluation Development Guide](docs/development/bounded-live-model-evaluation.md)
+- [QQ Sandbox Intake and Fixed Acknowledgement Guide](docs/development/qq-sandbox-intake-and-ack.md)
+- [QQ Sandbox Handler Approval and Delivery Guide](docs/development/qq-sandbox-handler-approval-and-delivery.md)
+- [QQ Bounded Live-Model Workflow Guide](docs/development/qq-bounded-live-model-workflow.md)
 - [Offline Operator Case Timeline Development Guide](docs/development/operator-case-timeline.md)
 - [MVP 探索结论](docs/exploration/weflow-mvp-exploration.md)
 - [参考架构](docs/architecture/reference-architecture.md)

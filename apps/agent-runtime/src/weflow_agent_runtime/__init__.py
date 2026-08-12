@@ -8,9 +8,11 @@ from .investigation import (
     load_investigation_transcript,
     run_investigation_replay,
 )
+from .qq_model import BoundedQQModelAssistRuntime
 from .runtime import run_replay
 
 __all__ = [
+    "BoundedQQModelAssistRuntime",
     "FixtureInvestigationToolGateway",
     "ReplayInvestigationAgent",
     "compile_context_manifest",

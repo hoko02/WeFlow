@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-notification-result.schema.json",
+  "title": "QQHandlerNotificationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "result_id", "intent_id", "tenant_id", "attempt_count", "status", "provider_accepted", "delivered", "reason_code", "provider_status_hash", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-notification-result.schema.json"},
+    "schema_version": {"const": "v1"},
+    "result_id": {"type": "string", "pattern": "^qqhnr_[a-f0-9]{32}$"},
+    "intent_id": {"type": "string", "pattern": "^qqhni_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "attempt_count": {"const": 1},
+    "status": {"enum": ["accepted", "rejected", "rate_limited", "timed_out", "disconnected", "unknown"]},
+    "provider_accepted": {"type": "boolean"},
+    "delivered": {"const": false},
+    "reason_code": {"type": "string", "minLength": 1, "maxLength": 128},
+    "provider_status_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "recorded_at": {"type": "string", "format": "date-time"}
+  }
+}

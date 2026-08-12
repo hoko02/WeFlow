@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-customer-issue-artifact.schema.json",
+  "title": "QQCustomerIssueArtifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "artifact_id", "artifact_kind", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "source_message_id_hash", "content_sha256", "normalized_length", "classification", "redaction_policy_id", "workflow_version", "created_at", "expires_at", "deletion_status", "deleted_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-customer-issue-artifact.schema.json"},
+    "schema_version": {"const": "v1"},
+    "artifact_id": {"type": "string", "pattern": "^qqa_[a-f0-9]{32}$"},
+    "artifact_kind": {"const": "qq_customer_issue"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "source_message_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "normalized_length": {"type": "integer", "minimum": 1, "maximum": 1200},
+    "classification": {"const": "restricted-qq-handler"},
+    "redaction_policy_id": {"const": "qq-handler-redaction.v1"},
+    "workflow_version": {"type": "integer", "minimum": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "deletion_status": {"enum": ["ACTIVE", "DELETION_SCHEDULED", "DELETED"]},
+    "deleted_at": {"type": ["string", "null"], "format": "date-time"}
+  }
+}

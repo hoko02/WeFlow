@@ -1,0 +1,34 @@
+{
+  "inbound_raw_text": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json",
+    "raw_message": "blocked"
+  },
+  "inbound_credential": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json",
+    "access_token": "blocked"
+  },
+  "inbound_caller_authority": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json",
+    "caller_tenant_id": "tenant-foreign"
+  },
+  "inbound_invalid_sequence": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json",
+    "gateway_sequence": 0
+  },
+  "inbound_invalid_hash": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json",
+    "content_sha256": "invalid"
+  },
+  "intent_arbitrary_content": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-acknowledgement-intent.schema.json",
+    "message_body": "blocked"
+  },
+  "observation_customer_success": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-acknowledgement-observation.schema.json",
+    "customer_received": true
+  },
+  "completion_resolution": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-acknowledgement-completion.schema.json",
+    "case_resolved": true
+  }
+}

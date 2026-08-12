@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-model-assist-outcome.schema.json",
+  "title": "QQModelAssistOutcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "outcome_id", "assist_request_id", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "terminal_outcome", "reason_code", "invocation_count", "tool_count", "candidate_binding_id", "private_preview_id", "manual_draft_available", "approval_authorized", "delivery_authorized", "customer_outcome_verified", "completed_at", "outcome_sha256"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-model-assist-outcome.schema.json"},
+    "schema_version": {"const": "v1"},
+    "outcome_id": {"type": "string", "pattern": "^qqmao_[a-f0-9]{32}$"},
+    "assist_request_id": {"type": "string", "pattern": "^qqmar_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "pattern": "^case_[a-f0-9]{24,64}$"},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "terminal_outcome": {"enum": ["response_ready", "needs_information", "needs_operator", "tool_timeout", "budget_exhausted", "policy_denied", "malformed_model_output", "provider_outcome_unknown"]},
+    "reason_code": {"type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[a-z0-9._-]+$"},
+    "invocation_count": {"type": "integer", "minimum": 0},
+    "tool_count": {"type": "integer", "minimum": 0, "maximum": 3},
+    "candidate_binding_id": {"type": ["string", "null"], "pattern": "^qqmcb_[a-f0-9]{32}$"},
+    "private_preview_id": {"type": ["string", "null"], "pattern": "^qqmpv_[a-f0-9]{32}$"},
+    "manual_draft_available": {"const": true},
+    "approval_authorized": {"const": false},
+    "delivery_authorized": {"const": false},
+    "customer_outcome_verified": {"const": false},
+    "completed_at": {"type": "string", "minLength": 20, "maxLength": 40},
+    "outcome_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

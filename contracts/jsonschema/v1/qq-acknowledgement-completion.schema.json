@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-acknowledgement-completion.schema.json",
+  "title": "QQAcknowledgementCompletion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id",
+    "completion_id", "intent_id", "observation_id", "status",
+    "provider_message_id_hash", "outcome_sha256", "completed_at"
+  ],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-acknowledgement-completion.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "completion_id": {"type": "string", "minLength": 1},
+    "intent_id": {"type": "string", "minLength": 1},
+    "observation_id": {"type": "string", "minLength": 1},
+    "status": {"const": "provider_accepted_or_present"},
+    "provider_message_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "outcome_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "completed_at": {"type": "string", "minLength": 1}
+  }
+}

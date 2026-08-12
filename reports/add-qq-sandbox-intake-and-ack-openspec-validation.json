@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "id": "add-qq-sandbox-intake-and-ack",
+      "issues": [],
+      "type": "change",
+      "valid": true
+    }
+  ],
+  "summary": {
+    "byType": {
+      "change": {
+        "failed": 0,
+        "items": 1,
+        "passed": 1
+      }
+    },
+    "totals": {
+      "failed": 0,
+      "items": 1,
+      "passed": 1
+    }
+  },
+  "version": "1.0"
+}

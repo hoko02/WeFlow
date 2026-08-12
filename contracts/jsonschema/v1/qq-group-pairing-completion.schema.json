@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-group-pairing-completion.schema.json",
+  "title": "QQGroupPairingCompletion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "completion_id", "challenge_id", "pairing_id", "tenant_id", "tenant_id_hash", "app_id_hash", "group_openid_hash", "source_message_id_hash", "session_id_hash", "gateway_sequence", "status", "reason_code", "completed_at", "expires_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-group-pairing-completion.schema.json"},
+    "schema_version": {"const": "v1"},
+    "completion_id": {"type": "string", "pattern": "^qqpcmp_[a-f0-9]{32}$"},
+    "challenge_id": {"type": "string", "pattern": "^qqpc_[a-f0-9]{32}$"},
+    "pairing_id": {"type": "string", "pattern": "^qqpair_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "tenant_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "app_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_openid_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_message_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "session_id_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "gateway_sequence": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["COMPLETED", "REVOKED", "EXPIRED", "CONFLICT"]},
+    "reason_code": {"type": "string", "minLength": 1, "maxLength": 128},
+    "completed_at": {"type": "string", "minLength": 1},
+    "expires_at": {"type": "string", "minLength": 1}
+  }
+}

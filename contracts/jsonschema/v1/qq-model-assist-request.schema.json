@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-model-assist-request.schema.json",
+  "title": "QQModelAssistRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "assist_request_id", "natural_key", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "issue_artifact_id", "issue_content_sha256", "source_message_id_hash", "expected_workflow_version", "stage3_profile_sha256", "qq_capability_profile_hash", "model_capability_profile_hash", "policy_profile_sha256", "budget_profile_sha256", "status", "created_at", "expires_at", "request_sha256"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-model-assist-request.schema.json"},
+    "schema_version": {"const": "v1"},
+    "assist_request_id": {"type": "string", "pattern": "^qqmar_[a-f0-9]{32}$"},
+    "natural_key": {"$ref": "#/$defs/hash"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "pattern": "^case_[a-f0-9]{24,64}$"},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "issue_artifact_id": {"type": "string", "pattern": "^qqa_[a-f0-9]{32}$"},
+    "issue_content_sha256": {"$ref": "#/$defs/hash"},
+    "source_message_id_hash": {"$ref": "#/$defs/hash"},
+    "expected_workflow_version": {"type": "integer", "minimum": 1},
+    "stage3_profile_sha256": {"$ref": "#/$defs/hash"},
+    "qq_capability_profile_hash": {"$ref": "#/$defs/hash"},
+    "model_capability_profile_hash": {"$ref": "#/$defs/hash"},
+    "policy_profile_sha256": {"$ref": "#/$defs/hash"},
+    "budget_profile_sha256": {"$ref": "#/$defs/hash"},
+    "status": {"enum": ["ASSIST_REQUESTED", "INVESTIGATING", "RESPONSE_READY", "SAFE_STOP"]},
+    "created_at": {"type": "string", "minLength": 20, "maxLength": 40},
+    "expires_at": {"type": "string", "minLength": 20, "maxLength": 40},
+    "request_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

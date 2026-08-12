@@ -20,6 +20,9 @@ import {
   validateSideEffectIntents,
   validateGeneratedLedgerEvent,
   validatePayload,
+  validateQQAcknowledgementChain,
+  validateQQGatewayCursor,
+  validateQQSandboxInboundEvent,
   validateWorkflowCommandTenant,
   validateWorkflowCommandVersion,
 } from "./index.js";
@@ -29,6 +32,7 @@ import {
   validateModelToolObservation,
   validateProviderPriceProfile,
 } from "./live.js";
+import { validateQQGroupPairingAcceptanceReport, validateQQGroupPairingChain } from "./pairing.js";
 
 function findRepositoryRoot(start = process.cwd()): string {
   let current = resolve(start);
@@ -133,6 +137,29 @@ const invalidLivePayloads = JSON.parse(
     resolve(root, "fixtures/contracts/v1/invalid/live-boundary-invalid-payloads.json"), "utf8",
   ),
 ) as Record<string, JsonObject>;
+
+const qqBoundary = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/qq-boundary.json"), "utf8"),
+) as {
+  inbound_event: JsonObject;
+  gateway_cursor: JsonObject;
+  acknowledgement_intent: JsonObject;
+  acknowledgement_observation: JsonObject;
+  acknowledgement_completion: JsonObject;
+};
+const invalidQQPayloads = JSON.parse(
+  readFileSync(
+    resolve(root, "fixtures/contracts/v1/invalid/qq-boundary-invalid-payloads.json"),
+    "utf8",
+  ),
+) as Record<string, JsonObject>;
+
+const qqPairing = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/semantic/qq-group-pairing.json"), "utf8"),
+) as { challenge: JsonObject; completion: JsonObject; report: JsonObject };
+const invalidQQPairing = JSON.parse(
+  readFileSync(resolve(root, "fixtures/contracts/v1/invalid/qq-group-pairing-invalid-payloads.json"), "utf8"),
+) as Record<string, { target: "challenge" | "completion" | "report"; field: string; value: unknown }>;
 
 const failedSchemas: string[] = [];
 
@@ -289,6 +316,11 @@ for (const [name, payload] of Object.entries(invalidIntakePayloads)) {
     failedSchemas.push(`invalid-${name}`);
   }
 }
+for (const [name, payload] of Object.entries(invalidQQPayloads)) {
+  if (validatePayload(payload, root).valid) {
+    failedSchemas.push(`invalid-qq-${name}`);
+  }
+}
 for (const [name, payload] of Object.entries(invalidWorkflowPayloads)) {
   if (validatePayload(payload, root).valid) {
     failedSchemas.push(`invalid-workflow-${name}`);
@@ -378,6 +410,48 @@ for (const [name, mutation] of Object.entries(evidenceInvalid)) {
   else if (name === "customer_success") (report as JsonObject)[mutation.field] = mutation.value;
   else (trajectory as JsonObject)[mutation.field] = mutation.value;
   if (validateEvidenceChain(artifact, trajectory, report, replay, root).valid) failedSchemas.push(`invalid-evidence-${name}`);
+}
+if (!validateQQSandboxInboundEvent(qqBoundary.inbound_event, root).valid) {
+  failedSchemas.push("qq-inbound-event");
+}
+if (!validateQQGatewayCursor(qqBoundary.gateway_cursor, root).valid) {
+  failedSchemas.push("qq-gateway-cursor");
+}
+if (!validateQQGroupPairingChain(qqPairing.challenge, [qqPairing.completion], root).valid) failedSchemas.push("qq-group-pairing-chain");
+if (!validateQQGroupPairingAcceptanceReport(qqPairing.report, root).valid) failedSchemas.push("qq-group-pairing-report");
+for (const [name, mutation] of Object.entries(invalidQQPairing)) {
+  const challenge = structuredClone(qqPairing.challenge); const completion = structuredClone(qqPairing.completion); const report = structuredClone(qqPairing.report);
+  const target = mutation.target === "challenge" ? challenge : mutation.target === "completion" ? completion : report;
+  target[mutation.field] = mutation.value;
+  const valid = mutation.target === "report" ? validateQQGroupPairingAcceptanceReport(report, root).valid : validateQQGroupPairingChain(challenge, [completion], root).valid;
+  if (valid) failedSchemas.push("invalid-qq-pairing-" + name);
+}
+if (!validateQQAcknowledgementChain(
+  qqBoundary.acknowledgement_intent,
+  [qqBoundary.acknowledgement_observation],
+  [qqBoundary.acknowledgement_completion],
+  root,
+).valid) {
+  failedSchemas.push("qq-acknowledgement-chain");
+}
+const detachedQQInbound = {
+  ...qqBoundary.inbound_event,
+  source_message_id_hash: "f".repeat(64),
+};
+if (validateQQSandboxInboundEvent(detachedQQInbound, root).valid) {
+  failedSchemas.push("detached-qq-inbound");
+}
+const foreignQQCompletion = {
+  ...qqBoundary.acknowledgement_completion,
+  tenant_id: "tenant-foreign",
+};
+if (validateQQAcknowledgementChain(
+  qqBoundary.acknowledgement_intent,
+  [qqBoundary.acknowledgement_observation],
+  [foreignQQCompletion],
+  root,
+).valid) {
+  failedSchemas.push("foreign-qq-completion");
 }
 if (validatePayload(missingIdentity, root).valid) {
   failedSchemas.push("missing-schema-identity");
@@ -591,9 +665,10 @@ if (failedSchemas.length > 0) {
 console.log(
   JSON.stringify({
     report_type: "weflow-typescript-contract-check.v1",
-    valid_payloads: Object.keys(validPayloads).length,
+    valid_payloads: Object.keys(validPayloads).length + 5,
     invalid_payloads:
       Object.keys(invalidIntakePayloads).length +
+      Object.keys(invalidQQPayloads).length +
       Object.keys(invalidWorkflowPayloads).length +
       Object.keys(invalidAgentPayloads).length +
       Object.keys(evidenceInvalid).length +

@@ -52,6 +52,12 @@ reports/*
 !reports/add-bounded-live-model-evaluation-verification.json
 !reports/add-bounded-live-model-evaluation-diagnostics.json
 !reports/add-bounded-live-model-evaluation-change-verification.json
+!reports/add-qq-sandbox-intake-and-ack-offline-acceptance.json
+!reports/add-qq-sandbox-intake-and-ack-openspec-validation.json
+!reports/add-qq-sandbox-intake-and-ack-change-verification.json
+!reports/add-secure-qq-first-group-pairing-offline-acceptance.json
+!reports/add-secure-qq-first-group-pairing-live.json
+!reports/add-secure-qq-first-group-pairing-stage1-readiness.json
 artifacts/*
 !artifacts/.gitkeep
 

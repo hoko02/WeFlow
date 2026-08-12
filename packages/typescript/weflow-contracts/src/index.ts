@@ -8,6 +8,11 @@ export type JsonObject = Record<string, unknown>;
 export const BUSINESS_EVENT_SCHEMA_ID = "https://weflow.local/contracts/v1/business-event.schema.json";
 export const CASE_PROJECTION_SCHEMA_ID = "https://weflow.local/contracts/v1/case-projection.schema.json";
 export const INBOUND_MESSAGE_EVENT_SCHEMA_ID = "https://weflow.local/contracts/v1/inbound-message-event.schema.json";
+export const QQ_SANDBOX_INBOUND_EVENT_SCHEMA_ID = "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json";
+export const QQ_GATEWAY_CURSOR_SCHEMA_ID = "https://weflow.local/contracts/v1/qq-gateway-cursor.schema.json";
+export const QQ_ACKNOWLEDGEMENT_INTENT_SCHEMA_ID = "https://weflow.local/contracts/v1/qq-acknowledgement-intent.schema.json";
+export const QQ_ACKNOWLEDGEMENT_OBSERVATION_SCHEMA_ID = "https://weflow.local/contracts/v1/qq-acknowledgement-observation.schema.json";
+export const QQ_ACKNOWLEDGEMENT_COMPLETION_SCHEMA_ID = "https://weflow.local/contracts/v1/qq-acknowledgement-completion.schema.json";
 export const SIDE_EFFECT_COMPLETION_SCHEMA_ID = "https://weflow.local/contracts/v1/side-effect-completion.schema.json";
 export const SIDE_EFFECT_INTENT_SCHEMA_ID = "https://weflow.local/contracts/v1/side-effect-intent.schema.json";
 export const SIDE_EFFECT_OBSERVATION_SCHEMA_ID = "https://weflow.local/contracts/v1/side-effect-observation.schema.json";
@@ -158,6 +163,97 @@ export interface InboundMessageEvent extends JsonObject {
   correlation_id: string;
   content_classification: "synthetic";
   content_sha256: string;
+}
+
+export interface QQSandboxInboundEvent extends JsonObject {
+  schema_id: typeof QQ_SANDBOX_INBOUND_EVENT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  provider: "qq-sandbox";
+  event_type: "GROUP_AT_MESSAGE_CREATE";
+  app_id_hash: string;
+  group_openid_hash: string;
+  source_message_id: string;
+  source_message_id_hash: string;
+  sender_openid_hash: string;
+  conversation_id: string;
+  customer_id: string;
+  gateway_sequence: number;
+  occurred_at: string;
+  received_at: string;
+  correlation_id: string;
+  content_classification: "qq-private-hash";
+  content_sha256: string;
+  inbound_natural_key: string;
+}
+
+export interface QQGatewayCursor extends JsonObject {
+  schema_id: typeof QQ_GATEWAY_CURSOR_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  cursor_id: string;
+  app_id_hash: string;
+  group_openid_hash: string;
+  session_id_hash: string | null;
+  last_contiguous_sequence: number;
+  status: "identified" | "resuming" | "disconnected" | "reconciliation_required";
+  cursor_sha256: string;
+  updated_at: string;
+}
+
+export interface QQAcknowledgementIntent extends JsonObject {
+  schema_id: typeof QQ_ACKNOWLEDGEMENT_INTENT_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  intent_id: string;
+  effect_kind: "qq-sandbox-passive-acknowledgement";
+  operation: "qq.passive_ack.execute";
+  source_message_id: string;
+  source_message_id_hash: string;
+  group_openid_hash: string;
+  conversation_id: string;
+  template_id: "qq.passive_ack.v1";
+  template_sha256: string;
+  natural_key: string;
+  intended_state_sha256: string;
+  idempotency_key: string;
+  reply_msg_seq: number;
+  reply_deadline_at: string;
+  capability_profile_hash: string;
+  correlation_id: string;
+  created_at: string;
+}
+
+export interface QQAcknowledgementObservation extends JsonObject {
+  schema_id: typeof QQ_ACKNOWLEDGEMENT_OBSERVATION_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  observation_id: string;
+  intent_id: string;
+  status: "absent" | "accepted" | "present" | "duplicate" | "unknown" | "conflict" | "expired" | "unauthorized";
+  provider_message_id_hash: string | null;
+  outcome_sha256: string | null;
+  reason_code: string;
+  recorded_at: string;
+}
+
+export interface QQAcknowledgementCompletion extends JsonObject {
+  schema_id: typeof QQ_ACKNOWLEDGEMENT_COMPLETION_SCHEMA_ID;
+  schema_version: "v1";
+  tenant_id: string;
+  case_id: string;
+  case_revision_id: string;
+  completion_id: string;
+  intent_id: string;
+  observation_id: string;
+  status: "provider_accepted_or_present";
+  provider_message_id_hash: string;
+  outcome_sha256: string;
+  completed_at: string;
 }
 
 export interface CaseProjection extends JsonObject {
@@ -543,7 +639,7 @@ export function validatePayload(payload: JsonObject, root?: string): ValidationR
     return { valid: false, reasonCode: "schema_not_found" };
   }
 
-  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  const ajv = new Ajv2020({ allErrors: true, strict: true, formats: { "date-time": true } });
   for (const item of schemas.values()) {
     ajv.addSchema(item);
   }
@@ -570,6 +666,93 @@ function validateExpectedSchema(
     return result;
   }
   return payload.schema_id === schemaId ? { valid: true } : { valid: false, reasonCode: "unexpected_schema" };
+}
+
+function sha256Text(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+export function validateQQSandboxInboundEvent(
+  payload: JsonObject,
+  root?: string,
+): ValidationResult {
+  const schema = validateExpectedSchema(payload, QQ_SANDBOX_INBOUND_EVENT_SCHEMA_ID, root);
+  if (!schema.valid) return schema;
+  if (payload.source_message_id_hash !== sha256Text(String(payload.source_message_id))) {
+    return { valid: false, reasonCode: "source_message_id_hash_mismatch" };
+  }
+  const naturalKey = createHash("sha256").update(canonicalJson({
+    app_id_hash: payload.app_id_hash,
+    group_openid_hash: payload.group_openid_hash,
+    provider: "qq-sandbox",
+    source_message_id: payload.source_message_id,
+    tenant_id: payload.tenant_id,
+  }), "utf8").digest("hex");
+  return payload.inbound_natural_key === naturalKey
+    ? { valid: true }
+    : { valid: false, reasonCode: "inbound_natural_key_mismatch" };
+}
+
+export function qqGatewayCursorSha256(payload: JsonObject): string {
+  const material = { ...payload };
+  delete material.cursor_sha256;
+  return createHash("sha256").update(canonicalJson(material), "utf8").digest("hex");
+}
+
+export function validateQQGatewayCursor(payload: JsonObject, root?: string): ValidationResult {
+  const schema = validateExpectedSchema(payload, QQ_GATEWAY_CURSOR_SCHEMA_ID, root);
+  if (!schema.valid) return schema;
+  return payload.cursor_sha256 === qqGatewayCursorSha256(payload)
+    ? { valid: true }
+    : { valid: false, reasonCode: "cursor_sha256_mismatch" };
+}
+
+export function validateQQAcknowledgementChain(
+  intent: JsonObject,
+  observations: JsonObject[],
+  completions: JsonObject[],
+  root?: string,
+): ValidationResult {
+  let result = validateExpectedSchema(intent, QQ_ACKNOWLEDGEMENT_INTENT_SCHEMA_ID, root);
+  if (!result.valid) return result;
+  if (intent.source_message_id_hash !== sha256Text(String(intent.source_message_id))) {
+    return { valid: false, reasonCode: "source_message_id_hash_mismatch" };
+  }
+  const byId = new Map<string, JsonObject>();
+  for (const observation of observations) {
+    result = validateExpectedSchema(observation, QQ_ACKNOWLEDGEMENT_OBSERVATION_SCHEMA_ID, root);
+    if (!result.valid) return result;
+    if (
+      observation.tenant_id !== intent.tenant_id ||
+      observation.case_id !== intent.case_id ||
+      observation.case_revision_id !== intent.case_revision_id ||
+      observation.intent_id !== intent.intent_id
+    ) return { valid: false, reasonCode: "observation_link_mismatch" };
+    const id = String(observation.observation_id);
+    if (byId.has(id)) return { valid: false, reasonCode: "duplicate_observation" };
+    byId.set(id, observation);
+  }
+  if (completions.length > 1) return { valid: false, reasonCode: "duplicate_completion" };
+  for (const completion of completions) {
+    result = validateExpectedSchema(completion, QQ_ACKNOWLEDGEMENT_COMPLETION_SCHEMA_ID, root);
+    if (!result.valid) return result;
+    if (
+      completion.tenant_id !== intent.tenant_id ||
+      completion.case_id !== intent.case_id ||
+      completion.case_revision_id !== intent.case_revision_id ||
+      completion.intent_id !== intent.intent_id
+    ) return { valid: false, reasonCode: "completion_link_mismatch" };
+    const observation = byId.get(String(completion.observation_id));
+    if (!observation) return { valid: false, reasonCode: "completion_observation_missing" };
+    if (!["accepted", "present", "duplicate"].includes(String(observation.status))) {
+      return { valid: false, reasonCode: "completion_observation_not_present" };
+    }
+    if (
+      completion.provider_message_id_hash !== observation.provider_message_id_hash ||
+      completion.outcome_sha256 !== observation.outcome_sha256
+    ) return { valid: false, reasonCode: "completion_observation_mismatch" };
+  }
+  return { valid: true };
 }
 
 export function validateContextManifest(payload: JsonObject, root?: string): ValidationResult {
@@ -1870,3 +2053,6 @@ export function validateOperatorCaseSnapshot(
 }
 
 export * from "./live.js";
+export * from "./pairing.js";
+export * from "./qq-handler.js";
+export * from "./qq-model.js";

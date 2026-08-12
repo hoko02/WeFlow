@@ -1,0 +1,27 @@
+{
+  "profile_id": "qq-stage3-api-503.v1",
+  "version": "v1",
+  "classification": "controlled-synthetic-qq",
+  "tenant_resource": "current-paired-sandbox-tenant",
+  "selected_task_id": "grounded-response-ready",
+  "suite_reference": {
+    "path": "evals/suites/live-pilot.v1.json",
+    "sha256": "cf6b796300bb242f18d87908b9ad9f8d88f56cf094a2a4c0e4f123b45078dda8"
+  },
+  "source_references": [
+    {"source_id": "context-api-503.v1", "path": "evals/live/sources/context-api-503.v1.json", "sha256": "bb9ba6d8416cd5350214e292c7138ac8f0c2f586c66ef00f6fdc87dd4d5634b4"},
+    {"source_id": "crm-grounded.v1", "path": "evals/live/sources/crm-grounded.v1.json", "sha256": "5bfb8a17ea6a00e24f34dbe43e25957f5b805bef296bc4a066f5170019f083eb"},
+    {"source_id": "monitoring-grounded.v1", "path": "evals/live/sources/monitoring-grounded.v1.json", "sha256": "0354bb06c2914c38aaee13e0bbcdf48f8a30991935f280b28e580a2f4a53d521"},
+    {"source_id": "knowledge-grounded.v1", "path": "evals/live/sources/knowledge-grounded.v1.json", "sha256": "d848514fe659f218ad8dc5fd604086ddd52ea26bf966edf67e3c359024e2de53"}
+  ],
+  "prompt_reference": {"prompt_template_id": "live-pilot-prompt.v1", "path": "evals/live/prompt-template.v1.json", "sha256": "35fa66705466869a42df071d75494fdae76e71c1c29a4cedc91fae3f7ae12e4e"},
+  "policy_reference": {"policy_profile_id": "live-pilot-policy.v1", "path": "evals/live/policy-profile.v1.json", "sha256": "8fc1dbf4822a52ec06aa125f03ca0d5cbaf0885418b5b66e9acc861182863900"},
+  "budget_reference": {"budget_profile_id": "qq-stage3-case-budget.v1", "path": "evals/qq-model/stage3-case-budget.v1.json", "sha256": "d79784d5c798702ab075b4a79f2d639985481b1aff1f6efee718e45dbf22cd2d"},
+  "price_reference": {"price_profile_id": "deepseek-v4-flash-2026-08-06", "path": "evals/live/provider-price-deepseek-v4-flash-2026-08-06.json", "file_sha256": "c014d7a83326bf2b4140b7aee1bc6cabcb90ba6dc7dfd872ddce441b5e2d5e69", "profile_sha256": "9209c88aee2ca68d34d1b9e04d41a85ac0e28659de92ba4b178d77eed6d1b03b"},
+  "provider": {"mode": "openai-compatible", "model": "deepseek-v4-flash", "endpoint": "https://api.deepseek.com", "inference_mode": "disabled"},
+  "qq_capabilities": ["qq.group_at.read", "qq.passive_ack.execute", "qq.c2c.read", "qq.c2c.notification.execute", "qq.c2c.passive_reply.execute", "qq.handler_approval.decide", "qq.final_reply.execute"],
+  "model_capabilities": ["model.proposal.invoke", "fixture.crm.read", "fixture.monitoring.read", "fixture.knowledge.read"],
+  "retention_seconds": 86400,
+  "case_budget": {"provider_call_limit": 6, "retry_limit": 1, "input_token_limit": 10000, "output_token_limit": 4000, "total_token_limit": 14000, "wall_time_ms": 60000, "request_timeout_ms": 15000, "action_limit": 6, "tool_limit": 3, "no_progress_limit": 2, "estimated_cost_limit": 0.5, "currency": "USD"},
+  "profile_sha256": "3242cfa65a168eeb108d669ff2c6eff7a23691a24c418a5c2caa39f8bd39cbd1"
+}

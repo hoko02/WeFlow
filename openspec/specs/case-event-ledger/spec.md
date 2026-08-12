@@ -63,6 +63,7 @@ predecessor state, authorization binding where required, and canonical payload d
   target state, or delivery result instead of a permitted decision input
 - **THEN** the ledger SHALL append no authorization or delivery event and preserve the
   source timeline
+
 ### Requirement: The Case projection is derived and replayable from the ledger
 The Case projection SHALL be a tenant-scoped read model derived from immutable source
 records rather than an audit authority. A projection rebuild SHALL validate revision
@@ -110,25 +111,102 @@ revision/event invariants are invalid
 - **THEN** restore SHALL reject the snapshot without opening a partially populated
 store or emitting a new event
 
-### Requirement: Intake state has no external side effect or completion authority
-This change's inbound intake writes SHALL remain local synthetic persistence only. Once
-the initial intake transaction commits, it SHALL be eligible for one durable,
-deterministic workflow activation that records local workflow/checkpoint and simulated
-effect facts through the control kernel. Intake itself SHALL NOT initialize a model,
-invoke a provider, request/decide approval, send a reply, execute a real external
-write, or declare a Case/customer issue complete. The workflow may use only the
-fixture-local ticket simulator defined by this change and must preserve replay mode.
+### Requirement: Accepted QQ sandbox intake reuses the atomic Case ledger
+For the first accepted server-normalized QQSandboxInboundEvent, the Case ledger SHALL
+use the event's effective tenant, safe conversation/customer references, inbound
+natural key, source content hash, and correlation metadata to create the same stable
+Case, immutable CaseRevision 1, and exactly three ordered initial BusinessEvents
+required for accepted IM intake. QQ source fields SHALL not weaken tenant-scoped reads,
+append-only records, transaction rollback, projection replay, or deterministic
+snapshot behavior.
 
-#### Scenario: An accepted intake is inspected for prohibited behavior
-- **WHEN** the accepted intake fixture and its telemetry/capability report are examined
+#### Scenario: A first QQ mention creates the initial ledger
+- **WHEN** a valid allowlisted QQ sandbox event passes identity, deduplication,
+  sequence, and payload-safety validation
+- **THEN** one transaction SHALL persist the receipt, Case, CaseRevision 1, and exactly
+  the three required ordered events, and the projection SHALL report `RECEIVED`
+
+#### Scenario: QQ source persistence fails
+- **WHEN** an error or uniqueness conflict occurs before the QQ intake transaction
+  commits
+- **THEN** the ledger SHALL roll back without a partial receipt, Case, revision, event,
+  projection, or acknowledgement intent
+
+### Requirement: Intake state has no external side effect or completion authority
+Inbound intake writes SHALL remain local payload-safe persistence. Once the initial
+intake transaction commits, it SHALL be eligible for one durable, deterministic
+workflow activation that records local workflow/checkpoint and simulated effect facts
+through the control kernel. For an accepted QQ sandbox source only, the committed
+intake MAY also cause creation of one distinct fixed QQ acknowledgement intent under
+the dedicated command and capability gates; the intake transaction itself SHALL NOT
+initialize a QQ executor or perform the send. Intake itself SHALL NOT initialize a
+model, invoke a business/tool provider, request/decide approval, send a final reply,
+execute any other real external write, or declare a Case/customer issue complete. The
+existing workflow SHALL preserve Replay mode and its fixture-local ticket simulator.
+
+#### Scenario: An accepted synthetic intake is inspected for prohibited behavior
+- **WHEN** the accepted synthetic intake fixture and its telemetry/capability report are
+  examined
 - **THEN** the evidence SHALL show the initial local Case/Revision/Event state plus, if
-  scheduled, a deterministic local workflow activation; it SHALL show no model,
-  real external-write, approval, delivery, workflow-completion, or customer-resolution
+  scheduled, a deterministic local workflow activation; it SHALL show no model, real
+  external-write, approval, delivery, workflow-completion, or customer-resolution
   assertion
+
+#### Scenario: An accepted QQ intake is inspected
+- **WHEN** the accepted QQ sandbox intake and its durable facts are examined
+- **THEN** the intake transaction SHALL contain only the initial local ledger and MAY
+  be followed by one separately gated fixed acknowledgement recovery chain; it SHALL
+  show no model, handler approval, final reply, other external write, Case completion,
+  or customer-resolution assertion
 
 #### Scenario: Intake is retried after workflow scheduling
 - **WHEN** an exact inbound retry occurs after the original Case has a durable workflow
-  activation or checkpoint
+  activation, checkpoint, or QQ acknowledgement intent
 - **THEN** the intake boundary SHALL return the original deduplicated result and SHALL
-  not start another workflow, append another state event, or create another simulated
-  ticket intent
+  not start another workflow, append another state event, create another simulated
+  ticket intent, or create another QQ acknowledgement intent
+
+### Requirement: Handler workflow transitions SHALL be append-only business events
+
+The ledger SHALL append content-free events for dual binding activation/revocation/expiry, private pull, accept, candidate creation/replacement/rejection, approval request creation/invalidation, group approval decision, notification outcome, final delivery intent/result, and artifact deletion. Existing events, immutable binding records, and immutable Case revisions MUST NOT be rewritten.
+
+#### Scenario: Candidate is replaced privately
+
+- **WHEN** the bound handler submits a valid replacement
+- **THEN** the ledger appends prior-request invalidation and new-candidate facts while retaining the earlier history
+
+#### Scenario: Final write is accepted
+
+- **WHEN** QQ accepts the passive group reply
+- **THEN** the ledger appends provider-acceptance evidence without declaring customer receipt or resolution
+
+#### Scenario: Operator revokes a stale dependent binding
+
+- **WHEN** exact local confirmation and a matching current Stage 1 scope authorize revocation
+- **THEN** the ledger appends one content-free terminal event while the immutable binding record remains unchanged
+
+### Requirement: Ledger facts SHALL not disclose private content or raw QQ identity
+
+Ledger events SHALL contain only stable internal identifiers, salted identity hashes or private locator references, artifact hashes, classifications, workflow versions, safe reason codes, provider outcome classes, and evidence links. They SHALL NOT contain credentials, raw `openid` values, source event bodies, customer issue text, candidate text, previews, or transcripts.
+
+#### Scenario: C2C draft event is appended
+
+- **WHEN** a private draft becomes current
+- **THEN** the event records its artifact hash, length, classification, binding, Case revision, and workflow version without the draft body
+
+### Requirement: Ledger ordering SHALL support deterministic replay
+
+Every Stage 2 event SHALL carry a stable event identity, aggregate identity, expected prior workflow version, resulting version, correlation and causation references, and recorded-at metadata sufficient to replay duplicate, stale, replacement, approval, and recovery behavior offline.
+
+#### Scenario: Duplicate provider event is replayed
+
+- **WHEN** the same normalized C2C or group event is applied more than once
+- **THEN** replay produces one logical transition and records the duplicate classification without a second side effect
+
+#### Scenario: QQ reconnect resets the session-local sequence
+
+- **WHEN** a new QQ WebSocket connection yields a new provider message whose session-local sequence
+  equals or is lower than a sequence observed on an earlier connection
+- **THEN** the transport enforces ordering only within the active connection, the ledger accepts the
+  new natural key exactly once, and the conversation cursor remains a diagnostic high-water mark
+  rather than an authorization or cross-session ordering gate

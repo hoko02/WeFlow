@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "pnpm run build && node dist/fixture-check.js",
+    "test": "pnpm run build && node dist/fixture-check.js && node dist/qq-handler-fixture-check.js && node dist/qq-model-fixture-check.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

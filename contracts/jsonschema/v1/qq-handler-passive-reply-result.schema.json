@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-passive-reply-result.schema.json",
+  "title": "QQHandlerPassiveReplyResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "result_id", "intent_id", "tenant_id", "status", "provider_accepted", "customer_receipt_verified", "issue_resolution", "case_completion", "reason_code", "provider_status_hash", "recorded_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-passive-reply-result.schema.json"},
+    "schema_version": {"const": "v1"},
+    "result_id": {"type": "string", "pattern": "^qqhpr_[a-f0-9]{32}$"},
+    "intent_id": {"type": "string", "pattern": "^qqhpi_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "status": {"enum": ["accepted", "duplicate", "rejected", "rate_limited", "expired_window", "timed_out", "disconnected", "unknown"]},
+    "provider_accepted": {"type": "boolean"},
+    "customer_receipt_verified": {"const": false},
+    "issue_resolution": {"const": false},
+    "case_completion": {"const": false},
+    "reason_code": {"type": "string", "minLength": 1, "maxLength": 128},
+    "provider_status_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "recorded_at": {"type": "string", "format": "date-time"}
+  }
+}

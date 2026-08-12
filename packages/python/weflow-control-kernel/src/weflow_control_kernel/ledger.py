@@ -21,6 +21,7 @@ from weflow_contracts import (
     validate_generated_ledger_event,
     validate_inbound_message_event,
     validate_payload,
+    validate_qq_sandbox_inbound_event,
     validate_revision_chain,
     validate_tenant_reference,
 )
@@ -397,9 +398,10 @@ class SQLiteCaseLedger:
 
     @staticmethod
     def _fingerprint(tenant_id: str, envelope: Mapping[str, Any]) -> str:
-        material = {
-            key: value for key, value in envelope.items() if key not in {"received_at", "tenant_id"}
-        }
+        excluded = {"received_at", "tenant_id"}
+        if envelope.get("channel") == "qq-sandbox":
+            excluded.add("conversation_sequence")
+        material = {key: value for key, value in envelope.items() if key not in excluded}
         material["effective_tenant_id"] = tenant_id
         return _sha256(material)
 
@@ -446,6 +448,78 @@ class SQLiteCaseLedger:
         """Atomically accept or deduplicate a normalized synthetic delivery."""
 
         payload = self._validate_inbound(envelope, effective_tenant_id)
+        return self._intake_validated(payload, effective_tenant_id=effective_tenant_id)
+
+    def has_qq_receipt(
+        self,
+        envelope: Mapping[str, Any],
+        *,
+        effective_tenant_id: str,
+    ) -> bool:
+        """Check QQ business deduplication before a session-sequence rejection."""
+
+        if envelope.get("tenant_id") != effective_tenant_id:
+            raise IntakeRejected("tenant_identity_mismatch")
+        delivery_key = self._delivery_key(
+            effective_tenant_id,
+            {
+                "channel": "qq-sandbox",
+                "channel_event_id": envelope["inbound_natural_key"],
+            },
+        )
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT 1 FROM inbound_receipts
+                WHERE tenant_id = ? AND delivery_key = ?
+                """,
+                (effective_tenant_id, delivery_key),
+            ).fetchone()
+            return row is not None
+        finally:
+            connection.close()
+
+    def intake_qq(
+        self,
+        envelope: Mapping[str, Any],
+        *,
+        effective_tenant_id: str,
+    ) -> IntakeResult:
+        """Atomically accept a payload-safe, server-normalized QQ sandbox event."""
+
+        payload = dict(envelope)
+        try:
+            validate_qq_sandbox_inbound_event(payload, self._contract_root)
+        except ContractValidationError as error:
+            raise IntakeRejected("invalid_qq_inbound_event") from error
+        if payload.get("tenant_id") != effective_tenant_id:
+            raise IntakeRejected("tenant_identity_mismatch")
+        internal_payload = {
+            "tenant_id": effective_tenant_id,
+            "channel": "qq-sandbox",
+            "channel_event_id": payload["inbound_natural_key"],
+            "conversation_id": payload["conversation_id"],
+            "sender_id": payload["sender_openid_hash"],
+            "customer_id": payload["customer_id"],
+            "conversation_sequence": payload["gateway_sequence"],
+            "occurred_at": payload["occurred_at"],
+            "received_at": payload["received_at"],
+            "correlation_id": payload["correlation_id"],
+            "content_classification": payload["content_classification"],
+            "content_sha256": payload["content_sha256"],
+        }
+        return self._intake_validated(
+            internal_payload,
+            effective_tenant_id=effective_tenant_id,
+        )
+
+    def _intake_validated(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        effective_tenant_id: str,
+    ) -> IntakeResult:
         tenant_id = effective_tenant_id
         delivery_key = self._delivery_key(tenant_id, payload)
         fingerprint = self._fingerprint(tenant_id, payload)
@@ -484,8 +558,16 @@ class SQLiteCaseLedger:
                 """,
                 (tenant_id, payload["channel"], payload["conversation_id"]),
             ).fetchone()
-            expected_sequence = 1 if cursor is None else int(cursor["last_sequence"]) + 1
-            if payload["conversation_sequence"] != expected_sequence:
+            sequence = int(payload["conversation_sequence"])
+            if payload["channel"] == "qq-sandbox":
+                # QQ Gateway sequences are session-local and may reset after reconnect.
+                # Stable provider-message natural keys own durable deduplication.
+                valid_sequence = sequence >= 1
+            elif cursor is None:
+                valid_sequence = sequence == 1
+            else:
+                valid_sequence = sequence == int(cursor["last_sequence"]) + 1
+            if not valid_sequence:
                 raise IntakeRejected("inbound_out_of_order")
 
             created_at = self._now()
@@ -624,7 +706,12 @@ class SQLiteCaseLedger:
                     tenant_id, channel, conversation_id, last_sequence
                 ) VALUES (?, ?, ?, ?)
                 ON CONFLICT(tenant_id, channel, conversation_id)
-                DO UPDATE SET last_sequence = excluded.last_sequence
+                DO UPDATE SET last_sequence =
+                    CASE
+                        WHEN excluded.channel = 'qq-sandbox'
+                        THEN MAX(conversation_cursors.last_sequence, excluded.last_sequence)
+                        ELSE excluded.last_sequence
+                    END
                 """,
                 (
                     tenant_id,
@@ -1287,8 +1374,15 @@ class SQLiteCaseLedger:
                 str(row["conversation_id"]),
             )
             sequence = int(row["conversation_sequence"])
-            prior = expected.get(key, 0)
-            if sequence != prior + 1:
+            if key[1] == "qq-sandbox":
+                if sequence < 1:
+                    raise LedgerIntegrityError("ledger_invalid")
+                expected[key] = max(expected.get(key, 0), sequence)
+                continue
+            if key not in expected:
+                if sequence != 1:
+                    raise LedgerIntegrityError("ledger_invalid")
+            elif sequence != expected[key] + 1:
                 raise LedgerIntegrityError("ledger_invalid")
             expected[key] = sequence
         cursor_rows = connection.execute(

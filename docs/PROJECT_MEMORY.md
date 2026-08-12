@@ -1,6 +1,6 @@
 # WeFlow 项目长期记忆
 
-> 最近更新：2026-08-06
+> 最近更新：2026-08-12
 > 用途：保存跨 change 的产品定位、已锁定决策、边界和启动门槛。它不是某个 change 的实现规格；进入开发前仍需通过 OpenSpec proposal 固化本次范围。
 
 ## 1. 产品定位
@@ -758,3 +758,604 @@ Next-stage gate:
   intent/reconcile/execute/complete evidence, tenant/role policy, independent approval,
   rollback, and proof that provider acknowledgement alone cannot establish customer
   receipt, resolution, Case completion, or permission for another effect.
+
+## 22. Locked QQ integration roadmap (2026-08-10)
+
+Product decision:
+
+- The intended QQ form of WeFlow is one group containing the customer, a server-bound
+  handler, and the robot. The customer starts a Case by mentioning the robot with an
+  incident such as “广告系统出现了API 503错误”. Deterministic workflow code remains the
+  system of record; QQ is an input/output surface, not the owner of workflow authority.
+- The QQ work is split into the following three independently verifiable OpenSpec
+  increments. Later stages MUST NOT be folded into an earlier stage merely because an
+  API or credential is available.
+
+### Stage 1: add-qq-sandbox-intake-and-ack
+
+- One QQ sandbox application, one allowlisted group, one server-mapped tenant, and only
+  group @机器人 text intake.
+- Use the QQ WebSocket event path for the first vertical slice so no public callback is
+  required. Normal services and CI stay offline/Replay-first.
+- One accepted real QQ event creates the existing Case/CaseRevision/BusinessEvent
+  ledger exactly once and causes one fixed, plain-text “已受理” passive acknowledgement.
+- The acknowledgement is a narrowly scoped real external write. It MUST use durable
+  intent, reconcile, execute, observe, and complete facts plus stable natural and
+  idempotency keys. Lost response, reconnect, replay, restart, or duplicate input MUST
+  NOT produce another logical Case or acknowledgement.
+- This stage has no model, investigation tools, handler notification/approval, final
+  answer, attachment handling, QQ mail, readable transcript retention, customer-receipt
+  proof, resolution, or Case-completion authority.
+
+### Stage 2: add-qq-handler-approval-and-delivery
+
+- Bind one fixed handler to the tenant/group through server-owned identity mapping and
+  notify that handler of the Case through a bounded QQ interaction defined by the
+  stage-two proposal. Do not trust QQ nickname or caller-supplied role.
+- Introduce the minimum reviewed retention/redaction boundary needed for the handler to
+  see the relevant customer question; do not collect or forward the whole group chat by
+  default. Whether same-group mention, direct QQ interaction, or QQ mail is permitted
+  must be decided explicitly in that proposal, with same-group customer/handler/robot
+  workflow as the target user experience.
+- The handler can accept, edit, and approve an exact response candidate. Approval MUST
+  bind the current tenant, Case/revision, handler identity/role, candidate hash,
+  evidence hashes, policy/capability versions, checkpoint, and expiry.
+- The robot, not an untracked manual handler message, sends the final reply to the
+  original group so approval and delivery evidence stay bound. Delivery MUST recover
+  from lost responses without a duplicate logical reply. Provider acknowledgement still
+  does not prove customer receipt or issue resolution.
+
+### Stage 3: enable-bounded-live-model-in-qq-workflow
+
+- Promote the already bounded DeepSeek-compatible model path from its isolated
+  evaluation command into the QQ Case workflow only after stages one and two pass.
+- The model may use only explicitly authorized read-only CRM, monitoring, and knowledge
+  evidence and may propose a response only up to RESPONSE_READY.
+- Deterministic policy, budgets, verifier, evidence lineage, and workflow state remain
+  outside the model. The model cannot select tenant/destination, approve itself, send a
+  QQ message, declare delivery, resolve the Case, or claim customer success.
+- Every final QQ send still requires a current handler approval bound to the exact
+  candidate and evidence. Replay and offline synthetic paths remain available without
+  QQ/model credentials.
+
+Cross-stage hard gates:
+
+- QQ application/group/member identities are mapped server-side; raw nicknames and
+  QQ-reported roles are not authorization. Only allowlisted @机器人 messages enter the
+  workflow, and unrelated group conversation is not harvested.
+- Credentials, access tokens, raw private customer data, unrestricted provider output,
+  and full transcripts do not enter prompts, logs, fixtures, reports, or ledger facts.
+  Any later readable-content store requires explicit classification, retention,
+  authorization, and deletion design.
+- All real QQ writes are default-disabled and command/capability scoped. Every effect
+  follows intent/reconcile/execute/observe/complete with a stable natural key and
+  idempotency key; ambiguous observations remain incomplete.
+- Reports distinguish implemented, fake-transport tested, QQ-sandbox live-verified,
+  provider-accepted, customer-received, and customer-resolved. The latter two cannot be
+  inferred from a send response.
+- Multi-group/multi-tenant routing, formal production rollout, QQ mail, attachments,
+  arbitrary bot commands, knowledge publication, and multi-Agent coordination require
+  separate approved increments.
+
+Current gate:
+
+- add-qq-sandbox-intake-and-ack is the active proposal as of 2026-08-10. Its artifacts
+  define the first stage only; application implementation and real QQ live verification
+  remain unverified until Apply tasks and acceptance evidence pass.
+- Stage 2 cannot begin until stage 1 proves one real allowlisted mention creates one Case
+  and one provider-deduplicated fixed acknowledgement, with no duplicate, secret leak,
+  model use, customer-receipt claim, or Case-completion claim.
+
+## 23. QQ sandbox intake and fixed acknowledgement implementation (2026-08-10)
+
+Verified implementation facts:
+
+- `add-qq-sandbox-intake-and-ack` now implements the first QQ stage in application code.
+  Five closed v1 contracts cover the payload-safe inbound event, Gateway cursor, and
+  acknowledgement intent/observation/completion chain, with Python and TypeScript
+  semantic validation and additive compatibility fixtures.
+- The explicit `qq-sandbox-intake-ack --confirm-live-qq` command is the only path that
+  imports the real adapter. It binds one process-supplied QQ application, one allowlisted
+  sandbox group, one server-owned tenant, and exactly `qq.group_at.read` plus
+  `qq.passive_ack.execute`. Ordinary commands reject visible QQ configuration before
+  their handler runs; QQ cannot be combined with a live model, multi-Agent mode, general
+  external writes, caller-selected content, destination, format, attachment, or reply
+  sequence.
+- The real adapter uses the current QQ Access Token, `/gateway`, WebSocket
+  `GROUP_AND_C2C_EVENT (1 << 25)`, heartbeat/Resume protocol, and
+  `/v2/groups/{group_openid}/messages`. It accepts only `GROUP_AT_MESSAGE_CREATE` plain
+  text (`message_type=0`) from the configured group and sends only:
+  `已受理，工单编号：{case_id}。当前仅确认已进入处理流程，不代表问题已解决。`
+  with the original `msg_id` and deterministic `msg_seq=1`.
+- Raw message text is hashed and discarded before the Case ledger. App/group/member and
+  session identities are hashed in durable business/cursor records. Credentials,
+  authorization headers, raw provider bodies, display names, attachments, ARK/chat
+  elements, and transcripts are absent from contracts, logs, fixtures, reports, and the
+  Case ledger. Only the opaque group/source locators needed for reply recovery remain in
+  the bounded adapter journal and expire after 24 hours.
+- One accepted source natural key creates exactly one Case, immutable CaseRevision 1,
+  three initial BusinessEvents, and one acknowledgement natural key. QQ Gateway sequence
+  is session-scoped: a new `READY` session resets the transport cursor, while business
+  deduplication remains stable across sessions and excludes the Gateway sequence from the
+  source fingerprint. Same-session gaps or new out-of-order messages fail before Case
+  creation.
+- Acknowledgement execution follows intent, local/provider reconcile, execute, observe,
+  and complete. Provider code `40054005` is the documented QQ deduplication outcome and
+  may prove the one logical acknowledgement present. Timeout, disconnect, oversized or
+  unreadable response, conflict, unauthorized capability, and expiry do not complete the
+  intent. Startup recovers one eligible pending intent before listening for a new event,
+  reusing the original `msg_id + msg_seq`; expired, unauthorized, or conflicting facts
+  are not automatically resent. Access tokens refresh with a 60-second safety margin.
+- Fake Gateway runs cannot select live evidence mode. The offline acceptance and live
+  report types are different, and the strict verifier requires real-adapter mode plus a
+  completion record before `qq_sandbox_live_verified=true`. Every report still fixes
+  `customer_receipt_verified=false`, `case_completion=false`, `issue_resolution=false`,
+  `final_delivery=false`, `model_invocation=false`, and `production_ready=false`.
+
+Verified evidence and metrics:
+
+- `reports/add-qq-sandbox-intake-and-ack-offline-acceptance.json` passes the independent
+  offline verifier and covers 14 duplicate, sequence, concurrent, reconnect, restart,
+  lost-response, timeout/disconnect, deduplication, conflict, unreadable, expiry, and
+  capability scenarios. Three consecutive runs produced the identical SHA-256
+  `308d07e2eac5065a16e292ab187a945456beafe7452fb7e33ccfd3410d294fbc`.
+- All QQ-named contract/unit/recovery/security/e2e tests pass: 89 passed in the final
+  focused run. The full repository baseline passes with 488 Python tests, 2 expected
+  Docker/service-boundary skips, TypeScript contract validation of 42 valid and 68
+  invalid payloads, and successful web-console status/evaluation/operator verification
+  plus production build.
+- The full Python contract suite passes 115 tests. Secret hygiene reports zero findings;
+  Ruff, TypeScript lint, and TypeScript typecheck pass. Nine retained Case intake,
+  durable workflow, investigation, policy/approval, evidence, benchmark, evaluation
+  console, operator timeline, and archive-evidence acceptance commands all returned exit
+  code 0. Strict OpenSpec validation returned one passed change and zero issues.
+
+Live-versus-fake status and limitations:
+
+- The implementation is offline/fake-transport verified but NOT QQ-sandbox
+  live-verified. No real AppID/AppSecret, group OpenID, QQ event, Access Token, or provider
+  send response was supplied in this Apply session. OpenSpec tasks 5.2 and 5.3 therefore
+  remain intentionally incomplete; no live report is checked in and no provider/customer
+  outcome is claimed.
+- This stage remains one application, one group, one tenant, one group-mention text
+  intake, a hash-only Case source, and one fixed passive acknowledgement. It does not
+  retain handler-readable customer text, notify or bind a handler, support QQ mail,
+  attachments, arbitrary commands, multiple groups/tenants, investigation tools, a live
+  model, approval, a final customer answer, customer receipt, issue resolution, Case
+  completion, or production rollout.
+- The real command and current QQ protocol fields are implemented and tested with fakes,
+  but sandbox/formal-environment behavior, portal permission setup, real rate limits,
+  provider deduplication response, and end-user client rendering remain unverified until
+  an operator performs the bounded live run in the documented sandbox group.
+
+Next-stage gate:
+
+- Complete tasks 5.2 and 5.3 only with operator-supplied process-local QQ sandbox
+  credentials and one allowlisted test group: observe one real `@机器人 广告系统出现了API
+  503错误` event, verify one Case plus one provider-accepted/present fixed
+  acknowledgement, then exercise reconnect/provider deduplication without a second Case
+  or logical acknowledgement. Ambiguity remains `NEEDS_RECONCILIATION` and does not pass
+  the gate.
+- `add-qq-handler-approval-and-delivery` must not start until that live evidence passes,
+  contains no raw private values, and still makes no customer-receipt, resolution, or
+  Case-completion claim. Stage two must separately decide minimum readable-content
+  retention/redaction, bind one server-owned handler identity, and verify exact candidate
+  approval plus idempotent final group delivery. Stage three live-model integration
+  remains blocked behind both stages.
+
+## 2026-08-10: Secure QQ first-group pairing Apply snapshot
+
+Implemented facts:
+
+- `add-secure-qq-first-group-pairing` now provides a dedicated
+  `qq-sandbox-pair-group --confirm-live-qq-pairing` read-only command. It generates
+  one at-least-128-bit, five-minute `WFPAIR-` challenge and can construct only the QQ
+  token, Gateway, WebSocket, heartbeat, and resume read path. It constructs no QQ
+  sender, Case ledger, workflow, Agent/model, approval, handler, or business tool.
+- The challenge plaintext is process/terminal-only. SQLite stores its SHA-256 and
+  append-only lifecycle evidence. A completed binding stores a safe `qqpair_` ID and
+  hashes in payload-safe evidence; the raw `group_openid` exists only in the private
+  locator table in `.weflow/qq-sandbox.sqlite3`, expires within 24 hours, and can be
+  locally revoked.
+- Matching accepts only one plain `GROUP_AT_MESSAGE_CREATE`, `message_type=0`, no
+  attachment/card/nested elements, valid member/message/group identities, and content
+  exactly equal to the active challenge after bounded mention removal/whitespace
+  normalization. Member identity, raw event, message text, credentials, and tokens are
+  not persisted or reported.
+- Duplicate and concurrent matching events converge to one completion. Restart before
+  completion cancels the unusable digest-only challenge and creates a new one; restart
+  after completion resolves the durable safe pairing. Different-group reuse conflicts,
+  and sequence gaps, expiry, revocation, foreign AppID, missing/corrupt locator, caller
+  group/tenant overrides, expanded capabilities, model/write scope, and external stores
+  fail closed.
+- Stage 1 now supports mutually exclusive direct-group and safe-pairing selectors. The
+  pairing ID is resolved and AppID/tenant/status/expiry are checked before constructing
+  the Stage 1 network, Case ledger, or passive sender. Stage 1 still requires its
+  process-only identity salt and exact `qq.group_at.read,qq.passive_ack.execute`
+  capability profile. `WFPAIR-` is reserved at normal intake before any receipt,
+  Case, acknowledgement intent, or send.
+- Separate offline/live v1 report contracts fix Case creation, workflow activation, QQ
+  writes, acknowledgement, model, handler binding, customer receipt, resolution, Case
+  completion, production readiness, and Stage 1 verification to false. Fake transports
+  cannot publish live verification. Offline report
+  `reports/add-secure-qq-first-group-pairing-offline-acceptance.json` independently
+  verifies with SHA-256
+  `a6af49f2a18ec2e0ed855d90bdb92be1fbdbef0421f0f06d63fb45f8c3dd677a`.
+
+Verification facts:
+
+- Pairing-specific tests pass 16/16; all QQ-named tests pass 105/105. Python contracts
+  pass 121/121. TypeScript contracts retain 42 valid and 68 invalid results.
+- The complete Python suite passes 504 tests with 2 expected service-boundary skips
+  when run with the isolated repository-local pytest temporary root. Two earlier runs
+  against the Windows system Temp had non-repeatable historical SQLite `disk I/O
+  error` failures; the failed tests passed individually and the isolated complete run
+  passed.
+- Secret scanning reports zero findings. Ruff, TypeScript lint/typecheck, the full
+  TypeScript tests, console checks, production Vite build, strict OpenSpec validation,
+  independent pairing report verification, and `git diff --check` pass.
+- Retained Change 1-6, evaluation-console, operator-timeline, and prior QQ offline
+  acceptances returned exit code 0. `archive-evidence-check` remains failed with
+  `documentation_report_path_untracked` because the preceding active QQ change/report
+  is still uncommitted; this is a working-tree evidence limitation, not treated as pass.
+
+Live status and next gate:
+
+- No real AppID/AppSecret, real QQ event, or controlled test-group challenge was supplied
+  in this Apply session. Real pairing tasks 5.2/5.3 remain incomplete; the retained
+  offline report has `qq_group_pairing_live_verified=false` and
+  `stage1_verified=false`.
+- The existing `add-qq-sandbox-intake-and-ack` live tasks 5.2/5.3 also remain
+  independently incomplete. A real pairing does not prove API-503 intake or a provider
+  acknowledgement.
+- Next, the operator must run the documented live pairing command with process-only
+  sandbox credentials, send exactly the displayed challenge in one controlled group,
+  independently verify the live report, and use only its safe pairing ID to pass Stage
+  1 pre-contact readiness. Do not send the API-503 message until that prerequisite is
+  verified.
+
+## 2026-08-10: Secure QQ first-group pairing live closure
+
+Live-verified facts:
+
+- The operator supplied process-only sandbox credentials and sent the exact displayed
+  challenge through a real robot mention in one controlled non-production QQ group.
+  `reports/add-secure-qq-first-group-pairing-live.json` records one completed binding:
+  report `qqpr_4b072fcb4923cd001111f5bac9c972cc`, safe pairing ID
+  `qqpair_d450e2c542fc51e8b59beacdbffb9505`, and report SHA-256
+  `a90e462c98a92186a1a458616dfa37179f839d1fd1574781d353099f3710577a`.
+  `qq_group_pairing_live_verified=true`; QQ writes, Case/workflow/model activation,
+  handler binding, customer receipt, issue resolution, Case completion, production
+  readiness, and Stage 1 verification remain false.
+- The independent verifier passed the live report. The safe pairing ID, and no raw
+  group locator, then passed the Stage 1 selector/configuration pre-contact gate.
+  `reports/add-secure-qq-first-group-pairing-stage1-readiness.json` records
+  `selector_resolved=true`, `readiness.ready=true`, `network_contacted=false`,
+  `case_creation=false`, `qq_write_attempted=false`, and `stage1_verified=false`.
+- The live command now displays its challenge only after QQ Gateway `READY`, appends an
+  `EXPIRED` lifecycle event and exits when the five-minute deadline elapses, separates
+  Token transport failure from Gateway endpoint failure, and provides
+  `qq-sandbox-intake-ack --readiness-only` for a canonical no-network handoff check.
+
+Closure verification:
+
+- All QQ-named tests pass 110/110; the complete Python suite passes 509 tests with 2
+  expected service-boundary skips. Python contracts pass 121/121; TypeScript contracts
+  retain 42 valid and 68 invalid fixture results. Project lint, typecheck, TypeScript
+  tests/build, secret hygiene with zero findings, independent live-report verification,
+  strict OpenSpec validation, and `git diff --check` pass.
+- The four pairing delta specs were synced before archive: the new
+  `secure-qq-first-group-pairing` main capability contains 7 requirements, while
+  `safe-provider-runtime-boundary`, `versioned-domain-contracts`, and
+  `workspace-operability` received 2, 2, and 1 additive requirements respectively.
+  No requirement was removed or renamed.
+
+Archive result and next gate:
+
+- `add-secure-qq-first-group-pairing` is archived as
+  `2026-08-10-add-secure-qq-first-group-pairing` with all 20 tasks complete and its
+  `.openspec.yaml` metadata preserved.
+- This archive proves only real read-only discovery and binding of one controlled QQ
+  group. It does not prove Stage 1 Case intake or the fixed acknowledgement external
+  write, and it does not authorize handler notification, approval, final delivery,
+  customer receipt, issue resolution, Case completion, production rollout, or a model.
+- Resume `add-qq-sandbox-intake-and-ack` tasks 5.2/5.3 next. The operator must send one
+  real allowlisted `@robot API-503` message and retain a separately verified live report
+  showing one Case and one provider-accepted/present fixed acknowledgement without a
+  duplicate logical effect or any customer-success claim.
+## 2026-08-10: QQ sandbox Stage 1 live intake/ack closure
+
+Live-verified facts:
+
+- `reports/add-qq-sandbox-intake-and-ack-live-acceptance.json` records one real
+  allowlisted group mention accepted as Case
+  `case_1b52609062ed680ed2f2c072c0b0aaa6`, with exactly one acknowledgement intent,
+  observation, and completion. The fixed passive acknowledgement was visible in the
+  controlled QQ group. The report and independent `live` verifier passed with
+  `accepted=true`, `qq_sandbox_live_verified=true`, and
+  `acknowledgement_status=completed`.
+- `reports/add-qq-sandbox-intake-and-ack-live-dedup.json` records a second controlled
+  real event for the bounded same-frame deduplication procedure. Its one in-memory
+  replay returned the original Case `case_cace369cb85a9ee3e043a5684c9345eb` and original
+  acknowledgement intent. The report has `duplicate_event_count=1`, all per-run
+  Case/intent/observation/completion deltas equal to one,
+  `same_event_deduplication_verified=true`, `second_qq_write_attempted=false`, and
+  `second_logical_acknowledgement=false`. The independent `live-dedup` verifier passed.
+- Both live reports keep raw-message, transcript, credential, and unrestricted provider
+  response persistence false. They keep model invocation, handler approval, final
+  delivery, customer receipt, issue resolution, Case completion, and production
+  readiness false. Provider acceptance proves only the fixed sandbox acknowledgement
+  boundary, not that a customer read it or that the issue was resolved.
+
+Implementation and verification closure:
+
+- The explicit `--verify-live-event-dedup` mode processes one new real QQ event normally,
+  then passes that identical provider frame through deterministic intake a second time
+  while it remains in memory. Existing Case and acknowledgement completion facts stop
+  the second pass before another QQ transport call. The raw frame is discarded on exit
+  and cannot be reconstructed from durable private chat data.
+- `add-qq-sandbox-intake-and-ack` now has all 24 tasks complete. QQ-selected
+  unit/recovery/security tests pass 92/92; the focused runner/report/runbook suite passes
+  19/19. The complete Python suite passes 510 tests with 2 expected skips. TypeScript
+  contracts retain 42 valid and 68 invalid fixture results; console status, evaluation,
+  operator-timeline checks, and the production Vite build pass. Ruff lint/format,
+  independent live and live-dedup report verification, strict OpenSpec validation, and
+  `git diff --check` pass.
+
+Next-stage gate:
+
+- Stage 1 now proves one controlled sandbox group's real `@robot` text intake, exact
+  Case/acknowledgement reuse for the same observed source event, and one fixed passive
+  acknowledgement. It still does not implement readable handler content retention,
+  handler notification, QQ mail, handler editing/approval, final customer delivery,
+  live model/tool investigation, attachments, multiple groups/tenants, or production
+  QQ readiness.
+- `add-qq-handler-approval-and-delivery` may be proposed next as a separate vertical
+  change. It must decide approved customer-content retention/redaction and then prove
+  handler binding, notification, immutable edit/approval, and final-delivery recovery
+  without granting the model or QQ input authority.
+
+## 2026-08-11: QQ sandbox Stage 1 spec sync and archive
+
+Archive facts:
+
+- All 24 `add-qq-sandbox-intake-and-ack` tasks and all four planning artifacts were
+  complete before archive. The change-level strict validation passed immediately
+  before sync and archive.
+- All five Stage 1 delta capabilities were synced to main specifications. A new
+  `qq-sandbox-intake-and-ack` main spec contains 7 requirements;
+  `case-event-ledger` received 1 added requirement and 1 modified requirement;
+  `idempotent-side-effect-recovery` received 2 added requirements;
+  `safe-provider-runtime-boundary` received 2 modified requirements; and
+  `versioned-domain-contracts` received 2 added requirements. No requirement was
+  removed or renamed.
+- Post-sync strict validation passed 25/25 active-change and main-spec items with zero
+  failures. Every Stage 1 delta requirement heading was present in its corresponding
+  main specification.
+- The change is archived as
+  `openspec/changes/archive/2026-08-11-add-qq-sandbox-intake-and-ack`, with its
+  `.openspec.yaml`, proposal, design, delta specs, and completed tasks preserved.
+
+Verified boundary after archive:
+
+- The archive carries forward the already retained live facts: one controlled QQ
+  sandbox-group mention created one Case and one fixed passive acknowledgement, and a
+  bounded same-event replay reused the same Case/acknowledgement without a second QQ
+  write. These facts still do not prove customer receipt, issue resolution, Case
+  completion, final delivery, production readiness, or model quality.
+- Stage 1 still retains no readable customer transcript and grants no handler binding,
+  C2C handler notification, drafting, approval, final answer, attachment, QQ mail,
+  multi-group/multi-tenant, model, or production authority.
+
+Next-stage gate:
+
+- `add-qq-handler-approval-and-delivery` may now enter Apply only from its reviewed
+  active OpenSpec artifacts. Handler work is confidential: issue pull, task context,
+  draft/edit/reject, and approval preview stay in the dual-bound handler's QQ C2C;
+  the original group carries only a non-sensitive nudge, metadata-only approval, and
+  the final approved reply. Active C2C notification is at-most-once and an ambiguous
+  result is not retried or called delivered.
+- Stage 3 live-model integration remains blocked until Stage 2 implementation, offline
+  privacy/recovery verification, real sandbox handler binding, exact approval, and
+  final-delivery evidence all pass without customer-success or production claims.
+
+## 2026-08-12: QQ sandbox Stage 2 handler approval/delivery archive
+
+Live-verified facts:
+
+- One operator-confirmed dual-surface handler binding completed against the previously
+  paired sandbox group. The live flow kept the customer issue, private pull/accept,
+  draft creation and replacement, and draft previews in QQ C2C. The group carried only
+  metadata-only approval and the exact final approved reply.
+- `reports/add-qq-handler-approval-and-delivery-live.json` records binding
+  `qqhbind_e65300fbc9ac0b075e2563aecc83ded5`,
+  `dual_surface_binding_verified=true`, `private_workflow_verified=true`,
+  `group_approval_verified=true`, `notification_attempt_count=1`,
+  `notification_status=accepted`, `artifact_deletion_verified=true`, and
+  `final_provider_accepted=true`. The independently verified report digest is
+  `d401b44e2c0fca08198493a774a29ab25d03a408b3bda602ca1fcae6b81fed7f`.
+- The approved reply `SYNTHETIC_RESPONSE_V2` was visible in the controlled group.
+  Provider acceptance does not prove customer receipt, issue resolution, Case
+  completion, or production readiness; all four remain false. Model invocation also
+  remains false.
+
+Implementation and verification closure:
+
+- The notification attempt budget is scoped to the current Case and handler binding,
+  so historical notification attempts cannot exhaust a newly paired workflow. Exact
+  matching confirmed bindings can be reconciled after report/output interruption
+  without repeating the dual challenge or contacting QQ.
+- The Stage 2 focused QQ handler suite passes 98/98. Ruff lint and format checks,
+  privacy/secret scanning with zero findings, independent live-report verification,
+  strict change validation, and `git diff --check` pass.
+- All 50 tasks and all planning artifacts were complete before archive. The eight
+  delta specs added 34 requirements: 9 in the new
+  `qq-handler-approval-and-delivery` main capability, plus 3, 3, 4, 4, 4, 4, and 3
+  requirements in `case-event-ledger`, `hash-bound-approval-gates`,
+  `idempotent-side-effect-recovery`, `policy-capability-gates`,
+  `response-candidate-verification`, `safe-provider-runtime-boundary`, and
+  `versioned-domain-contracts`. No requirement was modified, removed, or renamed.
+- The change is archived as
+  `openspec/changes/archive/2026-08-12-add-qq-handler-approval-and-delivery`, with its
+  `.openspec.yaml`, proposal, design, delta specs, and completed tasks preserved.
+
+Verified boundary and next gate:
+
+- The live binding assurance is `operator_confirmed_dual_challenge`, not a
+  provider-documented cross-surface identity proof. The slice covers one sandbox App,
+  tenant, group, and handler; it does not enable models, business tools, QQ mail,
+  attachments, multiple groups/handlers/tenants, automatic issue resolution, or
+  production rollout.
+- Stage 3 requires a separate OpenSpec change for bounded model-assisted investigation
+  and private drafting. Deterministic workflow code must retain state, policy, tool and
+  evidence gates, approval authority, final-write authority, retry/reconciliation, and
+  completion decisions. The model must not see unrestricted QQ/provider data, approve
+  itself, send directly, or claim resolution/customer receipt.
+
+## 2026-08-12: QQ Stage 3 bounded live-model Apply snapshot
+
+Verified implementation facts:
+
+- `enable-bounded-live-model-in-qq-workflow` adds the exact private command
+  `WF-ASSIST <case_id> <expected_version>` only after the current bound handler has
+  privately pulled and accepted the current Case. Customer messages do not invoke the
+  model automatically. Group text, free-form command bodies, stale identities or
+  versions, unsafe issue egress, and expanded capabilities fail before model contact.
+- The dedicated runner composes the existing Stage 1 ACK and Stage 2 private
+  notification/pull/accept/draft/metadata-only approval/final passive-reply boundaries
+  with a separate bounded model provider. The model can request only the reviewed CRM,
+  monitoring, and knowledge reads from checked-in synthetic fixtures; it cannot select
+  a QQ destination, mutate a business system, approve, deliver, complete a Case, or
+  declare customer receipt or resolution.
+- The checked-in profile binds DeepSeek `deepseek-v4-flash`, JSON-object structured
+  output, the public HTTPS endpoint, dated price metadata, exact QQ/model capabilities,
+  a 6-call/3-tool/14,000-token/60-second/USD-0.50 cumulative Stage 3 Case budget, and 24-hour
+  restricted-content retention. Live construction validates selectors, public DNS,
+  profile/source hashes, price validity, capabilities, and budgets before reading either
+  process-only credential.
+- The Stage 3 cumulative Case budget is independently hash-bound in
+  `evals/qq-model/stage3-case-budget.v1.json`; the retained six-task live-evaluation
+  attempt budget remains USD 0.02 and is not enlarged by Stage 3.
+- Assist requests, Context bindings, invocation intent/observation, normalized actions,
+  tool evidence, budgets, candidates, verification, approval, deletion, and QQ effects
+  are append-only and naturally idempotent. Ambiguous provider contact becomes
+  `provider_outcome_unknown`, consumes pessimistic budget, advances to a safe manual
+  fallback version, and is never automatically retried. Conclusive work is reused after
+  restart; an interrupted pre-provider policy denial also resumes with zero model calls.
+- Model candidates and issue views remain private. Human `WF-DRAFT` atomically replaces
+  and invalidates model candidate/provenance/approval reachability. Replacement,
+  rejection, final QQ provider acceptance, and 24-hour expiry remove restricted content
+  while retaining content-free lifecycle evidence.
+
+Verified offline evidence and checks:
+
+- `reports/enable-bounded-live-model-in-qq-workflow-offline-acceptance.json` independently
+  verifies one Case, ACK, handler notification/pull/accept/assist, four replay-fake model
+  turns, three synthetic tool results, one private preview, exact group approval, one
+  fake final provider acceptance, and two artifact deletions. After the reviewed
+  Stage 3 Case budget/profile update, its current report SHA-256 is
+  `1da22c53bd070fd6bbbab220ba1f4d5b62400ad6405d97afffaa9dd6cbb8c680`;
+  verification SHA-256 is
+  `1bc64431bff305ea860a029aa8ff3295ef20ff87bca18e68e6a6ff334c3e09fd`.
+  Network contact and external writes are false, as are customer receipt, issue
+  resolution, Case completion, live-model contact, and production readiness.
+- The Stage 3 focused suite, including completed-Case report recovery and fake
+  zero-usage rejection, passes. The final complete Python run collected 662 tests:
+  660 passed and 2 expected service-boundary skips. Python contracts passed
+  141/141; QQ-selected tests passed 251/251; TypeScript contracts retained 42 valid and
+  68 invalid fixtures, and TypeScript lint/typecheck/tests plus the web-console build
+  passed. Ruff lint, Stage 3 targeted format, secret scanning with zero findings, and
+  retained offline acceptances passed.
+- Full-repository `ruff format --check .` remains unsuccessful because 51 existing or
+  unrelated files would be reformatted; they were not bulk-rewritten. The archive
+  evidence checker now allowlists the existing content-free QQ Stage 0-3 report paths
+  and passes with 31 documented reports and 2 historical manifests. The format
+  limitation is not converted into a pass.
+
+Live-verified integrated evidence and remaining boundary:
+
+- A fresh controlled sandbox Case traversed real QQ intake/fixed acknowledgement,
+  private handler pull/accept/assist, four actual DeepSeek calls, the three reviewed
+  fixture-local CRM/monitoring/knowledge reads, one verifier-authorized private model
+  candidate, exact metadata-only group approval by the bound handler, and one
+  provider-accepted passive final QQ reply. The current active handler binding is
+  `qqhbind_88a57460ba6e8c8a18c723a963d10ff0`.
+- The accepted report records 4 provider calls, 4,527 input tokens, 452 output tokens,
+  4,979 total tokens, estimated cost USD 0.00076034, 6,260 ms provider latency,
+  6,460 ms end-to-end latency, 3 tool results, one candidate, one approval decision,
+  one final reply, and two restricted-artifact deletions. Its canonical mode is
+  `qq-model-integrated-live`, while the nested QQ provider mode remains
+  `qq-sandbox-live`.
+- The original live command completed the external effect but initially failed report
+  schema validation because the runner incorrectly used the QQ provider mode as the
+  top-level integrated workflow mode. The implementation now uses the contract-defined
+  mode and provides `--recover-completed-case`, which rebuilds reports only from a
+  current `FINAL_ACCEPTED` Case with complete positive-token model, tool, candidate,
+  approval, final-effect, and deletion evidence. Recovery was executed with all three
+  provider credentials absent and performed no network contact, model call, Case
+  mutation, or external write.
+- `reports/enable-bounded-live-model-in-qq-workflow-live-acceptance.json` has report
+  SHA-256 `7d5ba73ce84ed9bfa268c3d315317c94782bc7c929758ca09afc3d56f22162e1`.
+  `reports/enable-bounded-live-model-in-qq-workflow-live-verification.json` passed the
+  no-network/no-credential independent verifier with verification SHA-256
+  `125702f4fc89636772757fcf9117edc1bfd15905f6de8338d97b7faa2708ed4c`.
+- The retained Change 1-6, console, Operator Case, QQ Stage 0-3 offline acceptances,
+  independent offline/live Stage 3 verification, and the 900-second-bounded aggregate
+  check all passed. The aggregate rerun completed in about 322 seconds; its historical
+  manifest-bound report file was then restored byte-for-byte rather than rewriting
+  archived evidence.
+- This is one integration and hard-gate proof, not a statistically meaningful model
+  quality result. Customer receipt, issue resolution, Case completion, production
+  readiness, real CRM/monitoring/knowledge connectors, additional groups/handlers/
+  tenants, attachments/mail, and multi-Agent collaboration remain false, disabled, or
+  unimplemented. Strict final validation subsequently passed; spec sync and archive are
+  recorded below.
+
+## 2026-08-12: QQ Stage 3 bounded live-model archive closure
+
+Archive and specification closure:
+
+- All 68 implementation tasks and all planning artifacts were complete before archive.
+- The nine Stage 3 delta specs were synchronized into main specs as 31 semantic
+  changes: 16 added requirements and 15 modified requirements, with no removals or
+  renames. The new `bounded-live-model-qq-workflow` main capability was created, and
+  existing scenarios not targeted by the deltas were preserved.
+- Post-sync verification found all 31 delta requirement headings and all 80 delta
+  scenario headings exactly once in the corresponding main specs. Strict validation
+  passed for the change and for all 26 current OpenSpec items; the synchronized spec
+  files also passed `git diff --check` apart from non-failing Windows line-ending
+  notices.
+- The complete change is archived at
+  `openspec/changes/archive/2026-08-12-enable-bounded-live-model-in-qq-workflow`, with
+  `.openspec.yaml`, proposal, design, nine delta specs, and completed tasks preserved.
+
+Verified evidence retained by the archive:
+
+- The live sandbox proof remains one real QQ Case with fixed acknowledgement, private
+  handler pull/accept/assist, four actual DeepSeek calls, three reviewed fixture-local
+  read tools, one verifier-authorized private candidate, exact metadata-only human
+  group approval, and one provider-accepted passive final QQ reply.
+- The accepted run retained 4,979 total tokens, estimated cost USD 0.00076034,
+  6,260 ms provider latency, and 6,460 ms end-to-end latency. The acceptance report
+  SHA-256 is `7d5ba73ce84ed9bfa268c3d315317c94782bc7c929758ca09afc3d56f22162e1`;
+  the independent verification SHA-256 is
+  `125702f4fc89636772757fcf9117edc1bfd15905f6de8338d97b7faa2708ed4c`.
+- The complete Python run remains 660 passed and 2 expected service-boundary skips;
+  contract, QQ-selected, TypeScript, web-console, lint, secret-scan, retained evidence,
+  and archive-evidence checks passed. Full-repository `ruff format --check .` remains a
+  documented limitation because 51 existing or unrelated files would be reformatted.
+
+Verified boundary and next gate:
+
+- This archive does not prove customer receipt, issue resolution, Case completion,
+  production readiness, model quality at scale, real enterprise data access, multiple
+  groups/handlers/tenants, attachments/mail, or multi-Agent collaboration.
+- The original three-step QQ route is now implemented and sandbox-live-verified:
+  secure first-group pairing, intake/fixed acknowledgement, private handler approval
+  and delivery, followed by bounded handler-triggered live-model assistance.
+- Any next increment requires a separate OpenSpec change. The narrow recommended gate
+  is to replace exactly one fixture-local investigation read with a tenant-scoped,
+  read-only real business connector while preserving replay fixtures, model-external
+  policy and budget checks, evidence lineage, private previews, exact human approval,
+  and deterministic QQ delivery. Real business writes and production rollout remain
+  disabled until separately proposed and verified.

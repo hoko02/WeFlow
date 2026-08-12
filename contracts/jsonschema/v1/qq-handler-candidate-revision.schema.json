@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-candidate-revision.schema.json",
+  "title": "QQHandlerCandidateRevision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "candidate_revision_id", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "issue_artifact_id", "candidate_artifact_id", "candidate_sha256", "normalized_length", "policy_decision_id", "workflow_version", "predecessor_candidate_revision_id", "status", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-candidate-revision.schema.json"},
+    "schema_version": {"const": "v1"},
+    "candidate_revision_id": {"type": "string", "pattern": "^qqhcr_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "issue_artifact_id": {"type": "string", "pattern": "^qqa_[a-f0-9]{32}$"},
+    "candidate_artifact_id": {"type": "string", "pattern": "^qqa_[a-f0-9]{32}$"},
+    "candidate_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "normalized_length": {"type": "integer", "minimum": 1, "maximum": 1200},
+    "policy_decision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "workflow_version": {"type": "integer", "minimum": 1},
+    "predecessor_candidate_revision_id": {"type": ["string", "null"], "pattern": "^qqhcr_[a-f0-9]{32}$"},
+    "status": {"enum": ["CURRENT", "SUPERSEDED", "REJECTED", "DELETED"]},
+    "created_at": {"type": "string", "format": "date-time"}
+  }
+}

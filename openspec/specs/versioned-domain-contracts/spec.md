@@ -3,7 +3,6 @@
 ## Purpose
 Define the versioned, language-neutral domain contracts and compatibility rules shared across WeFlow boundaries.
 ## Requirements
-
 ### Requirement: Canonical versioned domain schemas exist
 WeFlow SHALL maintain language-neutral JSON Schema files under a versioned contract
 directory. Each boundary object SHALL declare a stable schema identifier and
@@ -256,7 +255,6 @@ or any customer-success claim.
 - **THEN** both contract packages SHALL reject it before it can be persisted, replayed,
   or exposed
 
-
 ### Requirement: Benchmark-core contracts are versioned, payload-safe, and compatible
 WeFlow SHALL maintain language-neutral v1 schemas for `EvaluationTask`,
 `EvaluationOracle`, `GraderResult`, `RunMetrics`, and `EvaluationSuiteReport` alongside
@@ -420,3 +418,147 @@ WeFlow SHALL add compatible `ProviderPriceProfile`, `LiveRunMetrics`, `LiveEvalu
 #### Scenario: Retained v1 fixtures are revalidated
 - **WHEN** the additive live schemas and fixtures are introduced
 - **THEN** every retained valid/invalid offline, Agent, workflow, approval, delivery, evidence, evaluation, and Operator Case fixture SHALL preserve its prior acceptance/rejection outcome
+
+### Requirement: QQ group-pairing contracts are versioned and payload-safe
+WeFlow SHALL maintain compatible language-neutral schemas for
+`QQGroupPairingChallenge`, `QQGroupPairingCompletion`, and
+`QQGroupPairingAcceptanceReport`. Each SHALL declare a stable schema identity/version,
+forbid undeclared properties, bind safe pairing/application/group/tenant identities and
+lifecycle timestamps where applicable, and contain only allowlisted opaque IDs, hashes,
+enumerations, counts, status/reason codes, and explicit capability flags. They MUST
+reject challenge plaintext, raw group/member/message identifiers, ordinary QQ group
+numbers, credentials, access tokens, raw events/provider bodies, transcripts,
+caller-selected authority, QQ-write claims, Case/workflow effects, customer receipt,
+resolution, and Case-completion claims.
+
+#### Scenario: Valid pairing fixtures validate cross-language
+- **WHEN** Python and TypeScript consume a complete safe challenge, completion, and
+  offline/live report fixture chain
+- **THEN** both packages SHALL accept the same identities, hashes, links, lifecycle,
+  and capability flags without needing a QQ credential, raw locator, or network call
+
+#### Scenario: A pairing fixture contains private data or false authority
+- **WHEN** a pairing fixture contains challenge text, raw OpenID/message/event data,
+  credentials, caller-selected group/tenant, a detached/foreign reference, invalid
+  expiry/hash/status, QQ send, Case creation, or customer-success assertion
+- **THEN** both validators SHALL reject it before pairing or report publication
+
+### Requirement: Pairing contract evolution preserves every retained v1 result
+The compatibility command SHALL validate the pairing corpus in Python and TypeScript
+alongside every retained valid and invalid v1 fixture. Pairing schemas SHALL be additive
+and SHALL not broaden existing QQ intake, provider, workflow, approval, delivery,
+evidence, benchmark, or operator contracts. An incompatible semantic change MUST use a
+new major-version contract path.
+
+#### Scenario: The pairing corpus is added to compatibility checks
+- **WHEN** cross-language compatibility runs after pairing contracts and semantic
+  fixtures are introduced
+- **THEN** all retained fixtures SHALL preserve their prior result and both languages
+  SHALL agree on every new pairing valid/invalid result
+
+### Requirement: QQ sandbox boundary contracts are versioned and payload-safe
+WeFlow SHALL maintain compatible language-neutral schemas for QQSandboxInboundEvent,
+QQGatewayCursor, QQAcknowledgementIntent, QQAcknowledgementObservation, and
+QQAcknowledgementCompletion. Each contract SHALL declare stable schema identity and
+version, bind its effective tenant and safe QQ application/group/source identities,
+forbid undeclared properties, and contain only allowlisted opaque identifiers, hashes,
+sequence/timestamp metadata, classification, correlation, status, and reason codes.
+The contracts MUST reject raw message text, group transcripts, attachment bytes,
+display names, credentials, access tokens, unrestricted provider bodies,
+caller-selected authority/destination/content, customer-receipt claims, resolution
+claims, and Case-completion claims.
+
+#### Scenario: Valid QQ boundary fixtures validate cross-language
+- **WHEN** valid inbound, gateway-cursor, acknowledgement intent, observation, and
+  completion fixtures are consumed by Python and TypeScript validators
+- **THEN** both packages SHALL accept the same schema identities and versions without
+  requiring a QQ credential, raw chat payload, or network request
+
+#### Scenario: A QQ boundary fixture contains unsafe data or authority
+- **WHEN** a fixture contains raw text, transcript data, an undeclared credential,
+  caller-selected tenant/group/content, foreign Case reference, invalid sequence/hash,
+  or customer-success assertion
+- **THEN** both validators SHALL reject it before intake or execution
+
+### Requirement: QQ contract evolution preserves all retained v1 fixtures
+QQ sandbox contracts SHALL be additive to the existing synthetic inbound, workflow,
+delivery, evidence, benchmark, operator, and live-model contracts. The compatibility
+command SHALL validate valid/invalid QQ fixtures in both languages alongside every
+retained v1 fixture and SHALL reject any silent semantic change to an existing schema.
+
+#### Scenario: The QQ corpus is added to compatibility checks
+- **WHEN** cross-language compatibility runs after the QQ schemas and fixtures are
+  introduced
+- **THEN** all retained valid fixtures SHALL remain valid, retained invalid fixtures
+  SHALL remain invalid, and the new QQ corpus SHALL agree across languages
+
+#### Scenario: A QQ edit breaks a retained contract
+- **WHEN** a QQ-related schema change invalidates a retained compatible fixture or
+  weakens an existing safety rejection
+- **THEN** compatibility SHALL fail until the change becomes additive or uses a new
+  major-version contract path
+
+### Requirement: Versioned contracts SHALL represent dual-surface handler authority
+
+The contract set SHALL define versioned schemas for the handler binding, pairing evidence, assurance level, group-member identity hash, C2C-user identity hash, paired group, tenant mapping, lifecycle status, expiry, and content-free audit metadata. Raw provider identities SHALL remain behind private provider locators and MUST NOT appear in reports or general domain events.
+
+#### Scenario: Binding contract validates
+
+- **WHEN** both challenge results and local confirmation are recorded
+- **THEN** the schema requires both identity-surface hashes, group and tenant binding, assurance level, expiry, and active status
+
+#### Scenario: One identity surface is absent
+
+- **WHEN** a purported binding omits either the group-member or C2C-user identity
+- **THEN** contract validation fails
+
+### Requirement: Versioned contracts SHALL separate private content from workflow metadata
+
+The contract set SHALL define content-free schemas for `QQCustomerIssueArtifact`, `QQHandlerResponseArtifact`, C2C command envelopes, notification intent/result, candidate revision, approval request/decision, passive reply intent/result, and acceptance report. Content-bearing fields SHALL be artifact references with hash, classification, bounded length, retention deadline, and deletion state rather than plaintext.
+
+#### Scenario: Private command envelope is serialized
+
+- **WHEN** a `WF-DRAFT` event crosses a service boundary
+- **THEN** the envelope carries source-event identity, command classification, binding, Case/revision, expected version, and candidate artifact reference without raw candidate text
+
+#### Scenario: Group approval contract is serialized
+
+- **WHEN** a `WF-APPROVE` event is normalized
+- **THEN** it carries only approval request identity, candidate hash prefix, expected version, group author identity reference, and source `msg_id`, with no candidate body
+
+### Requirement: Contract evolution SHALL reject unknown privileged shapes
+
+Privileged Stage 2 inputs and outputs SHALL declare schema identifier and version, reject unknown command/action variants, and preserve backward-safe replay fixtures without network or QQ credentials.
+
+#### Scenario: Unknown privileged action is received
+
+- **WHEN** a contract contains an unrecognized notification, approval, or delivery action
+- **THEN** validation fails before policy evaluation or external write
+
+### Requirement: Versioned contracts SHALL represent the integrated QQ model-assist lifecycle
+
+The contract set SHALL define closed versioned schemas for Stage 3 readiness, the private `WF-ASSIST` envelope, assist request and outcome, model-safe QQ Context, Case/handler-bound invocation and budget evidence, model candidate provenance/binding, private preview metadata, invalidation/deletion evidence, and correlation/causation links through approval and final QQ delivery. Content-bearing fields SHALL remain restricted artifact references or ephemeral bounded views rather than plaintext in general domain records.
+
+#### Scenario: An assist request contract validates
+
+- **WHEN** a bound handler requests model assistance for a current Case
+- **THEN** the schema requires safe handler/Case/revision/workflow/source identities, issue artifact reference, model/prompt/provider/profile hashes, exact capability/policy/budget bindings, and no raw QQ or content fields
+
+#### Scenario: Model or caller supplies authority fields
+
+- **WHEN** an input contains caller/model-selected tenant, destination, provider, tool arguments, workflow state, approval, delivery, resolution, or completion
+- **THEN** contract validation fails before policy evaluation, model contact, or external write
+
+### Requirement: Versioned reports SHALL separate integrated provider facts from business outcomes
+
+The contract set SHALL define distinct offline-fake, real integrated acceptance, and independent verification schemas that bind report/source hashes, QQ and model provider modes, invocation/tool/candidate/approval/effect/deletion counts, usage/cost/latency availability, failure classifications, privacy flags, and capability constants. The schemas SHALL require customer receipt, issue resolution, Case completion, and production readiness to remain false for this change.
+
+#### Scenario: Real integrated report validates
+
+- **WHEN** actual QQ and public-model evidence plus exact handler approval and final provider acceptance are complete and source-linked
+- **THEN** the schema represents each verified layer separately and retains no credential, raw identity, prompt, issue, draft, transcript, tool body, or unrestricted provider response
+
+#### Scenario: Fake report claims live integration
+
+- **WHEN** a fake/Replay provider report sets a live-provider fact, omits required lineage/metrics, or asserts a customer-success outcome
+- **THEN** Python and TypeScript semantic validation reject it consistently

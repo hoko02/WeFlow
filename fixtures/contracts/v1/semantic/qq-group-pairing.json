@@ -1,0 +1,25 @@
+{
+  "challenge": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-group-pairing-challenge.schema.json", "schema_version": "v1",
+    "challenge_id": "qqpc_11111111111111111111111111111111", "challenge_sha256": "5789a5b6c7911af17ab11945eca6e4b29b6dd88400afff7928b8af04caf89ba6",
+    "app_id_hash": "812adf3da565bc1220dee61448d9a9c03f7b451fb0bc7e5743d629b3f3e3e3d2", "tenant_id": "tenant-pairing",
+    "tenant_id_hash": "c47b0b7ae263586d1f2128f7b048f5e39aa0cd54e2ea699cb0f7079d737d1ac9", "capability_profile_hash": "a602d3ccaa721d20b1cff38877fdae323d6609f73d8f4b87124b392c29bb14c6",
+    "created_at": "2026-08-10T00:00:00Z", "deadline_at": "2026-08-10T00:05:00Z", "status": "PENDING"
+  },
+  "completion": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-group-pairing-completion.schema.json", "schema_version": "v1",
+    "completion_id": "qqpcmp_22222222222222222222222222222222", "challenge_id": "qqpc_11111111111111111111111111111111", "pairing_id": "qqpair_33333333333333333333333333333333",
+    "tenant_id": "tenant-pairing", "tenant_id_hash": "c47b0b7ae263586d1f2128f7b048f5e39aa0cd54e2ea699cb0f7079d737d1ac9", "app_id_hash": "812adf3da565bc1220dee61448d9a9c03f7b451fb0bc7e5743d629b3f3e3e3d2",
+    "group_openid_hash": "358ed3d04aa364106f4899a958c244e226f7eca5886e12c88e3eed2c6bceb028", "source_message_id_hash": "b9b8715e9bc44ca270a5eb5b42ff7e727d83ef7001a5887c0573f9467aafd7de", "session_id_hash": "d6440983c454c2e5999fdb66bbe9cf5f89a8f5847d6c9578ef14afd26eee122c",
+    "gateway_sequence": 7, "status": "COMPLETED", "reason_code": "pairing_exact_challenge_completed", "completed_at": "2026-08-10T00:01:00Z", "expires_at": "2026-08-11T00:01:00Z"
+  },
+  "report": {
+    "schema_id": "https://weflow.local/contracts/v1/qq-group-pairing-acceptance-report.schema.json", "schema_version": "v1", "report_id": "qqpr_44444444444444444444444444444444", "report_sha256": "8a7d450180e890231cebd44a61a737a7ec58f2b30af54e3883ee0e35e22d08b2",
+    "mode": "offline-fake", "accepted": true, "fake_pairing_verified": true, "qq_group_pairing_live_verified": false, "pairing_id": "qqpair_33333333333333333333333333333333",
+    "app_id_hash": "812adf3da565bc1220dee61448d9a9c03f7b451fb0bc7e5743d629b3f3e3e3d2", "group_openid_hash": "358ed3d04aa364106f4899a958c244e226f7eca5886e12c88e3eed2c6bceb028", "tenant_id_hash": "c47b0b7ae263586d1f2128f7b048f5e39aa0cd54e2ea699cb0f7079d737d1ac9",
+    "completion_status": "COMPLETED", "reason_code": "pairing_exact_challenge_completed", "observed_event_count": 1, "rejected_event_count": 7, "duplicate_event_count": 2,
+    "case_creation": false, "workflow_activation": false, "qq_write_attempted": false, "acknowledgement_sent": false, "model_invocation": false, "handler_binding": false, "customer_receipt_verified": false, "issue_resolution": false, "case_completion": false, "production_ready": false, "stage1_verified": false,
+    "network_required": false, "credentials_required": false,
+    "privacy": {"challenge_plaintext_persisted": false, "raw_group_in_report": false, "member_identity_persisted": false, "provider_event_persisted": false, "credential_persisted": false}
+  }
+}

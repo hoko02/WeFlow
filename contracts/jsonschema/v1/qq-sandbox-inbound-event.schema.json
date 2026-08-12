@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json",
+  "title": "QQSandboxInboundEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id", "schema_version", "tenant_id", "provider", "event_type",
+    "app_id_hash", "group_openid_hash", "source_message_id", "source_message_id_hash",
+    "sender_openid_hash", "conversation_id", "customer_id", "gateway_sequence",
+    "occurred_at", "received_at", "correlation_id", "content_classification",
+    "content_sha256", "inbound_natural_key"
+  ],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-sandbox-inbound-event.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "provider": {"const": "qq-sandbox"},
+    "event_type": {"const": "GROUP_AT_MESSAGE_CREATE"},
+    "app_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_openid_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_message_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,256}$"},
+    "source_message_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sender_openid_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "conversation_id": {"type": "string", "pattern": "^qq-conversation:[a-f0-9]{64}$"},
+    "customer_id": {"type": "string", "pattern": "^qq-customer:[a-f0-9]{64}$"},
+    "gateway_sequence": {"type": "integer", "minimum": 1},
+    "occurred_at": {"type": "string", "minLength": 1},
+    "received_at": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "content_classification": {"const": "qq-private-hash"},
+    "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "inbound_natural_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

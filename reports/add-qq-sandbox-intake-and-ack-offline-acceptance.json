@@ -1,0 +1,84 @@
+{
+  "accepted": true,
+  "case_completion": false,
+  "credentials_required": false,
+  "customer_receipt_verified": false,
+  "fake_transport_verified": true,
+  "final_delivery": false,
+  "handler_approval": false,
+  "issue_resolution": false,
+  "mode": "offline-fake-transport",
+  "model_invocation": false,
+  "network_required": false,
+  "privacy": {
+    "credential_persisted": false,
+    "raw_message_persisted": false,
+    "transcript_persisted": false,
+    "unrestricted_provider_response_persisted": false
+  },
+  "production_ready": false,
+  "qq_sandbox_live_verified": false,
+  "real_external_write": false,
+  "report_type": "weflow-qq-sandbox-offline-acceptance.v1",
+  "scenario_count": 14,
+  "scenarios": {
+    "concurrent_intake": {
+      "case_count": 1,
+      "passed": true
+    },
+    "conflicting_identity": {
+      "completion_count": 0,
+      "passed": true
+    },
+    "disconnect_unknown": {
+      "completion_count": 0,
+      "passed": true
+    },
+    "duplicate_delivery": {
+      "case_count": 1,
+      "intent_count": 1,
+      "passed": true
+    },
+    "expired_deadline": {
+      "completion_count": 0,
+      "passed": true
+    },
+    "gap_and_out_of_order": {
+      "case_count": 1,
+      "passed": true
+    },
+    "pre_acceptance_timeout": {
+      "completion_count": 0,
+      "passed": true
+    },
+    "provider_acceptance_lost_response": {
+      "logical_acknowledgement_count": 1,
+      "passed": true,
+      "send_call_count": 1
+    },
+    "provider_duplicate_response": {
+      "logical_acknowledgement_count": 1,
+      "passed": true
+    },
+    "reconnect_resume_replay": {
+      "case_count": 1,
+      "passed": true
+    },
+    "restart_after_receipt": {
+      "intent_count": 1,
+      "passed": true
+    },
+    "stop_after_intent": {
+      "completion_count": 0,
+      "passed": true
+    },
+    "unauthorized_capability": {
+      "completion_count": 0,
+      "passed": true
+    },
+    "unreadable_response": {
+      "completion_count": 0,
+      "passed": true
+    }
+  }
+}

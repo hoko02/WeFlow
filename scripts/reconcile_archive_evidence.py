@@ -66,7 +66,18 @@ CURRENT_DOCUMENTED_REPORT_PATHS = frozenset(
     {
         "reports/add-offline-evaluation-report-console-acceptance.json",
         "reports/add-offline-operator-case-timeline-acceptance.json",
+        "reports/add-qq-handler-approval-and-delivery-live.json",
+        "reports/add-qq-sandbox-intake-and-ack-live-acceptance.json",
+        "reports/add-qq-sandbox-intake-and-ack-live-dedup.json",
+        "reports/add-qq-sandbox-intake-and-ack-offline-acceptance.json",
+        "reports/add-secure-qq-first-group-pairing-live.json",
+        "reports/add-secure-qq-first-group-pairing-offline-acceptance.json",
+        "reports/add-secure-qq-first-group-pairing-stage1-readiness.json",
         "reports/change-6-evaluation-benchmark-core-acceptance.json",
+        "reports/enable-bounded-live-model-in-qq-workflow-live-acceptance.json",
+        "reports/enable-bounded-live-model-in-qq-workflow-live-verification.json",
+        "reports/enable-bounded-live-model-in-qq-workflow-offline-acceptance.json",
+        "reports/enable-bounded-live-model-in-qq-workflow-offline-verification.json",
         "reports/repair-evaluation-benchmark-evidence-integrity-verification.json",
     }
 )

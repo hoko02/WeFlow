@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-gateway-cursor.schema.json",
+  "title": "QQGatewayCursor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id", "schema_version", "tenant_id", "cursor_id", "app_id_hash",
+    "group_openid_hash", "session_id_hash", "last_contiguous_sequence", "status",
+    "cursor_sha256", "updated_at"
+  ],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-gateway-cursor.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "cursor_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "app_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_openid_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "session_id_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "last_contiguous_sequence": {"type": "integer", "minimum": 0},
+    "status": {"enum": ["identified", "resuming", "disconnected", "reconciliation_required"]},
+    "cursor_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "updated_at": {"type": "string", "minLength": 1}
+  }
+}

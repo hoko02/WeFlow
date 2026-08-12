@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-acknowledgement-intent.schema.json",
+  "title": "QQAcknowledgementIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id", "schema_version", "tenant_id", "case_id", "case_revision_id",
+    "intent_id", "effect_kind", "operation", "source_message_id",
+    "source_message_id_hash", "group_openid_hash", "conversation_id", "template_id",
+    "template_sha256", "natural_key", "intended_state_sha256", "idempotency_key",
+    "reply_msg_seq", "reply_deadline_at", "capability_profile_hash", "correlation_id",
+    "created_at"
+  ],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-acknowledgement-intent.schema.json"},
+    "schema_version": {"const": "v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision_id": {"type": "string", "minLength": 1},
+    "intent_id": {"type": "string", "minLength": 1},
+    "effect_kind": {"const": "qq-sandbox-passive-acknowledgement"},
+    "operation": {"const": "qq.passive_ack.execute"},
+    "source_message_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,256}$"},
+    "source_message_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_openid_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "conversation_id": {"type": "string", "pattern": "^qq-conversation:[a-f0-9]{64}$"},
+    "template_id": {"const": "qq.passive_ack.v1"},
+    "template_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "natural_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "intended_state_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "idempotency_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "reply_msg_seq": {"type": "integer", "minimum": 1},
+    "reply_deadline_at": {"type": "string", "minLength": 1},
+    "capability_profile_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "created_at": {"type": "string", "minLength": 1}
+  }
+}

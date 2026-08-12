@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-notification-intent.schema.json",
+  "title": "QQHandlerNotificationIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "intent_id", "operation", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "private_locator_id", "workflow_version", "template_id", "case_reference", "natural_key", "idempotency_key", "capability_profile_hash", "created_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-notification-intent.schema.json"},
+    "schema_version": {"const": "v1"},
+    "intent_id": {"type": "string", "pattern": "^qqhni_[a-f0-9]{32}$"},
+    "operation": {"const": "qq.c2c.notification.execute"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "private_locator_id": {"type": "string", "pattern": "^qqloc_[a-f0-9]{32}$"},
+    "workflow_version": {"type": "integer", "minimum": 1},
+    "template_id": {"const": "qq.handler.notification.v1"},
+    "case_reference": {"type": "string", "pattern": "^case_[a-f0-9]{24,64}$"},
+    "natural_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "idempotency_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "capability_profile_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "created_at": {"type": "string", "format": "date-time"}
+  }
+}

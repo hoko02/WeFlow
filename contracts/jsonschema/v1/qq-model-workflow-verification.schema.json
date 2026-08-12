@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-model-workflow-verification.schema.json",
+  "title": "QQModelWorkflowVerification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "report_type", "verification_id", "report_id", "report_sha256", "mode", "verified", "reason_code", "network_contacted", "credential_required", "external_write_attempted", "model_invocation", "verified_at", "verification_sha256"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-model-workflow-verification.schema.json"},
+    "schema_version": {"const": "v1"},
+    "report_type": {"const": "weflow-qq-model-workflow-verification.v1"},
+    "verification_id": {"type": "string", "pattern": "^qqmwv_[a-f0-9]{32}$"},
+    "report_id": {"type": "string", "pattern": "^qqmwr_[a-f0-9]{32}$"},
+    "report_sha256": {"$ref": "#/$defs/hash"},
+    "mode": {"enum": ["offline-fake", "qq-model-integrated-live"]},
+    "verified": {"type": "boolean"},
+    "reason_code": {"type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[a-z0-9._-]+$"},
+    "network_contacted": {"const": false},
+    "credential_required": {"const": false},
+    "external_write_attempted": {"const": false},
+    "model_invocation": {"const": false},
+    "verified_at": {"type": "string", "minLength": 20, "maxLength": 40},
+    "verification_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

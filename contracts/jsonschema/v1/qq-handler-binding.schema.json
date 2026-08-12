@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-binding.schema.json",
+  "title": "QQHandlerBinding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "handler_binding_id", "pairing_session_id", "stage1_pairing_id", "group_challenge_id", "c2c_challenge_id", "tenant_id", "tenant_id_hash", "app_id_hash", "group_openid_hash", "group_member_identity_hash", "c2c_user_identity_hash", "group_locator_id", "c2c_locator_id", "assurance_level", "cross_surface_identity_hash", "operator_confirmation_hash", "capability_profile_hash", "status", "confirmed_at", "expires_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-binding.schema.json"},
+    "schema_version": {"const": "v1"},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "pairing_session_id": {"type": "string", "pattern": "^qqhps_[a-f0-9]{32}$"},
+    "stage1_pairing_id": {"type": "string", "pattern": "^qqpair_[a-f0-9]{32}$"},
+    "group_challenge_id": {"type": "string", "pattern": "^qqhc_[a-f0-9]{32}$"},
+    "c2c_challenge_id": {"type": "string", "pattern": "^qqhc_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "tenant_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "app_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_openid_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_member_identity_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "c2c_user_identity_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_locator_id": {"type": "string", "pattern": "^qqloc_[a-f0-9]{32}$"},
+    "c2c_locator_id": {"type": "string", "pattern": "^qqloc_[a-f0-9]{32}$"},
+    "assurance_level": {"enum": ["operator_confirmed_dual_challenge", "provider_cross_surface_verified"]},
+    "cross_surface_identity_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "operator_confirmation_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "capability_profile_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "status": {"enum": ["ACTIVE", "REVOKED", "EXPIRED", "CONFLICT"]},
+    "confirmed_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  }
+}

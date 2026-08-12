@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-model-assist-command.schema.json",
+  "title": "QQModelAssistCommand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "command_id", "surface", "command", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "source_message_id_hash", "expected_version", "received_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-model-assist-command.schema.json"},
+    "schema_version": {"const": "v1"},
+    "command_id": {"type": "string", "pattern": "^qqmac_[a-f0-9]{32}$"},
+    "surface": {"const": "c2c"},
+    "command": {"const": "assist"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "pattern": "^case_[a-f0-9]{24,64}$"},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "source_message_id_hash": {"$ref": "#/$defs/hash"},
+    "expected_version": {"type": "integer", "minimum": 1},
+    "received_at": {"type": "string", "minLength": 20, "maxLength": 40}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

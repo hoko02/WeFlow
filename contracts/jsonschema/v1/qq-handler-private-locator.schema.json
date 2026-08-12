@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-private-locator.schema.json",
+  "title": "QQHandlerPrivateLocator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "locator_id", "handler_binding_id", "tenant_id", "locator_kind", "locator_sha256", "created_at", "expires_at", "status"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-private-locator.schema.json"},
+    "schema_version": {"const": "v1"},
+    "locator_id": {"type": "string", "pattern": "^qqloc_[a-f0-9]{32}$"},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "locator_kind": {"enum": ["group", "group-member", "c2c-user"]},
+    "locator_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["ACTIVE", "REVOKED", "EXPIRED"]}
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-response-artifact.schema.json",
+  "title": "QQHandlerResponseArtifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "artifact_id", "artifact_kind", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "issue_artifact_id", "issue_content_sha256", "content_sha256", "normalized_length", "classification", "redaction_policy_id", "policy_decision_id", "workflow_version", "created_at", "expires_at", "deletion_status", "deleted_at"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-response-artifact.schema.json"},
+    "schema_version": {"const": "v1"},
+    "artifact_id": {"type": "string", "pattern": "^qqa_[a-f0-9]{32}$"},
+    "artifact_kind": {"const": "qq_handler_response"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "issue_artifact_id": {"type": "string", "pattern": "^qqa_[a-f0-9]{32}$"},
+    "issue_content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "normalized_length": {"type": "integer", "minimum": 1, "maximum": 1200},
+    "classification": {"const": "restricted-qq-handler"},
+    "redaction_policy_id": {"const": "qq-handler-redaction.v1"},
+    "policy_decision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "workflow_version": {"type": "integer", "minimum": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "deletion_status": {"enum": ["ACTIVE", "DELETION_SCHEDULED", "DELETED"]},
+    "deleted_at": {"type": ["string", "null"], "format": "date-time"}
+  }
+}

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import subprocess
@@ -31,6 +32,8 @@ _KEY_VALUE = re.compile(
 )
 _PROVIDER_TOKEN = re.compile(r"\b(?:sk|rk|pk|xoxb)-[A-Za-z0-9_-]{16,}\b", re.I)
 _AWS_KEY = re.compile(r"\bAKIA[0-9A-Z]{16}\b")
+_SECRET_KEY = re.compile(r"(?i)(?:api[_-]?key|access[_-]?token|secret|password|credential)")
+_ENVIRONMENT_KEY_VALUE = re.compile(r"^WEFLOW_[A-Z0-9_]+$")
 
 
 def _is_text_candidate(path: Path) -> bool:
@@ -55,6 +58,60 @@ def find_candidates(text: str) -> list[tuple[int, str]]:
     return findings
 
 
+def _python_key(node: ast.expr) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return None
+
+
+def _hardcoded_python_value(key: object, value: ast.expr) -> bool:
+    return (
+        isinstance(key, str)
+        and _SECRET_KEY.search(key) is not None
+        and isinstance(value, ast.Constant)
+        and isinstance(value.value, str)
+        and _ENVIRONMENT_KEY_VALUE.fullmatch(value.value) is None
+        and len(value.value) >= 12
+        and value.value.lower() not in _SAFE_VALUES
+    )
+
+
+def find_python_candidates(text: str) -> list[tuple[int, str]]:
+    """Find hardcoded Python credential literals without flagging variable flow."""
+
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return find_candidates(text)
+    findings: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            if any(
+                _hardcoded_python_value(_python_key(target), node.value) for target in node.targets
+            ):
+                findings.append((node.lineno, "key-value-assignment"))
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            if _hardcoded_python_value(_python_key(node.target), node.value):
+                findings.append((node.lineno, "key-value-assignment"))
+        elif isinstance(node, ast.Call):
+            for keyword in node.keywords:
+                if _hardcoded_python_value(keyword.arg, keyword.value):
+                    findings.append((keyword.value.lineno, "key-value-assignment"))
+        elif isinstance(node, ast.Dict):
+            for key_node, value_node in zip(node.keys, node.values, strict=True):
+                key = key_node.value if isinstance(key_node, ast.Constant) else None
+                if _hardcoded_python_value(key, value_node):
+                    findings.append((value_node.lineno, "key-value-assignment"))
+    for number, line in enumerate(text.splitlines(), start=1):
+        if _PROVIDER_TOKEN.search(line):
+            findings.append((number, "provider-token-pattern"))
+        if _AWS_KEY.search(line):
+            findings.append((number, "aws-access-key-pattern"))
+    return sorted(set(findings))
+
+
 def scan_paths(paths: Iterable[Path], root: Path = ROOT) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
     for path in paths:
@@ -64,7 +121,10 @@ def scan_paths(paths: Iterable[Path], root: Path = ROOT) -> list[dict[str, objec
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        for line, rule in find_candidates(text):
+        candidates = (
+            find_python_candidates(text) if path.suffix.lower() == ".py" else find_candidates(text)
+        )
+        for line, rule in candidates:
             findings.append({"path": path.relative_to(root).as_posix(), "line": line, "rule": rule})
     return findings
 

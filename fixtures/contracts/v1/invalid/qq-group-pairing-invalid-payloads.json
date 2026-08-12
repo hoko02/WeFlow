@@ -1,0 +1,8 @@
+{
+  "challenge_plaintext": {"target": "challenge", "field": "challenge_plaintext", "value": "forbidden"},
+  "raw_group": {"target": "completion", "field": "group_openid", "value": "forbidden"},
+  "foreign_tenant": {"target": "completion", "field": "tenant_id", "value": "tenant-foreign"},
+  "fake_as_live": {"target": "report", "field": "qq_group_pairing_live_verified", "value": true},
+  "stage1_overclaim": {"target": "report", "field": "stage1_verified", "value": true},
+  "qq_write_overclaim": {"target": "report", "field": "qq_write_attempted", "value": true}
+}

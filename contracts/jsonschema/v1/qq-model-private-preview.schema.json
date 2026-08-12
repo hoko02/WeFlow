@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-model-private-preview.schema.json",
+  "title": "QQModelPrivatePreview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "preview_id", "tenant_id", "case_id", "case_revision_id", "handler_binding_id", "assist_request_id", "source_message_id_hash", "candidate_artifact_id", "candidate_sha256", "evidence_count", "evidence_summary_sha256", "budget_sha256", "approval_request_id", "candidate_hash_prefix", "workflow_version", "passive_reply_intent_id", "created_at", "preview_sha256"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-model-private-preview.schema.json"},
+    "schema_version": {"const": "v1"},
+    "preview_id": {"type": "string", "pattern": "^qqmpv_[a-f0-9]{32}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "case_id": {"type": "string", "pattern": "^case_[a-f0-9]{24,64}$"},
+    "case_revision_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "handler_binding_id": {"type": "string", "pattern": "^qqhbind_[a-f0-9]{32}$"},
+    "assist_request_id": {"type": "string", "pattern": "^qqmar_[a-f0-9]{32}$"},
+    "source_message_id_hash": {"$ref": "#/$defs/hash"},
+    "candidate_artifact_id": {"type": "string", "pattern": "^qqa_[a-f0-9]{32}$"},
+    "candidate_sha256": {"$ref": "#/$defs/hash"},
+    "evidence_count": {"type": "integer", "minimum": 1, "maximum": 3},
+    "evidence_summary_sha256": {"$ref": "#/$defs/hash"},
+    "budget_sha256": {"$ref": "#/$defs/hash"},
+    "approval_request_id": {"type": "string", "pattern": "^qqhar_[a-f0-9]{32}$"},
+    "candidate_hash_prefix": {"type": "string", "pattern": "^[a-f0-9]{12}$"},
+    "workflow_version": {"type": "integer", "minimum": 3},
+    "passive_reply_intent_id": {"type": "string", "pattern": "^qqhpi_[a-f0-9]{32}$"},
+    "created_at": {"type": "string", "minLength": 20, "maxLength": 40},
+    "preview_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

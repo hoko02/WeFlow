@@ -881,17 +881,23 @@ version = "0.1.0"
 source = { editable = "apps/control-worker" }
 dependencies = [
     { name = "temporalio" },
+    { name = "websockets" },
+    { name = "weflow-agent-runtime" },
     { name = "weflow-contracts" },
     { name = "weflow-control-kernel" },
     { name = "weflow-telemetry" },
+    { name = "weflow-testkit" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "temporalio", specifier = ">=1.12,<2" },
+    { name = "websockets", specifier = ">=16,<18" },
+    { name = "weflow-agent-runtime", editable = "apps/agent-runtime" },
     { name = "weflow-contracts", editable = "packages/python/weflow-contracts" },
     { name = "weflow-control-kernel", editable = "packages/python/weflow-control-kernel" },
     { name = "weflow-telemetry", editable = "packages/python/weflow-telemetry" },
+    { name = "weflow-testkit", editable = "packages/python/weflow-testkit" },
 ]
 
 [[package]]

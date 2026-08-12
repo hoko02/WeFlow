@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weflow.local/contracts/v1/qq-handler-pairing-challenge.schema.json",
+  "title": "QQHandlerPairingChallenge",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "challenge_id", "pairing_session_id", "surface", "challenge_sha256", "app_id_hash", "tenant_id", "tenant_id_hash", "group_openid_hash", "capability_profile_hash", "observed_identity_hash", "source_message_id_hash", "created_at", "deadline_at", "status"],
+  "properties": {
+    "schema_id": {"const": "https://weflow.local/contracts/v1/qq-handler-pairing-challenge.schema.json"},
+    "schema_version": {"const": "v1"},
+    "challenge_id": {"type": "string", "pattern": "^qqhc_[a-f0-9]{32}$"},
+    "pairing_session_id": {"type": "string", "pattern": "^qqhps_[a-f0-9]{32}$"},
+    "surface": {"enum": ["group", "c2c"]},
+    "challenge_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "app_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "tenant_id_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "group_openid_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "capability_profile_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "observed_identity_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "source_message_id_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "deadline_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["PENDING", "OBSERVED", "EXPIRED", "CANCELLED", "CONFLICT"]}
+  }
+}

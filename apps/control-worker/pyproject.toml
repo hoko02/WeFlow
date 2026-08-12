@@ -5,15 +5,20 @@ description = "WeFlow control-worker skeleton"
 requires-python = ">=3.12,<3.15"
 dependencies = [
   "temporalio>=1.12,<2",
+  "websockets>=16,<18",
+  "weflow-agent-runtime",
   "weflow-contracts",
   "weflow-control-kernel",
   "weflow-telemetry",
+  "weflow-testkit",
 ]
 
 [tool.uv.sources]
+weflow-agent-runtime = { workspace = true }
 weflow-contracts = { workspace = true }
 weflow-control-kernel = { workspace = true }
 weflow-telemetry = { workspace = true }
+weflow-testkit = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.26"]

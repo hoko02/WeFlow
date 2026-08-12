@@ -1,0 +1,47 @@
+{
+  "report_type": "weflow-qq-sandbox-intake-and-ack-change-verification.v1",
+  "verified": true,
+  "change_complete": false,
+  "implementation_verified": true,
+  "fake_transport_verified": true,
+  "qq_sandbox_live_verified": false,
+  "customer_receipt_verified": false,
+  "case_completion": false,
+  "issue_resolution": false,
+  "final_delivery": false,
+  "model_invocation": false,
+  "production_ready": false,
+  "pending_live_tasks": ["5.2", "5.3"],
+  "offline_acceptance": {
+    "accepted": true,
+    "scenario_count": 14,
+    "repeated_run_count": 3,
+    "stable_report_sha256": "308d07e2eac5065a16e292ab187a945456beafe7452fb7e33ccfd3410d294fbc",
+    "independent_verifier_passed": true
+  },
+  "tests": {
+    "qq_focused_passed": 89,
+    "full_python_passed": 488,
+    "full_python_skipped": 2,
+    "typescript_valid_payloads": 42,
+    "typescript_invalid_payloads": 68,
+    "python_contract_tests_passed": 115,
+    "retained_acceptance_commands_passed": 9
+  },
+  "checks": {
+    "strict_openspec_valid": true,
+    "secret_hygiene_findings": 0,
+    "ruff_passed": true,
+    "typescript_lint_passed": true,
+    "typescript_typecheck_passed": true,
+    "web_console_build_passed": true
+  },
+  "limitations": {
+    "real_qq_credentials_used": false,
+    "real_qq_event_observed": false,
+    "real_qq_acknowledgement_observed": false,
+    "docker_service_boundary_available": false,
+    "handler_workflow_enabled": false,
+    "readable_customer_content_retained": false
+  }
+}
