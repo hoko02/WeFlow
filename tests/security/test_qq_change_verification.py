@@ -15,9 +15,14 @@ from qq_sandbox_acceptance import validate_qq_acceptance_report  # noqa: E402
 OFFLINE = ROOT / "reports" / "add-qq-sandbox-intake-and-ack-offline-acceptance.json"
 VALIDATION = ROOT / "reports" / "add-qq-sandbox-intake-and-ack-openspec-validation.json"
 VERIFICATION = ROOT / "reports" / "add-qq-sandbox-intake-and-ack-change-verification.json"
+GIT_ATTRIBUTES = ROOT / ".gitattributes"
 
 
 def test_qq_change_verification_is_source_backed_and_truthful() -> None:
+    assert (
+        "reports/add-qq-sandbox-intake-and-ack-offline-acceptance.json text eol=lf"
+        in GIT_ATTRIBUTES.read_text(encoding="utf-8").splitlines()
+    )
     offline = json.loads(OFFLINE.read_text(encoding="utf-8"))
     validation = json.loads(VALIDATION.read_text(encoding="utf-8"))
     verification = json.loads(VERIFICATION.read_text(encoding="utf-8"))

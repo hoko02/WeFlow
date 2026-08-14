@@ -16,7 +16,7 @@
     "accepted": true,
     "scenario_count": 14,
     "repeated_run_count": 3,
-    "stable_report_sha256": "308d07e2eac5065a16e292ab187a945456beafe7452fb7e33ccfd3410d294fbc",
+    "stable_report_sha256": "ff0001cc78be0155729151ad4026ec4bca3e8070b083f63ae3779064bd08b6f6",
     "independent_verifier_passed": true
   },
   "tests": {
