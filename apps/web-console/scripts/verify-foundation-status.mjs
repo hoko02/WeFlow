@@ -13,6 +13,9 @@ const renderedText = JSON.stringify(rendered);
 
 assert.equal(rendered.status, "not-ready");
 assert.equal(rendered.mode, "unknown");
+assert.equal(rendered.modeLabel, "未知（unknown）");
+assert.match(rendered.headline, /^运行状态：未就绪$/);
+assert.match(rendered.detail, /^提供方或配置能力被拒绝/);
 assert.deepEqual(rendered.policyDenial, {
   capability: "live_provider",
   reasonCode: "replay_only",
@@ -25,5 +28,6 @@ console.log(
     report_type: "weflow-console-status-check.v1",
     rendered_status: rendered.status,
     configuration_values_rendered: false,
+    chinese_localization_verified: true,
   }),
 );

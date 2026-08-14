@@ -5,6 +5,7 @@ export interface RenderedFoundationStatus {
   headline: string;
   detail: string;
   mode: "offline" | "service-boundary" | "offline-console" | "unknown";
+  modeLabel: string;
   policyDenial: { capability: string; reasonCode: string } | null;
 }
 
@@ -26,30 +27,43 @@ function safeMode(value: unknown): RenderedFoundationStatus["mode"] {
     : "unknown";
 }
 
+function modeLabel(mode: RenderedFoundationStatus["mode"]): string {
+  const labels: Record<RenderedFoundationStatus["mode"], string> = {
+    offline: "离线（offline）",
+    "service-boundary": "服务边界（service-boundary）",
+    "offline-console": "离线控制台（offline-console）",
+    unknown: "未知（unknown）",
+  };
+  return labels[mode];
+}
+
 export function renderFoundationStatus(payload: JsonObject): RenderedFoundationStatus {
   const policy = asObject(payload.policy_denial);
   const capability = safeCode(policy?.capability);
   const reasonCode = safeCode(policy?.reason_code);
   const policyDenial = capability && reasonCode ? { capability, reasonCode } : null;
   const ready = payload.ready === true;
+  const mode = safeMode(payload.mode);
 
   if (ready) {
     return {
       status: "ready",
-      headline: "Operational status: ready",
-      detail: "Local foundation diagnostics are available.",
-      mode: safeMode(payload.mode),
+      headline: "运行状态：已就绪",
+      detail: "本地基础设施诊断可用。",
+      mode,
+      modeLabel: modeLabel(mode),
       policyDenial: null,
     };
   }
 
   return {
     status: "not-ready",
-    headline: "Operational status: not-ready",
+    headline: "运行状态：未就绪",
     detail: policyDenial
-      ? `A provider or configuration capability is denied (${policyDenial.reasonCode}).`
-      : "One or more declared local dependencies are not ready.",
-    mode: safeMode(payload.mode),
+      ? `提供方或配置能力被拒绝（${policyDenial.reasonCode}）。`
+      : "一个或多个声明的本地依赖尚未就绪。",
+    mode,
+    modeLabel: modeLabel(mode),
     policyDenial,
   };
 }

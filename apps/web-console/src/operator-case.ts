@@ -434,23 +434,23 @@ export function renderOperatorCaseSurface(
 ): OperatorCaseRenderModel {
   if (state.status === "loading") return {
     status: "loading",
-    headline: "Operator Case: loading",
-    detail: "Reading the fixed tenant-scoped offline snapshot.",
+    headline: "运营案例：加载中",
+    detail: "正在读取固定租户范围内的离线快照。",
   };
   if (state.status === "not-found") return {
     status: "not-found",
-    headline: "Operator Case: unavailable",
-    detail: "No tenant-visible canonical Case snapshot is available.",
+    headline: "运营案例：暂不可用",
+    detail: "没有当前租户可见的规范案例快照。",
   };
   if (state.status === "identity-denied") return {
     status: "identity-denied",
-    headline: "Operator Case: identity denied",
-    detail: "The synthetic observer identity was not accepted.",
+    headline: "运营案例：身份被拒绝",
+    detail: "合成观察者身份未获接受。",
   };
   if (state.status === "integrity-not-ready") return {
     status: "integrity-not-ready",
-    headline: "Operator Case: integrity not ready",
-    detail: "The retained Case evidence did not pass the closed snapshot boundary.",
+    headline: "运营案例：完整性未就绪",
+    detail: "留存的案例证据未通过封闭快照边界校验。",
   };
   const snapshot = state.snapshot;
   const selected = snapshot.timeline.find(
@@ -472,8 +472,8 @@ export function renderOperatorCaseSurface(
   const countValues = snapshot.counts as Record<string, number>;
   return {
     status: "ready",
-    headline: "API-503 Operator Case timeline",
-    detail: "One source-linked synthetic Case projection generated from offline facts.",
+    headline: "API-503 运营案例时间线",
+    detail: "由离线事实生成的一条源记录关联的合成案例投影。",
     fixtureId: snapshot.fixture_id,
     caseId: caseItem.case_id,
     revisionId: caseItem.case_revision_id,
@@ -487,27 +487,27 @@ export function renderOperatorCaseSurface(
     evidenceRoot: evidence.root_sha256,
     replayHash: replay.result_sha256,
     capabilityLabels: [
-      "offline synthetic fixture",
-      "Replay verification only",
-      "fixture-local delivery record",
-      "no network or model",
-      "no external-write or workflow authority",
+      "离线合成测试数据（fixture）",
+      "仅用于 Replay 验证",
+      "仅 fixture-local 投递记录",
+      "不调用网络或模型",
+      "无外部写入或工作流控制权",
     ],
     countLabels: [
-      { label: "Timeline entries", value: countValues.timeline_entry_count },
-      { label: "Case events", value: countValues.case_event_count },
-      { label: "Workflow checkpoints", value: countValues.workflow_checkpoint_count },
-      { label: "Agent steps", value: countValues.agent_step_count },
-      { label: "Tool results", value: countValues.tool_result_count },
-      { label: "Fixture-local ticket effects", value: countValues.local_ticket_effect_count },
-      { label: "Fixture-local delivery effects", value: countValues.fixture_delivery_effect_count },
+      { label: "时间线条目", value: countValues.timeline_entry_count },
+      { label: "案例事件", value: countValues.case_event_count },
+      { label: "工作流检查点", value: countValues.workflow_checkpoint_count },
+      { label: "Agent 步骤", value: countValues.agent_step_count },
+      { label: "工具结果", value: countValues.tool_result_count },
+      { label: "fixture-local 工单副作用", value: countValues.local_ticket_effect_count },
+      { label: "fixture-local 投递副作用", value: countValues.fixture_delivery_effect_count },
     ],
     timeline: snapshot.timeline.map(summary),
     selectedEntry: detail(selected),
     limitations: [
-      "No live provider send or provider acknowledgement.",
-      "No customer receipt, incident resolution, Case completion, or customer-success claim.",
-      "No approval, workflow, retry, Replay, or external-effect control is exposed.",
+      "没有真实提供方发送或提供方确认。",
+      "不代表客户签收、事件解决、Case 完成或客户成功。",
+      "不提供审批、工作流、重试、Replay 或外部副作用控制权。",
     ],
   };
 }

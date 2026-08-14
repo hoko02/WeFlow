@@ -44,16 +44,17 @@ const ready = renderEvaluationSurface({ status: "ready", snapshot: validated }, 
 assert.equal(ready.status, "ready");
 assert.equal(ready.tasks.length, 12);
 assert.equal(ready.selectedTask.evaluationTaskId, "console-task-05");
-assert.equal(ready.selectedTask.hardGateLabel, "passed");
+assert.equal(ready.selectedTask.hardGateLabel, "通过（passed）");
 assert.deepEqual(ready.capabilityLabels, [
-  "Replay-only",
-  "offline",
-  "no network",
-  "no model",
-  "no external write",
+  "仅 Replay",
+  "离线",
+  "无网络",
+  "无模型",
+  "无外部写入",
 ]);
-assert.ok(ready.unsupportedMetrics.every((item) => item.includes("unavailable") || item.includes("out of scope")));
-assert.ok(ready.selectedTask.localEffectLabel === "none");
+assert.equal(ready.headline, "离线评测证据：已接受");
+assert.ok(ready.unsupportedMetrics.every((item) => item.includes("不可用") || item.includes("不在范围内")));
+assert.ok(ready.selectedTask.localEffectLabel === "无");
 
 const failedGate = structuredClone(snapshot);
 failedGate.tasks[0].hard_gates[0].passed = false;
@@ -71,8 +72,8 @@ const failedRendered = renderEvaluationSurface(
   "console-task-01",
 );
 assert.equal(failedRendered.status, "ready");
-assert.equal(failedRendered.selectedTask.hardGateLabel, "failed");
-assert.equal(failedRendered.selectedTask.qualityLabel, "not scored (hard gate)");
+assert.equal(failedRendered.selectedTask.hardGateLabel, "失败（failed）");
+assert.equal(failedRendered.selectedTask.qualityLabel, "未评分（硬门禁：not_scored）");
 
 const raw = structuredClone(snapshot);
 raw.tasks[0].raw_payload = "blocked";
@@ -133,5 +134,6 @@ console.log(
     unavailable_states_checked: 4,
     unrestricted_json_rendered: false,
     live_metric_claims_rendered: false,
+    chinese_localization_verified: true,
   }),
 );

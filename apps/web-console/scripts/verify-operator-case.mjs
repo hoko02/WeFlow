@@ -35,13 +35,16 @@ assert.equal(ready.selectedEntry.gateLabel, "passed");
 assert.ok(ready.timeline.some((entry) => entry.phase === "intake"));
 assert.ok(ready.timeline.some((entry) => entry.phase === "replay"));
 assert.deepEqual(ready.capabilityLabels, [
-  "offline synthetic fixture",
-  "Replay verification only",
-  "fixture-local delivery record",
-  "no network or model",
-  "no external-write or workflow authority",
+  "离线合成测试数据（fixture）",
+  "仅用于 Replay 验证",
+  "仅 fixture-local 投递记录",
+  "不调用网络或模型",
+  "无外部写入或工作流控制权",
 ]);
-assert.ok(ready.limitations.every((item) => item.startsWith("No ")));
+assert.equal(ready.headline, "API-503 运营案例时间线");
+assert.ok(ready.limitations.some((item) => item.includes("没有真实提供方")));
+assert.ok(ready.limitations.some((item) => item.includes("客户签收")));
+assert.ok(ready.limitations.some((item) => item.includes("不提供审批")));
 
 for (const mutation of [
   (snapshot) => { snapshot.raw_payload = "<script>blocked</script>"; },
@@ -148,6 +151,7 @@ console.log(JSON.stringify({
   selected_entry_checked: true,
   safe_surface_states_checked: 5,
   hard_gate_precedence_checked: true,
+  chinese_localization_verified: true,
   unrestricted_json_rendered: false,
   live_or_customer_success_claims_rendered: false,
 }));

@@ -13,8 +13,8 @@ export type EvaluationSurfaceState =
 
 export interface EvaluationTaskSummary {
   evaluationTaskId: string;
-  result: "passed" | "failed";
-  hardGateLabel: "passed" | "failed";
+  result: string;
+  hardGateLabel: string;
   qualityLabel: string;
   state: string;
   outcome: string;
@@ -29,7 +29,7 @@ export interface EvaluationTaskDetail extends EvaluationTaskSummary {
   oracleHash: string;
   evaluationResultId: string;
   failureClassification: string;
-  gates: Array<{ name: string; status: "passed" | "failed" | "not-applicable"; reasonCode: string }>;
+  gates: Array<{ name: string; status: string; reasonCode: string }>;
   dimensions: Array<{ name: string; score: number }>;
   counters: Array<{ label: string; value: number }>;
   evidenceLabel: string;
@@ -401,10 +401,10 @@ export async function loadEvaluationSurface(
 function taskSummary(task: EvaluationTaskSnapshot): EvaluationTaskSummary {
   return {
     evaluationTaskId: task.evaluation_task_id,
-    result: task.result,
-    hardGateLabel: task.hard_gate_passed ? "passed" : "failed",
+    result: task.result === "passed" ? "通过（passed）" : "失败（failed）",
+    hardGateLabel: task.hard_gate_passed ? "通过（passed）" : "失败（failed）",
     qualityLabel:
-      task.quality_score === "not_scored" ? "not scored (hard gate)" : `${task.quality_score}/100`,
+      task.quality_score === "not_scored" ? "未评分（硬门禁：not_scored）" : `${task.quality_score}/100`,
     state: task.observation.state,
     outcome: task.observation.outcome,
   };
@@ -420,26 +420,28 @@ function taskDetail(task: EvaluationTaskSnapshot): EvaluationTaskDetail {
     oracleId: task.oracle_id,
     oracleHash: task.oracle_sha256,
     evaluationResultId: task.evaluation_result_id,
-    failureClassification: task.failure_classification ?? "none",
+    failureClassification: task.failure_classification ?? "无（none）",
     gates: task.hard_gates.map((gate) => ({
       name: gate.name,
-      status: gate.applicable ? (gate.passed ? "passed" : "failed") : "not-applicable",
+      status: gate.applicable
+        ? (gate.passed ? "通过（passed）" : "失败（failed）")
+        : "不适用（not-applicable）",
       reasonCode: gate.reason_code,
     })),
     dimensions: task.dimensions.map((dimension) => ({ ...dimension })),
     counters: [
-      { label: "Tool calls", value: task.metrics.tool_call_count },
-      { label: "Fixture-local effects", value: task.metrics.local_effect_count },
-      { label: "Network requests", value: task.metrics.network_request_count },
-      { label: "Model invocations", value: task.metrics.model_invocation_count },
-      { label: "External write attempts", value: task.metrics.external_write_attempt_count },
+      { label: "工具调用", value: task.metrics.tool_call_count },
+      { label: "fixture-local 副作用", value: task.metrics.local_effect_count },
+      { label: "网络请求", value: task.metrics.network_request_count },
+      { label: "模型调用", value: task.metrics.model_invocation_count },
+      { label: "外部写入尝试", value: task.metrics.external_write_attempt_count },
     ],
-    evidenceLabel: task.observation.evidence_valid ? "validated" : "not validated",
-    approvalLabel: task.observation.approval_valid ? "fixture-valid" : "not applicable",
+    evidenceLabel: task.observation.evidence_valid ? "已验证" : "未验证",
+    approvalLabel: task.observation.approval_valid ? "fixture 验证有效" : "不适用",
     localEffectLabel:
       task.metrics.local_effect_count > 0
-        ? "fixture-local record only — no provider or customer receipt"
-        : "none",
+        ? "仅 fixture-local 记录，不代表提供方发送或客户签收"
+        : "无",
   };
 }
 
@@ -448,16 +450,16 @@ export function renderEvaluationSurface(
   selectedTaskId?: string,
 ): EvaluationRenderModel {
   if (state.status === "loading") {
-    return { status: "loading", headline: "Evaluation evidence: loading", detail: "Reading the fixed offline suite." };
+    return { status: "loading", headline: "评测证据：加载中", detail: "正在读取固定的离线评测套件。" };
   }
   if (state.status === "not-found") {
-    return { status: "not-found", headline: "Evaluation evidence: unavailable", detail: "No tenant-visible canonical report is available." };
+    return { status: "not-found", headline: "评测证据：暂不可用", detail: "没有当前租户可见的规范报告。" };
   }
   if (state.status === "identity-denied") {
-    return { status: "identity-denied", headline: "Evaluation evidence: identity denied", detail: "The synthetic observer identity was not accepted." };
+    return { status: "identity-denied", headline: "评测证据：身份被拒绝", detail: "合成观察者身份未获接受。" };
   }
   if (state.status === "integrity-not-ready") {
-    return { status: "integrity-not-ready", headline: "Evaluation evidence: integrity not ready", detail: "The retained evidence did not pass the closed snapshot boundary." };
+    return { status: "integrity-not-ready", headline: "评测证据：完整性未就绪", detail: "留存证据未通过封闭快照边界校验。" };
   }
 
   const snapshot = state.snapshot;
@@ -465,29 +467,29 @@ export function renderEvaluationSurface(
     snapshot.tasks.find((task) => task.evaluation_task_id === selectedTaskId) ?? snapshot.tasks[0];
   return {
     status: "ready",
-    headline: "Offline evaluation evidence: accepted",
-    detail: "12 deterministic synthetic tasks, revalidated from the canonical report.",
+    headline: "离线评测证据：已接受",
+    detail: "12 个确定性合成任务，已从规范报告重新验证。",
     suiteId: snapshot.suite_id,
     profile: snapshot.profile,
     reportHash: snapshot.report_sha256,
     snapshotHash: snapshot.snapshot_sha256,
-    acceptedLabel: snapshot.accepted ? "accepted" : "not accepted",
-    determinismLabel: snapshot.repeated_baseline_equal ? "repeated baselines equal" : "not equal",
+    acceptedLabel: snapshot.accepted ? "已接受（accepted）" : "未接受（not accepted）",
+    determinismLabel: snapshot.repeated_baseline_equal ? "重复基线一致" : "重复基线不一致",
     counts: {
       total: snapshot.task_count,
       passed: snapshot.passed_task_count,
       failed: snapshot.failed_task_count,
       unscored: snapshot.unscored_task_count,
     },
-    capabilityLabels: ["Replay-only", "offline", "no network", "no model", "no external write"],
+    capabilityLabels: ["仅 Replay", "离线", "无网络", "无模型", "无外部写入"],
     tasks: snapshot.tasks.map(taskSummary),
     selectedTask: taskDetail(selected),
     unsupportedMetrics: [
-      "Latency: unavailable — offline fixture scope",
-      "Tokens and cost: unavailable — no model invocation",
-      "Live-run variance: unavailable — no live runs",
-      "Customer receipt: out of scope",
-      "Incident resolution: out of scope",
+      "时延：不可用——离线 fixture 范围内不产生该指标",
+      "Token 与成本：不可用——未调用模型",
+      "实时运行方差：不可用——没有实时运行",
+      "客户签收：不在范围内",
+      "事件解决：不在范围内",
     ],
   };
 }

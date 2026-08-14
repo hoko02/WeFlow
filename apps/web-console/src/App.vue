@@ -37,7 +37,7 @@ type FoundationCapabilities = JsonObject & {
 };
 
 const status = ref<"checking" | "ready" | "not-ready">("checking");
-const message = ref("Checking the local Platform API fixture-control endpoint.");
+const message = ref("正在检查本地 Platform API fixture 控制端点。");
 const capabilities = ref<FoundationCapabilities | null>(null);
 const renderedStatus = ref<RenderedFoundationStatus | null>(null);
 const evaluationState = ref<EvaluationSurfaceState>({ status: "loading" });
@@ -75,7 +75,7 @@ onMounted(async () => {
     }
   } catch {
     status.value = "not-ready";
-    message.value = "Platform API is not running. Start the local services with scripts/dev.py up --mode offline.";
+    message.value = "Platform API 尚未运行。请使用 scripts/dev.py up --mode offline 启动本地服务。";
   }
   evaluationState.value = await evaluationRequest;
   if (evaluationState.value.status === "ready") {
@@ -99,101 +99,101 @@ onMounted(async () => {
 <template>
   <main class="shell">
     <section class="hero">
-      <p class="eyebrow">WeFlow / Offline Operator Evidence</p>
-      <h1>Operator Case &amp; Evaluation Console</h1>
-      <p>This local console presents one source-linked API-503 Case timeline and a revalidated 12-task Replay benchmark beside foundation readiness. It never treats fixture delivery as a provider send, customer receipt, incident resolution, completion, or authorization.</p>
+      <p class="eyebrow">WEFLOW / 离线运营证据</p>
+      <h1>运营案例与评测控制台</h1>
+      <p>此本地控制台展示一条源记录关联的 API-503 案例时间线、重新验证的 12 项 Replay 基准，以及基础设施就绪状态。它不会将 fixture 投递记录视为真实提供方发送、客户签收、事件解决、完成或授权。</p>
     </section>
 
     <section class="status" :data-status="status">
-      <h2>{{ renderedStatus?.headline ?? `Operational status: ${status}` }}</h2>
+      <h2>{{ renderedStatus?.headline ?? `运行状态：${status === "checking" ? "检查中" : "未就绪"}` }}</h2>
       <p>{{ message }}</p>
-      <p v-if="renderedStatus">Mode: {{ renderedStatus.mode }}</p>
+      <p v-if="renderedStatus">运行模式：{{ renderedStatus.modeLabel }}</p>
       <p v-if="renderedStatus?.policyDenial">
-        Provider/configuration denial: {{ renderedStatus.policyDenial.capability }} ({{ renderedStatus.policyDenial.reasonCode }})
+        提供方/配置能力被拒绝：{{ renderedStatus.policyDenial.capability }}（{{ renderedStatus.policyDenial.reasonCode }}）
       </p>
       <dl v-if="capabilities">
         <div>
-          <dt>Business workflow implemented</dt>
-          <dd>{{ capabilities.business_workflow_implemented ? "yes" : "no" }}</dd>
+          <dt>业务工作流已实现</dt>
+          <dd>{{ capabilities.business_workflow_implemented ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>External writes enabled</dt>
-          <dd>{{ capabilities.external_writes_enabled ? "yes" : "no" }}</dd>
+          <dt>已启用外部写入</dt>
+          <dd>{{ capabilities.external_writes_enabled ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Synthetic Case intake implemented</dt>
-          <dd>{{ capabilities.synthetic_case_intake_implemented ? "yes" : "no" }}</dd>
+          <dt>合成案例接入已实现</dt>
+          <dd>{{ capabilities.synthetic_case_intake_implemented ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Fixture-local durable workflow implemented</dt>
-          <dd>{{ capabilities.durable_support_workflow_implemented ? "yes" : "no" }}</dd>
+          <dt>fixture-local 持久化工作流已实现</dt>
+          <dd>{{ capabilities.durable_support_workflow_implemented ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Replay investigation Agent implemented</dt>
-          <dd>{{ capabilities.replay_investigation_agent_implemented ? "yes" : "no" }}</dd>
+          <dt>Replay 调查 Agent 已实现</dt>
+          <dd>{{ capabilities.replay_investigation_agent_implemented ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Response-candidate verifier implemented</dt>
-          <dd>{{ capabilities.response_candidate_verification_implemented ? "yes" : "no" }}</dd>
+          <dt>回复候选验证器已实现</dt>
+          <dd>{{ capabilities.response_candidate_verification_implemented ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Live provider enabled</dt>
-          <dd>{{ capabilities.real_provider_enabled ? "yes" : "no" }}</dd>
+          <dt>已启用实时提供方</dt>
+          <dd>{{ capabilities.real_provider_enabled ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Fixture policy/approval/delivery implemented</dt>
-          <dd>{{ capabilities.fixture_policy_approval_delivery_implemented ? "yes" : "no" }}</dd>
+          <dt>fixture 策略/审批/投递已实现</dt>
+          <dd>{{ capabilities.fixture_policy_approval_delivery_implemented ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Fixture approval and local delivery enabled</dt>
-          <dd>{{ (capabilities.fixture_approval_enabled && capabilities.fixture_outbound_delivery_enabled) ? "yes" : "no" }}</dd>
+          <dt>已启用 fixture 审批和本地投递</dt>
+          <dd>{{ (capabilities.fixture_approval_enabled && capabilities.fixture_outbound_delivery_enabled) ? "是" : "否" }}</dd>
         </div>
         <div>
-          <dt>Live approval, live delivery, or customer resolution enabled</dt>
-          <dd>{{ (capabilities.live_approval_enabled || capabilities.live_outbound_delivery_enabled || capabilities.customer_resolution_enabled) ? "yes" : "no" }}</dd>
+          <dt>已启用实时审批、实时投递或客户问题解决</dt>
+          <dd>{{ (capabilities.live_approval_enabled || capabilities.live_outbound_delivery_enabled || capabilities.customer_resolution_enabled) ? "是" : "否" }}</dd>
         </div>
       </dl>
     </section>
 
     <section class="operator-case" :data-status="operatorCase.status">
-      <p class="eyebrow">Operator Case / Offline synthetic evidence</p>
+      <p class="eyebrow">运营案例 / 离线合成证据</p>
       <h2>{{ operatorCase.headline }}</h2>
       <p>{{ operatorCase.detail }}</p>
 
       <template v-if="operatorCase.status === 'ready'">
         <dl class="operator-meta">
           <div>
-            <dt>Fixture</dt>
+            <dt>测试数据（fixture）</dt>
             <dd>{{ operatorCase.fixtureId }}</dd>
           </div>
           <div>
-            <dt>Current fixture state</dt>
+            <dt>当前 fixture 状态</dt>
             <dd>{{ operatorCase.currentStateLabel }}</dd>
           </div>
           <div class="hash-row">
-            <dt>Case / revision</dt>
+            <dt>案例 / 修订</dt>
             <dd><code>{{ operatorCase.caseId }} / {{ operatorCase.revisionId }} (r{{ operatorCase.revision }})</code></dd>
           </div>
           <div class="hash-row">
-            <dt>Workflow</dt>
+            <dt>工作流</dt>
             <dd><code>{{ operatorCase.workflowId }} (v{{ operatorCase.workflowVersion }})</code></dd>
           </div>
           <div class="hash-row">
-            <dt>Snapshot / source report hash</dt>
+            <dt>快照 / 源报告哈希</dt>
             <dd><code>{{ operatorCase.snapshotHash }} / {{ operatorCase.reportHash }}</code></dd>
           </div>
           <div class="hash-row">
-            <dt>Evidence root / Replay result</dt>
+            <dt>证据根 / Replay 结果</dt>
             <dd><code>{{ operatorCase.evidenceRoot }} / {{ operatorCase.replayHash }}</code></dd>
           </div>
         </dl>
 
-        <div class="capability-badges" aria-label="Operator Case capability boundaries">
+        <div class="capability-badges" aria-label="运营案例能力边界">
           <span v-for="label in operatorCase.capabilityLabels" :key="label">{{ label }}</span>
         </div>
 
         <div class="operator-grid">
-          <nav class="timeline-list" aria-label="API-503 source-linked Case timeline">
+          <nav class="timeline-list" aria-label="API-503 源记录关联案例时间线">
             <button
               v-for="entry in operatorCase.timeline"
               :key="entry.entryId"
@@ -202,50 +202,50 @@ onMounted(async () => {
               @click="selectOperatorEntry(entry.entryId)"
             >
               <span><strong>{{ entry.sequence }}</strong> · {{ entry.phase }} / {{ entry.sourceKind }}</span>
-              <small>{{ entry.transitionLabel }} · gate {{ entry.gateLabel }} · recovery {{ entry.recoveryLabel }}</small>
+              <small>{{ entry.transitionLabel }} · 门禁 {{ entry.gateLabel }} · 恢复 {{ entry.recoveryLabel }}</small>
             </button>
           </nav>
 
           <article class="operator-detail">
-            <p class="eyebrow">Selected source-linked entry</p>
+            <p class="eyebrow">选中的源记录关联条目</p>
             <h3>{{ operatorCase.selectedEntry.phase }} / {{ operatorCase.selectedEntry.sourceKind }}</h3>
             <p>{{ operatorCase.selectedEntry.transitionLabel }} · {{ operatorCase.selectedEntry.result }}</p>
             <dl>
               <div>
-                <dt>Sequence</dt>
+                <dt>序号</dt>
                 <dd>{{ operatorCase.selectedEntry.sequence }}</dd>
               </div>
               <div class="hash-row">
-                <dt>Entry identity</dt>
+                <dt>条目 ID</dt>
                 <dd><code>{{ operatorCase.selectedEntry.entryId }}</code></dd>
               </div>
               <div class="hash-row">
-                <dt>Source identity</dt>
+                <dt>源记录 ID</dt>
                 <dd><code>{{ operatorCase.selectedEntry.sourceId }}</code></dd>
               </div>
               <div class="hash-row">
-                <dt>Source hash</dt>
+                <dt>源记录哈希</dt>
                 <dd><code>{{ operatorCase.selectedEntry.sourceHash }}</code></dd>
               </div>
               <div>
-                <dt>Classification</dt>
+                <dt>分类</dt>
                 <dd>{{ operatorCase.selectedEntry.classification }}</dd>
               </div>
               <div>
-                <dt>Observation / result</dt>
+                <dt>观测值 / 结果</dt>
                 <dd>{{ operatorCase.selectedEntry.observation }} / {{ operatorCase.selectedEntry.result }}</dd>
               </div>
               <div>
-                <dt>Gate / recovery</dt>
+                <dt>门禁 / 恢复</dt>
                 <dd>{{ operatorCase.selectedEntry.gateLabel }} / {{ operatorCase.selectedEntry.recoveryLabel }}</dd>
               </div>
               <div>
-                <dt>Reason code</dt>
+                <dt>原因码</dt>
                 <dd>{{ operatorCase.selectedEntry.reasonCode }}</dd>
               </div>
             </dl>
 
-            <h4>Bounded source counts</h4>
+            <h4>受限源记录计数</h4>
             <ul class="evidence-list">
               <li v-for="count in operatorCase.countLabels" :key="count.label">
                 <strong>{{ count.label }}</strong>: {{ count.value }}
@@ -255,7 +255,7 @@ onMounted(async () => {
         </div>
 
         <aside class="unsupported operator-limits">
-          <h3>Explicit capability limits</h3>
+          <h3>明确的能力限制</h3>
           <ul>
             <li v-for="limit in operatorCase.limitations" :key="limit">{{ limit }}</li>
           </ul>
@@ -270,37 +270,37 @@ onMounted(async () => {
       <template v-if="evaluation.status === 'ready'">
         <dl class="suite-meta">
           <div>
-            <dt>Suite / profile</dt>
+            <dt>评测套件 / 配置</dt>
             <dd>{{ evaluation.suiteId }} / {{ evaluation.profile }}</dd>
           </div>
           <div>
-            <dt>Acceptance</dt>
+            <dt>验收</dt>
             <dd>{{ evaluation.acceptedLabel }}</dd>
           </div>
           <div>
-            <dt>Determinism</dt>
+            <dt>确定性</dt>
             <dd>{{ evaluation.determinismLabel }}</dd>
           </div>
           <div>
-            <dt>Results</dt>
-            <dd>{{ evaluation.counts.passed }} passed · {{ evaluation.counts.failed }} failed · {{ evaluation.counts.unscored }} unscored / {{ evaluation.counts.total }}</dd>
+            <dt>结果</dt>
+            <dd>{{ evaluation.counts.passed }} 通过 · {{ evaluation.counts.failed }} 失败 · {{ evaluation.counts.unscored }} 未评分 / {{ evaluation.counts.total }}</dd>
           </div>
           <div class="hash-row">
-            <dt>Report hash</dt>
+            <dt>报告哈希</dt>
             <dd><code>{{ evaluation.reportHash }}</code></dd>
           </div>
           <div class="hash-row">
-            <dt>Snapshot hash</dt>
+            <dt>快照哈希</dt>
             <dd><code>{{ evaluation.snapshotHash }}</code></dd>
           </div>
         </dl>
 
-        <div class="capability-badges" aria-label="Evaluation capability boundaries">
+        <div class="capability-badges" aria-label="评测能力边界">
           <span v-for="label in evaluation.capabilityLabels" :key="label">{{ label }}</span>
         </div>
 
         <div class="evaluation-grid">
-          <nav class="task-list" aria-label="Offline evaluation tasks">
+          <nav class="task-list" aria-label="离线评测任务">
             <button
               v-for="task in evaluation.tasks"
               :key="task.evaluationTaskId"
@@ -309,71 +309,71 @@ onMounted(async () => {
               @click="selectEvaluationTask(task.evaluationTaskId)"
             >
               <span>{{ task.evaluationTaskId }}</span>
-              <small>{{ task.result }} · gate {{ task.hardGateLabel }}</small>
+              <small>{{ task.result }} · 门禁 {{ task.hardGateLabel }}</small>
             </button>
           </nav>
 
           <article class="task-detail">
-            <p class="eyebrow">Selected task</p>
+            <p class="eyebrow">选中的任务</p>
             <h3>{{ evaluation.selectedTask.evaluationTaskId }}</h3>
             <p>
               {{ evaluation.selectedTask.state }} → {{ evaluation.selectedTask.outcome }} ·
-              quality {{ evaluation.selectedTask.qualityLabel }}
+              质量 {{ evaluation.selectedTask.qualityLabel }}
             </p>
             <dl>
               <div>
-                <dt>Fixture</dt>
+                <dt>测试数据（fixture）</dt>
                 <dd>{{ evaluation.selectedTask.fixtureId }}</dd>
               </div>
               <div class="hash-row">
-                <dt>Safe source</dt>
+                <dt>安全源路径</dt>
                 <dd><code>{{ evaluation.selectedTask.fixtureSourcePath }}</code></dd>
               </div>
               <div class="hash-row">
-                <dt>Fixture / task hash</dt>
+                <dt>测试数据 / 任务哈希</dt>
                 <dd><code>{{ evaluation.selectedTask.fixtureHash }} / {{ evaluation.selectedTask.taskHash }}</code></dd>
               </div>
               <div>
-                <dt>Oracle</dt>
+                <dt>评分规则（Oracle）</dt>
                 <dd>{{ evaluation.selectedTask.oracleId }}</dd>
               </div>
               <div class="hash-row">
-                <dt>Oracle hash</dt>
+                <dt>评分规则哈希</dt>
                 <dd><code>{{ evaluation.selectedTask.oracleHash }}</code></dd>
               </div>
               <div class="hash-row">
-                <dt>Evaluation result</dt>
+                <dt>评测结果</dt>
                 <dd><code>{{ evaluation.selectedTask.evaluationResultId }}</code></dd>
               </div>
               <div>
-                <dt>Failure classification</dt>
+                <dt>失败分类</dt>
                 <dd>{{ evaluation.selectedTask.failureClassification }}</dd>
               </div>
               <div>
-                <dt>Evidence / approval</dt>
+                <dt>证据 / 审批</dt>
                 <dd>{{ evaluation.selectedTask.evidenceLabel }} / {{ evaluation.selectedTask.approvalLabel }}</dd>
               </div>
               <div>
-                <dt>Local effect</dt>
+                <dt>本地副作用</dt>
                 <dd>{{ evaluation.selectedTask.localEffectLabel }}</dd>
               </div>
             </dl>
 
-            <h4>Hard gates</h4>
+            <h4>硬门禁</h4>
             <ul class="evidence-list">
               <li v-for="gate in evaluation.selectedTask.gates" :key="gate.name">
                 <strong>{{ gate.name }}</strong>: {{ gate.status }} ({{ gate.reasonCode }})
               </li>
             </ul>
 
-            <h4>Quality dimensions</h4>
+            <h4>质量维度</h4>
             <ul class="evidence-list">
               <li v-for="dimension in evaluation.selectedTask.dimensions" :key="dimension.name">
                 <strong>{{ dimension.name }}</strong>: {{ dimension.score }}/100
               </li>
             </ul>
 
-            <h4>Offline counters</h4>
+            <h4>离线计数器</h4>
             <ul class="evidence-list">
               <li v-for="counter in evaluation.selectedTask.counters" :key="counter.label">
                 <strong>{{ counter.label }}</strong>: {{ counter.value }}
@@ -383,7 +383,7 @@ onMounted(async () => {
         </div>
 
         <aside class="unsupported">
-          <h3>Unsupported live and customer metrics</h3>
+          <h3>不支持的实时与客户指标</h3>
           <ul>
             <li v-for="metric in evaluation.unsupportedMetrics" :key="metric">{{ metric }}</li>
           </ul>
@@ -392,13 +392,13 @@ onMounted(async () => {
     </section>
 
     <section class="limits">
-      <h2>Verified local limits</h2>
+      <h2>已验证的本地限制</h2>
       <ul>
-        <li>Exactly one deterministic Replay Agent may use checked-in API-503 fixtures.</li>
-        <li>Only CRM, monitoring, and knowledge fixture reads can produce redacted evidence hashes.</li>
-        <li>The deterministic verifier may advance to RESPONSE_READY; only an explicit, hash-bound fixture activation may continue to approval.</li>
-        <li>One fixture-local adapter can record an idempotent local delivery after policy and approval; it is not a network call or customer-success claim.</li>
-        <li>Live providers, credentials, multi-Agent coordination, real approval, real delivery, external writes, and customer resolution remain disabled.</li>
+        <li>仅一个确定性 Replay Agent 可使用已检入的 API-503 fixture。</li>
+        <li>只有 CRM、监控和知识库 fixture 的只读查询可以生成脱敏证据哈希。</li>
+        <li>确定性验证器最多推进到 RESPONSE_READY；只有显式且哈希绑定的 fixture 激活才可继续进入审批。</li>
+        <li>一个 fixture-local 适配器可在策略和审批后记录幂等本地投递；它不是网络调用，也不代表客户成功。</li>
+        <li>实时提供方、凭据、多 Agent 协作、真实审批、真实投递、外部写入和客户问题解决仍保持禁用。</li>
       </ul>
     </section>
   </main>
@@ -408,7 +408,7 @@ onMounted(async () => {
 :root {
   color: #e8edf8;
   background: #101827;
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: Inter, "Microsoft YaHei", "Segoe UI", sans-serif;
 }
 
 body {
